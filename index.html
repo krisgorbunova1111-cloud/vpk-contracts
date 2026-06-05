@@ -970,6 +970,12 @@ function openDetail(id){
   currentDetailId=id;
   document.getElementById('detail-title').textContent='Договор: '+c.number;
   var html='<div class="info-grid">';
+  if(c.subject){
+    html+='<div style="margin-bottom:14px">'+
+      '<div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">Предмет договора</div>'+
+      '<div style="background:#eff6ff;border-left:3px solid #3b82f6;border-radius:0 8px 8px 0;padding:10px 14px;font-size:13px;color:#1e293b;line-height:1.5">'+esc(c.subject)+'</div>'+
+    '</div>';
+  }
   var fields=[
     ['Объект',c.object],['Подрядчик',c.contractor],
     ['ИНН',c.inn],['Телефон',c.phone],
@@ -988,12 +994,6 @@ function openDetail(id){
     html+='<div class="info-item"><div class="i-label">'+esc(f[0])+'</div><div class="i-value">'+val+'</div></div>';
   });
   html+='</div>';
-  if(c.subject){
-    html+='<div style="margin-bottom:10px">'+
-      '<div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">Предмет договора</div>'+
-      '<div style="background:#eff6ff;border-left:3px solid #3b82f6;border-radius:0 8px 8px 0;padding:10px 14px;font-size:13px;color:#1e293b;line-height:1.5">'+esc(c.subject)+'</div>'+
-    '</div>';
-  }
   if(c.comment){
     html+='<div style="background:#f8fafc;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#475569">'+esc(c.comment)+'</div>';
   }
