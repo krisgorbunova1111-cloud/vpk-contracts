@@ -555,27 +555,18 @@ body:not(.authenticated) .auth-only{display:none!important}
 
     <!-- TAB: Objects -->
     <div id="analytics-tab-objects">
-      <div id="obj-list-wrap">
-        <div class="table-wrap">
-          <table><thead><tr>
-            <th class="sortable" onclick="sortAnalytics('object')">Объект ↕</th>
-            <th class="sortable" onclick="sortAnalytics('count')">Договоров ↕</th>
-            <th class="sortable" onclick="sortAnalytics('amount')">Сумма (план) ↕</th>
-            <th class="sortable" onclick="sortAnalytics('paid')">Оплачено ↕</th>
-            <th class="sortable" onclick="sortAnalytics('remainder')">Остаток ↕</th>
-            <th class="sortable" onclick="sortAnalytics('pct')">% выполнения ↕</th>
-          </tr></thead>
-          <tbody id="analytics-tbody" class="analytics-table"></tbody>
-          <tfoot><tr id="analytics-tfoot" style="background:#f8fafc;font-weight:700"></tr></tfoot>
-        </table></div>
-      </div>
-      <div id="obj-detail-wrap" style="display:none">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
-          <button class="btn btn-ghost btn-sm" onclick="closeObjectDetail()">← Назад</button>
-          <span id="obj-detail-breadcrumb" style="font-size:14px;color:#94a3b8;font-weight:500"></span>
-        </div>
-        <div id="obj-detail-body"></div>
-      </div>
+      <div class="table-wrap">
+        <table><thead><tr>
+          <th class="sortable" onclick="sortAnalytics('object')">Объект ↕</th>
+          <th class="sortable" onclick="sortAnalytics('count')">Договоров ↕</th>
+          <th class="sortable" onclick="sortAnalytics('amount')">Сумма (план) ↕</th>
+          <th class="sortable" onclick="sortAnalytics('paid')">Оплачено ↕</th>
+          <th class="sortable" onclick="sortAnalytics('remainder')">Остаток ↕</th>
+          <th class="sortable" onclick="sortAnalytics('pct')">% выполнения ↕</th>
+        </tr></thead>
+        <tbody id="analytics-tbody" class="analytics-table"></tbody>
+        <tfoot><tr id="analytics-tfoot" style="background:#f8fafc;font-weight:700"></tr></tfoot>
+      </table></div>
     </div>
 
     <!-- TAB: Contractors -->
@@ -801,10 +792,6 @@ function showSection(name,el){
   if(el)el.classList.add('active');
   if(name==='payments')populatePaymentFilters();
   if(name==='contractors')renderContractors();
-  if(name==='analytics'){
-    document.getElementById('obj-detail-wrap').style.display='none';
-    document.getElementById('obj-list-wrap').style.display='';
-  }
 }
 
 // POPULATE FILTERS
@@ -1744,12 +1731,12 @@ function renderAnalytics(){
 
   var html='';
   rows.forEach(function(r){
-    html+='<tr class="clickable" data-obj="'+esc(r.object)+'" onclick="openObjectDetail(this.dataset.obj)">'+
-      '<td style="font-weight:600;color:#3b82f6">'+esc(r.object)+'</td>'+
+    html+='<tr>'+
+      '<td>'+esc(r.object)+'</td>'+
       '<td>'+r.count+'</td>'+
       '<td>'+fmt(r.amount)+'</td>'+
-      '<td style="color:#16a34a;font-weight:600">'+fmt(r.paid)+'</td>'+
-      '<td style="color:#d97706;font-weight:600">'+fmt(r.remainder)+'</td>'+
+      '<td>'+fmt(r.paid)+'</td>'+
+      '<td>'+fmt(r.remainder)+'</td>'+
       '<td><div class="prog-cell"><div class="mini-bar"><div class="mini-bar-fill" style="width:'+r.pct+'%"></div></div><span style="font-size:12px;font-weight:700;min-width:36px">'+r.pct+'%</span></div></td>'+
     '</tr>';
   });
@@ -1771,74 +1758,6 @@ function sortAnalytics(col){
   renderAnalytics();
 }
 
-function openObjectDetail(objName){
-  var objContracts=contracts.filter(function(c){
-    return isContractActive(c)&&(c.object||'Не указан')===objName;
-  });
-  var totalAmt=0,totalPaid=0,totalRem=0;
-  objContracts.forEach(function(c){
-    totalAmt+=parseFloat(c.amount)||0;
-    (c.payments||[]).forEach(function(p){var pr=calcPaidRem(p);totalPaid+=pr.paid;totalRem+=pr.rem;});
-  });
-  var pct=totalPaid+totalRem>0?Math.round(totalPaid/(totalPaid+totalRem)*100):0;
-
-  var ctSet={};
-  objContracts.forEach(function(c){if(c.contractor)ctSet[c.contractor]=true;});
-  var ctList=Object.keys(ctSet);
-
-  var rowsHtml='';
-  objContracts.forEach(function(c){
-    var cPaid=0,cRem=0;
-    (c.payments||[]).forEach(function(p){var pr=calcPaidRem(p);cPaid+=pr.paid;cRem+=pr.rem;});
-    var cPct=cPaid+cRem>0?Math.round(cPaid/(cPaid+cRem)*100):0;
-    rowsHtml+='<tr class="clickable" onclick="openDetail(\''+esc(c.id)+'\')">'+
-      '<td style="font-weight:600">'+esc(c.number||'—')+'</td>'+
-      '<td>'+esc(c.contractor||'—')+'</td>'+
-      '<td>'+fmt(parseFloat(c.amount)||0)+'</td>'+
-      '<td style="color:#16a34a;font-weight:600">'+fmt(cPaid)+'</td>'+
-      '<td style="color:#d97706;font-weight:600">'+fmt(cRem)+'</td>'+
-      '<td><div class="prog-cell"><div class="mini-bar"><div class="mini-bar-fill" style="width:'+cPct+'%"></div></div><span style="font-size:12px;font-weight:700">'+cPct+'%</span></div></td>'+
-      '<td>'+statusBadge(c.sign_status||'')+'</td>'+
-    '</tr>';
-  });
-
-  var color=ctAvatarColor(objName);
-  var initials=(objName||'?').slice(0,2).toUpperCase();
-
-  document.getElementById('obj-detail-breadcrumb').textContent='Объекты / '+objName;
-  document.getElementById('obj-detail-body').innerHTML=
-    '<div class="ct-profile-header">'+
-      '<div class="ct-avatar" style="background:'+color+'">'+initials+'</div>'+
-      '<div style="flex:1;min-width:0">'+
-        '<div class="ct-profile-name">'+esc(objName)+'</div>'+
-        (ctList.length?'<div class="ct-profile-meta"><span class="ct-meta-item">👷 '+ctList.map(esc).join(' · ')+'</span></div>':'')+
-      '</div>'+
-    '</div>'+
-    '<div class="ct-summary-cards">'+
-      '<div class="ct-stat-card"><div class="ct-stat-label">Договоров</div><div class="ct-stat-val blue">'+objContracts.length+'</div></div>'+
-      '<div class="ct-stat-card"><div class="ct-stat-label">Сумма договоров</div><div class="ct-stat-val">'+fmt(totalAmt)+'</div></div>'+
-      '<div class="ct-stat-card"><div class="ct-stat-label">Оплачено</div><div class="ct-stat-val green">'+fmt(totalPaid)+'</div></div>'+
-      '<div class="ct-stat-card"><div class="ct-stat-label">Остаток</div><div class="ct-stat-val orange">'+fmt(totalRem)+'</div></div>'+
-    '</div>'+
-    '<div class="ct-prog-wrap">'+
-      '<div class="ct-prog-row"><span>Прогресс оплат</span><span style="font-weight:700">'+pct+'%</span></div>'+
-      '<div class="ct-prog-bar"><div class="ct-prog-fill" style="width:'+pct+'%"></div></div>'+
-    '</div>'+
-    (rowsHtml
-      ?'<div class="table-wrap"><table><thead><tr>'+
-          '<th>№ Договора</th><th>Подрядчик</th><th>Сумма</th><th>Оплачено</th><th>Остаток</th><th>%</th><th>Статус подписания</th>'+
-        '</tr></thead><tbody>'+rowsHtml+'</tbody></table></div>'
-      :'<div style="text-align:center;padding:32px;color:#94a3b8;background:#fff;border-radius:12px">Договоры не найдены</div>');
-
-  document.getElementById('obj-list-wrap').style.display='none';
-  document.getElementById('obj-detail-wrap').style.display='';
-}
-
-function closeObjectDetail(){
-  document.getElementById('obj-detail-wrap').style.display='none';
-  document.getElementById('obj-list-wrap').style.display='';
-}
-
 // ANALYTICS TAB SWITCH
 function switchAnalyticsTab(tab){
   var isObj=tab==='objects';
@@ -1846,10 +1765,6 @@ function switchAnalyticsTab(tab){
   document.getElementById('analytics-tab-contractors').style.display=isObj?'none':'';
   document.getElementById('atab-objects').classList.toggle('active',isObj);
   document.getElementById('atab-contractors').classList.toggle('active',!isObj);
-  if(isObj){
-    document.getElementById('obj-detail-wrap').style.display='none';
-    document.getElementById('obj-list-wrap').style.display='';
-  }
 }
 
 // ANALYTICS BY CONTRACTORS
