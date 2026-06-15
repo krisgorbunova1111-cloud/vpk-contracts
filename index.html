@@ -129,6 +129,11 @@ input,select,textarea{font-family:inherit}
 .pay-row-del{background:none;border:none;color:#dc2626;font-size:16px;cursor:pointer;padding:2px 6px;border-radius:4px;opacity:.6}
 .pay-row-del:hover{opacity:1;background:#fee2e2}
 
+/* DS ROWS IN EDIT */
+.ds-row{display:grid;grid-template-columns:1fr 1fr 2fr 1.2fr 1.4fr 1.5fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #f1f5f9}
+.ds-row input,.ds-row select{border:1px solid #e2e8f0;border-radius:6px;padding:6px 8px;font-size:12px;width:100%}
+.ds-rows-header{display:grid;grid-template-columns:1fr 1fr 2fr 1.2fr 1.4fr 1.5fr auto;gap:8px;padding:4px 0 8px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase}
+
 /* PAYMENT GROUP HEADER */
 tr.pay-group-header td{background:#f1f5f9;padding:8px 14px;border-top:2px solid #e2e8f0;border-bottom:1px solid #e2e8f0}
 .pgr-number{font-weight:700;font-size:13px;color:#0f172a;margin-right:12px}
@@ -641,6 +646,7 @@ const OBJECTS=['Академия детства','Луганская спец ш
 const WORKFLOW_STATUSES=['Активный','Сбор данных','У юриста','У подрядчика','Ожидание счета','Закрыт'];
 const SIGN_STATUSES=['Подписан','На согласовании в Тех депе','На согласовании у заказчика','На согласовании у подрядчика','Не подписан','Договор аннулирован из-за смены ИП','Расторжение'];
 const PAY_STATUSES=['Оплачен','Оплачен частично','Ожидается'];
+const DS_STATUSES=['Подписан','На согласовании','Отклонён'];
 const CONTRACTORS_INIT=[{"id": "1", "name": "ИП Доценко Николай Николаевич", "inn": "616709658474", "kpp": "-", "ogrn": "323619600250332", "address": "344103, Россия, Ростовская область,  г. Ростов-на-Дону, ул. Благодатная, д.166/43 кв.57", "director": "Доценко Николай Николаевич", "phone": "8 905 430-79-31", "email": "nn_cod@mail.ru", "bank": "ЮГО-ЗАПАДНЫЙ БАНК ПАО СБЕРБАНК", "rs": "40802810752090081973", "ks": "30101810600000000602", "bik": "46015602", "status": "Активный", "notes": ""}, {"id": "2", "name": "Картатшова Анна", "inn": "362806962437", "kpp": "-", "ogrn": "-", "address": "Россия, Воронежская обл., Нижнедевицкий р-н, с.Нижнедевицк, ул.Почтовая, д.50, кв.7", "director": "Карташова Анна Александровна", "phone": "8 951 867 22 03", "email": "KartashovaAnna92@yandex.ru", "bank": "В ПАО Сбербанк", "rs": "40817 810 4 1300 8065391", "ks": "30101 810 6 0000 0000681", "bik": "42007681", "status": "Активный", "notes": ""}, {"id": "3", "name": "Ляпко Игорь", "inn": "237100227203", "kpp": "-", "ogrn": "-", "address": "Краснодарский край,  Кущёвский район, с. Красная Поляна, ул. Мира, 19, корп. А", "director": "Ляпко Игорь Валерьевич", "phone": "8 938 147-92-97", "email": "zloy1653@mail.ru", "bank": "ЮГО-ЗАПАДНЫЙ БАНК  ПАО СБЕРБАНК", "rs": "40817810352221204749", "ks": "30101810600000000602", "bik": "46015602", "status": "Активный", "notes": ""}, {"id": "4", "name": "Щекина Ю.А.", "inn": "234607462054", "kpp": "-", "ogrn": "-", "address": "Россия, r. Ростов-на-Дону, ул Шеболдаева, дом 95, стр. 1. кв 221", "director": "Щекина Юлия Александровна", "phone": "8 995 290 16 04", "email": "Lukashovaya@mail.ru", "bank": "АО «ТБанк»", "rs": "40817810000040339606", "ks": "30101810145250000974", "bik": "44525974", "status": "Активный", "notes": ""}, {"id": "5", "name": "ООО Эксперт-строй", "inn": "7714297624", "kpp": "771301001", "ogrn": "1037714010124", "address": "127287, г. Москва, Петровско-Разумовский проезд, д. 29, стр. 4, помещение 1/1", "director": "Виробян Эдгар Артурович", "phone": "8-495-978-28-55", "email": "expertstroiy@mail.ru", "bank": "АО «ТБанк»", "rs": "40702810910001606670", "ks": "30101810145250000974", "bik": "44525974", "status": "Активный", "notes": ""}, {"id": "6", "name": "Дядичко Яна", "inn": "610108396135", "kpp": "-", "ogrn": "-", "address": "Ростовская обл., Р-н Азовский,  п. Красный сад, ул. Мичурина, дом 17, кв. 4", "director": "Дядичко Яна Витальевна", "phone": "8 908 176 72 03", "email": "yanaskrynnik0207@gmail.ru", "bank": "ЮГО·ЗАПДДНЫЙ БАНК ПАО СБЕРБАНК", "rs": "408178101 5209 3479889", "ks": "30101810600000000602", "bik": "46015602", "status": "Активный", "notes": ""}, {"id": "7", "name": "Ускова Ольга", "inn": "644201627930", "kpp": "-", "ogrn": "-", "address": "Ростовская обл.,  р-н Семикаракорский, ст-ца Новозолотовская,  пер. Мирный, дом 33", "director": "Ускова Ольга Сергеевна", "phone": "8 908 195 94 36", "email": "uskova.olya2013@yandex.ru", "bank": "ЮГО·ЗАПАДНЫЙ БАНК ПАО СБЕРБАНК", "rs": "40817810452094137668", "ks": "30101810600000000602", "bik": "46015602", "status": "Активный", "notes": ""}, {"id": "8", "name": "ИП Богомозюк Дарья Олеговна", "inn": "233530534784", "kpp": "-", "ogrn": "319619600010642", "address": "г.Батайск, ул.Воровского, д.69, кв.123", "director": "Богомазюк Дарья Олеговна", "phone": "8 903 473 38 38", "email": "gor.d@list.ru", "bank": "Банке АО «ТБанк»", "rs": "40802810409500009195", "ks": "30101810745374525104", "bik": "44525104", "status": "Активный", "notes": ""}, {"id": "9", "name": "Тимченко Валентина", "inn": "616483750958", "kpp": "-", "ogrn": "-", "address": "г. Ростов -на-Дону, ул.Лермонтовская 11, кВ 108", "director": "Тимченко Валентина Алексеевна", "phone": "8 906 452 85 10", "email": "Valusha_92@mail.ru", "bank": "ЮГО·ЗАПАДНЫЙ БАНК ПАО СБЕРБАНК", "rs": "40817810052092864016", "ks": "30101810600000000602", "bik": "46015602", "status": "Активный", "notes": ""}, {"id": "10", "name": "Косилов Максим", "inn": "610304254730", "kpp": "-", "ogrn": "-", "address": "Ростовская область, Багаевский р-н, х. Елкин, ул. Подпольная, д. 14", "director": "Косилов Максим Сергеевич", "phone": "8 908 172 57 24", "email": "kosilov.engineer@gmail.com", "bank": "Филиал № 2351 Банка ВТБ (ПАО)", "rs": "40817810720054090422", "ks": "30101810703490000758", "bik": "40349758", "status": "Активный", "notes": ""}, {"id": "11", "name": "Гончар Виктория", "inn": "615010163863", "kpp": "-", "ogrn": "-", "address": "Ростовская обл., г.о. город Новочеркасск, г. Новочеркасск, ул. Смоленская, д. 39А", "director": "Гончар Виктория Вадимовна", "phone": "8 928 108 23 28", "email": "V.Gonchar89281082328@gmail.com", "bank": "ЮГО-ЗАПАДНЫЙ БАНК ПАО СБЕРБАНК", "rs": "40817810952099284016", "ks": "30101810600000000602", "bik": "46015602", "status": "Активный", "notes": ""}, {"id": "12", "name": "ИП Артамонов Александр", "inn": "890507756033", "kpp": "-", "ogrn": "325619600225369", "address": "Ростовская обл,  г. Ростов-на-Дону, Измаильский пер, д. 39А, стр. 3, кв. 252", "director": "Артамонов Александр Анатольевич", "phone": "8 928 760 28 33", "email": "wirrus@yandex.ru", "bank": "В ФИЛИАЛЕ \"ЦЕНТРАЛЬНЫЙ\" БАНКА ВТБ (ПАО)", "rs": "40802810100810207242", "ks": "30101810145250000411", "bik": "44525411", "status": "Активный", "notes": ""}, {"id": "13", "name": "ИП Мельникова Татьяна Сергеевна", "inn": "616609664717", "kpp": "-", "ogrn": "318619600230003", "address": "г. Ростов-на-Дону,  Бодрая, д.87а", "director": "Мельникова Татьяна Сергеевна", "phone": "8 989 704 34 39", "email": "pkf.lik@yandex.ru", "bank": "Филиале «Центральный» Банка ВТБ (ПАО)", "rs": "40802810000230004235", "ks": "30101810145250000411", "bik": "44525411", "status": "Активный", "notes": ""}, {"id": "14", "name": "ИП Дудкин Павел Олегович", "inn": "773323442679", "kpp": "-", "ogrn": "325774600714940", "address": "125310, Россия, г. Москва, ул. Муравская, д 38, корп 2, кв 585", "director": "Дудкин Павел Юрьевич", "phone": "8 963 048 49 41", "email": "askerovakris7@yandex.ru", "bank": "Банке АО «ТБанк»", "rs": "40802810600008827264", "ks": "30101810145250000974", "bik": "44525974", "status": "Черный список", "notes": ""}, {"id": "15", "name": "Нечитайло Родион", "inn": "710410553808", "kpp": "-", "ogrn": "-", "address": "346880, Ростовская обл., г. Батайск, ул. М. Горького, д.332", "director": "Нечитайло Родион Владимирович", "phone": "8-928-213-58-18", "email": "nechitaylo-r@mail.ru", "bank": "ЮГОꞏЗАПАДНЫЙ БАНК  ПАО СБЕРБАНК", "rs": "40817 810 4 5209 4326246", "ks": "30101 810 6 0000 0000602", "bik": "46015602", "status": "Активный", "notes": ""}, {"id": "16", "name": "ИП Чмовж Александр Александрович", "inn": "231297413637", "kpp": "-", "ogrn": "326237500108824", "address": "Краснодарский край, Краснодар, ул, Уральская, 13, кв. 136", "director": "Чмовж Артем Александрович", "phone": "8-964-902-75-13", "email": "chmovzh.aa@mail.ru", "bank": "ФИЛИАЛ \"РОСТОВСКИЙ\" АО \"АЛЬФА-БАНК\"", "rs": "40802810726250009290", "ks": "30101810500000000207", "bik": "46015207", "status": "Активный", "notes": ""}, {"id": "17", "name": "Афанасьев Константин", "inn": "61274027131", "kpp": "-", "ogrn": "-", "address": "Ростовская обл., г. Ростов-на-Дону, ул. Каменобродская 41", "director": "Афанасьев Константин Александрович", "phone": "8 908 175 00 38", "email": "geopod@yandex.ru", "bank": "Филиал № 2351 Банка ВТБ (публичное акционерное общество)", "rs": "40817810650054031632", "ks": "30101810703490000758", "bik": "40349758", "status": "Активный", "notes": ""}, {"id": "18", "name": "ИП Горбачев Василий", "inn": "236000382059", "kpp": "-", "ogrn": "318619600152946", "address": "344116, г. Ростов-на-Дону, ул. Кулагина, 19, кв. 37", "director": "Горбачев Василий Юрьевич", "phone": "8 989 704 34 39", "email": "161gv@mail.ru", "bank": "\"ЮГОꞏЗАПАДНЫЙ БАНК  ПАО СБЕРБАНК \"", "rs": "40802810252090021899", "ks": "30101810600000000602", "bik": "46015602", "status": "Активный", "notes": ""}, {"id": "19", "name": "Глебов Юрий Анатольевич", "inn": "616202373841", "kpp": "-", "ogrn": "-", "address": "Ростовская обл.,  г. Ростов-на-Дону, ул. Портовая, 176/9а", "director": "Глебов Юрий Анатольевич", "phone": "8 903 406 10 99", "email": "2561099@mail.ru", "bank": "АО «Тинькофф Банк»", "rs": "40817810900000767334", "ks": "30101810145250000974", "bik": "44525974", "status": "Активный", "notes": ""}, {"id": "20", "name": "Коломоец Петр", "inn": "614102539433", "kpp": "-", "ogrn": "-", "address": "346880, Ростовская область, г. Батайск, ул. Кирова 30, кв.50", "director": "Коломоец Петр Валентинович", "phone": "8 961 286 82 31", "email": "kpv84@inbox.ru", "bank": "ЮГО·ЗАПАДНЫЙ БАНК ПАО СБЕРБАНК", "rs": "40817810352280007835", "ks": "30101810600000000602", "bik": "46015602", "status": "Активный", "notes": ""}, {"id": "21", "name": "ИП Артамонов Александр", "inn": "890507756033", "kpp": "-", "ogrn": "325619600225369", "address": "344068, Россия, Ростовская обл,  г. Ростов-на-Дону, Измаильский пер, д. 39А, стр. 3, кв. 252", "director": "Артамонов Александр Анатольевич", "phone": "8 928 760 28 33", "email": "wirrus@yandex.ru", "bank": "В ФИЛИАЛЕ \"ЦЕНТРАЛЬНЫЙ\" БАНКА ВТБ (ПАО)", "rs": "40802810100810207242", "ks": "30101810145250000411", "bik": "44525411", "status": "Активный", "notes": ""}, {"id": "22", "name": "Кныш Инна Сергеевна", "inn": "614331906727", "kpp": "-", "ogrn": "-", "address": "Россия, Ростовская обл.,  г.о. город Батайск, г. Батайск, ул. Воровского,  д. 21, кв. 66", "director": "Кныш Инна Сергеевна", "phone": "8 995 377 1924", "email": "inna_knysh@rambler.ru", "bank": "АО «Тинькофф Банк»", "rs": "40817810500097559133", "ks": "30101810145250000974", "bik": "44525974", "status": "Активный", "notes": ""}, {"id": "23", "name": "Дикова Мая Олеговна", "inn": "610111033759", "kpp": "-", "ogrn": "-", "address": "Кулешовка, село, Азовский район, ул Кулагина 8, кв 45", "director": "Дикова Мая Олеговна", "phone": "8-928-769-19-61", "email": "maya.dickova@yandex.ru", "bank": "ЮГО-ЗАПАДНЫЙ БАНК ПАО СБЕРБАНК", "rs": "40817810552093558889", "ks": "30101810600000000602", "bik": "46015602", "status": "Активный", "notes": ""}, {"id": "24", "name": "Владимерец Жанна Викторовна", "inn": "611186223597", "kpp": "-", "ogrn": "-", "address": "Ростовская обл., г. Ростов-на-Дону, ул. Каменобродская 41", "director": "Владимерец Жанна Викторовна", "phone": "8-961-412-29-15", "email": "gamanta85@yandex.ru", "bank": "ЮГО·ЗАПАДНЫЙ БАНК ПАО СБЕРБАНК", "rs": "40817810752097162084", "ks": "30101810600000000602", "bik": "46015602", "status": "Активный", "notes": ""}, {"id": "25", "name": "Гладышев Сергей Юрьевич", "inn": "614211656899", "kpp": "-", "ogrn": "-", "address": "Ростовская обл.,  г. Ростов-на-Дону, ул. Ткачева, 21.", "director": "Гладышев Сергей Юрьевич", "phone": "8(989)500-62-68", "email": "gladyshev1993@inbox.ru", "bank": "ЮГО-ЗАПАДНЫЙ БАНК ПАО СБЕРБАНК", "rs": "40817810652098416677", "ks": "30101810600000000602", "bik": "46015602", "status": "Активный", "notes": ""}, {"id": "26", "name": "Роман Бовт", "inn": "614706335231", "kpp": "-", "ogrn": "-", "address": "Ростовская обл., г. Аксай, ул. Садовая, д. 24/2, кв. 80", "director": "Бовт Роман Тарасович", "phone": "8 903 463 07 07", "email": "Bovt_93@mail.ru", "bank": "ЮГО-ЗАПАДНЫЙ БАНК ПАО СБЕРБАНК", "rs": "40817810352093771840", "ks": "30101810600000000602", "bik": "46015602", "status": "Активный", "notes": ""}, {"id": "27", "name": "ИП Зеркин Алексей Сергеевич", "inn": "26704861401", "kpp": "-", "ogrn": "26704861401", "address": "453839, Республика Башкортостан,  Сибай, улица Чайковского, 12/1-27", "director": "Зеркин Алексей Сергеевич", "phone": "8 932-111-99-66", "email": "boss.alexwork@mail.ru", "bank": "АО «ТБанк» в г. Москва", "rs": "40802810500005920439", "ks": "30101810145250000974", "bik": "44525974", "status": "Активный", "notes": ""}, {"id": "28", "name": "Соколовская Ольга Борисовна", "inn": "616201120647", "kpp": "-", "ogrn": "-", "address": "Ростовская обл.,  г. Ростов-на-Дону, пр-кт Стачки, дом 37, кв. 25", "director": "Соколовская Ольга Борисовна", "phone": "8-928-769-82-45", "email": "oceand@mail.ru", "bank": "ЮГО·ЗАПАДНЫЙ БАНК ПАО СБЕРБАНК", "rs": "40817810252090706248", "ks": "30101810600000000602", "bik": "46015602", "status": "Активный", "notes": ""}, {"id": "29", "name": "Крошкина Екатерина Владимировна", "inn": "332603025510", "kpp": "-", "ogrn": "-", "address": "Владимирская область, г. Владимир, пр-кт Строителей, д. 32, кв. 10", "director": "Крошкина Екатерина Владимировна", "phone": "8 920 627 75-77", "email": "katrina_2008@mail.ru", "bank": "ВЛАДИМИРСКОЕ ОТДЕЛЕНИЕ №8611 ПАО СБЕРБАНК", "rs": "40817 810 5 1004 0902051", "ks": "30101 810 0 0000 0000602", "bik": "41708602", "status": "Активный", "notes": ""}, {"id": "30", "name": "Костышина Елена Николаевна", "inn": "753613616010", "kpp": "-", "ogrn": "-", "address": "Тюменская область, г. Тюмень, ул. 50 лет Октября, д. 75, к.2, кв. 47", "director": "Костышина Елена Николаевна", "phone": "8 909 184 26 40", "email": "elena_kostyshina@mail.ru", "bank": "ООО «ОЗОН Банк»", "rs": "40817 810 2 0001 6498043", "ks": "30101 810 6 4537 4525068", "bik": "44525068", "status": "Активный", "notes": ""}, {"id": "31", "name": "Булычев Петр Алексеевич", "inn": "784201371027", "kpp": "-", "ogrn": "-", "address": "г. Санкт-Петербург, Кировский р-н, ул. Лени Голикова, д. 27, корп. 3, кв. 134", "director": "Булычев Петр Алексеевич", "phone": "8 981 860-4602", "email": "deerforest@yandex.ru", "bank": "АО «ТБанк»", "rs": "40817810300000867520", "ks": "30101810145250000974", "bik": "44525974", "status": "Активный", "notes": ""}, {"id": "32", "name": "Власова М.Ф.", "inn": "616512408389", "kpp": "-", "ogrn": "-", "address": "Ростовская обл.,  г. Ростов-на-Дону, ул. Рельсовая, д.52", "director": "Власова Меланья Федоровна", "phone": "8 903 404 66 19", "email": "Vlasmil@mail.ru", "bank": "ОТДЕЛЕНИЕ №5221 СБЕРБАНКА РОССИИ Г.РОСТОВ-НА-ДОНУ", "rs": "40817810152095634923", "ks": "30101810600000000602", "bik": "46015602", "status": "Активный", "notes": ""}, {"id": "33", "name": "ИП Кризский В.С.", "inn": "616405346106", "kpp": "-", "ogrn": "319619600122282", "address": "г. Ростов-на-Дону, ул. Красноармейская, д. 160, кв. 8", "director": "Кризский Вадим Сергеевич", "phone": "8 961 288-82-82", "email": "103vadim@gmail.com", "bank": "ЮГО-ЗАПАДНЫЙ БАНК ПАО СБЕРБАНК", "rs": "40802810552090039769", "ks": "30101810600000000602", "bik": "46015602", "status": "Активный", "notes": ""}, {"id": "34", "name": "ИП Беляев", "inn": "616812917108", "kpp": "-", "ogrn": "325619600154680", "address": "344091, Россия, Ростовская обл.,  г. Ростов-на-Дону, ул 2-я Краснодарская, д. 149/4, кв. 8", "director": "Беляев Алексей Евгеньевич", "phone": "8 960 448 47 38", "email": "Ae.belyaev@mail.ru", "bank": "АО «ТБанк» в г. Москва", "rs": "40802810200008461716", "ks": "30101810145250000974", "bik": "44525974", "status": "Активный", "notes": ""}, {"id": "35", "name": "Героимов Артем Владимирович", "inn": "772671795962", "kpp": "-", "ogrn": "-", "address": "Воронежская обл., г. Воронеж,  ул. Шишкова, д. 142/5, кв. 39", "director": "Героимов Артем Владимирович", "phone": "8-962-330-37-20", "email": "geroimov@gmail.ru", "bank": "АО «Т-Банк»", "rs": "40817810600079221347", "ks": "30101810145250000974", "bik": "44525974", "status": "Активный", "notes": ""}, {"id": "36", "name": "ИП Ягодка Виталий Дмитриевич", "inn": "610106485608", "kpp": "-", "ogrn": "320619600026083", "address": "г. Ростов-на-Дону, ул. Ерёменко, 98, кв.183", "director": "Ягодка Виталий Дмитриевич", "phone": "8 988 568 71 82", "email": "vitalii.yagodka@gmail.com", "bank": "ВТБ  ПАО г. Москва", "rs": "40802810319110000590", "ks": "30101810145250000411", "bik": "44525411", "status": "Активный", "notes": ""}, {"id": "37", "name": "Карпов Виталий Владимирович", "inn": "616101384653", "kpp": "-", "ogrn": "-", "address": ": г. Ростов-на-Дону, Пр-кт Ленина, д. 125, кв. 41", "director": "Карпов Виталий Владимирович", "phone": "8 928-131-68-59", "email": "vetal81@inbox.ru", "bank": "АО «Альфа-Банк», г. Москва", "rs": "40817810004010864957", "ks": "30101810200000000593", "bik": "44525593", "status": "Активный", "notes": ""}, {"id": "38", "name": "Перегудов Андрей Владимирович", "inn": "616305291534", "kpp": "-", "ogrn": "-", "address": "г. Ростов -на-Дону, ул. 2я Краснодарская,д. 143, кв. 65", "director": "Перегудов Андрей Владимирович", "phone": "8 908 512 81 34", "email": "P.A.O.I@yandex.ru", "bank": "Филиал № 2351 Банка ВТБ (публичное акционерное общество) в г. Краснодаре", "rs": "40817810490019925037", "ks": "30101810703490000758", "bik": "40349758", "status": "Активный", "notes": ""}, {"id": "39", "name": "Серков Андрей Денисович", "inn": "770174868374", "kpp": "-", "ogrn": "-", "address": "г. Москва, ул. Спартаковская,  д. 20/34, кв. 65", "director": "Серков Андрей Денисович", "phone": "8 925 960 31 26", "email": "aaa123bbb@inbox.ru", "bank": "АО \"ТБанк\"", "rs": "40817810800015410666", "ks": "30101810145250000974", "bik": "44525974", "status": "Активный", "notes": ""}, {"id": "40", "name": "Белаш Владимир Валентинович", "inn": "616607707757", "kpp": "-", "ogrn": "-", "address": "Ростовская обл.,  г. Ростов-на-Дону, пр-кт 40-летия победы, д.95/6 кв. 99", "director": "Белаш Владимир Валентинович", "phone": "8(928)-608-98-25", "email": "belash33@yandex.ru", "bank": "Филиале № 2351 Банка ВТБ (публичное акционерное общество) в г. Краснодаре", "rs": "40817810335056000229", "ks": "30101810703490000758", "bik": "40349758", "status": "Активный", "notes": ""}, {"id": "41", "name": "ИП Емельянов Д.А.", "inn": "501710555098", "kpp": "", "ogrn": "323508100464781", "address": "143590, Россия, Московская область, г. Истра, ДП Снегири, ул. Мира, д. 14А, кв. 39", "director": "Емельянов Денис Андреевич", "phone": "7 977 343-27-48", "email": "emelianov@mail.ru", "bank": "АО \"АЛЬФА-БАНК\"", "rs": "40802810702990007617", "ks": "30101810200000000593", "bik": "44525593", "status": "Активный", "notes": ""}, {"id": "42", "name": "ООО «МП «Гео ПЭН»", "inn": "6163005790", "kpp": "616501001", "ogrn": "1026103162360", "address": "344018, г. Ростов-на-Дону, пер. Доломановский, 110/55", "director": "Тюрин Владислав Анатольевич", "phone": "8(863)244-32-31", "email": "geopen@spark-mail.ru", "bank": "Юго-Западный банк ПАО Сбербанка г. Ростов-на-Дону", "rs": "40702810452090106698", "ks": "30101810600000000602", "bik": "46015602", "status": "Активный", "notes": ""}, {"id": "43", "name": "ООО «Альпстройпроект»", "inn": "6167090531", "kpp": "616401001", "ogrn": "1076167001294", "address": "344082, г. Ростов-на-Дону, ул.  Береговая, д 8, этаж/офис 16/1601", "director": "Папков Вячеслав Юрьевич", "phone": "7 (863) 298-11-00", "email": "alpstroyproekt@mail.ru", "bank": "ООО \"Банк Точка\" г. Москва", "rs": "30101810745374525104", "ks": "3010181074537452510", "bik": "44525104", "status": "Активный", "notes": ""}, {"id": "44", "name": "ИП Панишев Сергей Александрович", "inn": "440117538277", "kpp": "", "ogrn": "325440000021284", "address": "г. Кострома, ул. Катушечная 26-95", "director": "Панишев Сергей Александрович", "phone": "7 (920) 383-00-45", "email": "", "bank": "центрально-черноземном банке ПАО сбербанк", "rs": "40802810629710001439", "ks": "30101810600000000681", "bik": "42007681", "status": "Активный", "notes": ""}, {"id": "45", "name": "ООО «НТЦ Инжиниринга»", "inn": "9717105035", "kpp": "771701001", "ogrn": "1217700385980", "address": "129226, г. Москва, Проспект Мира, д. 131, этаж 1, помещ. III, ком. 2 офис 51", "director": "Емельянова Татьяна Сергеевна", "phone": "7 (977) 343-27-48", "email": "stcofengineering@mail.ru", "bank": "АО «АЛЬФА-БАНК»", "rs": "40702 810 9 02190 003230", "ks": "30101 810 2 00000 000593", "bik": "44525593", "status": "Активный", "notes": ""}, {"id": "46", "name": "", "inn": "", "kpp": "", "ogrn": "", "address": "", "director": "", "phone": "", "email": "", "bank": "", "rs": "", "ks": "", "bik": "", "status": "Активный", "notes": ""}, {"id": "47", "name": "", "inn": "", "kpp": "", "ogrn": "", "address": "", "director": "", "phone": "", "email": "", "bank": "", "rs": "", "ks": "", "bik": "", "status": "Активный", "notes": ""}, {"id": "48", "name": "", "inn": "", "kpp": "", "ogrn": "", "address": "", "director": "", "phone": "", "email": "", "bank": "", "rs": "", "ks": "", "bik": "", "status": "Активный", "notes": ""}, {"id": "49", "name": "", "inn": "", "kpp": "", "ogrn": "", "address": "", "director": "", "phone": "", "email": "", "bank": "", "rs": "", "ks": "", "bik": "", "status": "Активный", "notes": ""}, {"id": "50", "name": "", "inn": "", "kpp": "", "ogrn": "", "address": "", "director": "", "phone": "", "email": "", "bank": "", "rs": "", "ks": "", "bik": "", "status": "Активный", "notes": ""}, {"id": "51", "name": "", "inn": "", "kpp": "", "ogrn": "", "address": "", "director": "", "phone": "", "email": "", "bank": "", "rs": "", "ks": "", "bik": "", "status": "Активный", "notes": ""}, {"id": "52", "name": "", "inn": "", "kpp": "", "ogrn": "", "address": "", "director": "", "phone": "", "email": "", "bank": "", "rs": "", "ks": "", "bik": "", "status": "Активный", "notes": ""}];
 
 var contracts=[];
@@ -914,7 +920,7 @@ function renderContracts(){
       '<td>'+esc(c.number)+'</td>'+
       '<td>'+esc(c.object)+'</td>'+
       '<td>'+esc(c.contractor)+'</td>'+
-      '<td>'+fmt(c.amount)+'</td>'+
+      '<td>'+fmt(c.ds&&c.ds.length?calcTotalWithDs(c):c.amount)+'</td>'+
       '<td>'+statusBadge(c.sign_status)+'</td>'+
       '<td><span class="badge badge-blue">'+payCount+'</span></td>'+
       '<td onclick="event.stopPropagation()">'+(isLoggedIn()?'<button class="edit-btn" onclick="openEdit(\''+esc(c.id)+'\')">✏️</button>':'')+'</td>'+
@@ -980,7 +986,7 @@ function openDetail(id){
     ['Объект',c.object],['Подрядчик',c.contractor],
     ['ИНН',c.inn],['Телефон',c.phone],
     ['Email',c.email],['Дата',c.date],
-    ['Сумма',fmt(c.amount)],
+    ['Сумма договора',(c.ds&&c.ds.length?'__html__<span style="font-size:15px;font-weight:800;color:#0f172a">'+fmt(calcTotalWithDs(c))+'</span><span style="font-size:11px;color:#94a3b8;margin-left:6px">база: '+fmt(c.amount)+'</span>':fmt(c.amount))],
     ['Статус',c.status],['Статус подписания','__badge__'+c.sign_status],
     ['Ответственный',c.responsible],['Дни',c.days]
   ];
@@ -988,12 +994,21 @@ function openDetail(id){
     var val=f[1];
     if(typeof val==='string'&&val.indexOf('__badge__')===0){
       val=statusBadge(val.replace('__badge__',''));
+    } else if(typeof val==='string'&&val.indexOf('__html__')===0){
+      val=val.replace('__html__','');
     } else {
       val=esc(val||'—');
     }
     html+='<div class="info-item"><div class="i-label">'+esc(f[0])+'</div><div class="i-value">'+val+'</div></div>';
   });
   html+='</div>';
+  if(c.file_url){
+    html+='<div style="margin-bottom:14px">'+
+      '<a href="'+esc(c.file_url)+'" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;background:#3b82f6;color:#fff;padding:9px 18px;border-radius:9px;font-size:13px;font-weight:700;text-decoration:none;transition:background .15s" onmouseover="this.style.background=\'#2563eb\'" onmouseout="this.style.background=\'#3b82f6\'">'+
+        '<span style="font-size:16px">📎</span> Открыть файл договора'+
+      '</a>'+
+    '</div>';
+  }
   if(c.comment){
     html+='<div style="background:#f8fafc;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#475569">'+esc(c.comment)+'</div>';
   }
@@ -1004,6 +1019,27 @@ function openDetail(id){
       html+='<tr><td>'+esc(p.week)+'</td><td>'+esc(p.pay_type)+'</td><td>'+fmt(p.pay_amount)+'</td><td>'+fmt(p.paid)+'</td><td>'+fmt(p.remainder)+'</td><td>'+statusBadge(p.pay_status)+'</td></tr>';
     });
     html+='</tbody></table></div>';
+  }
+  if(c.ds&&c.ds.length){
+    html+='<div class="form-section-title" style="margin-top:18px">Дополнительные соглашения</div>';
+    html+='<div class="table-wrap"><table><thead><tr><th>Номер</th><th>Дата</th><th>Предмет изменений</th><th style="text-align:right">Изм. суммы</th><th>Статус</th><th>Файл</th></tr></thead><tbody>';
+    var dsTotal=0;
+    c.ds.forEach(function(d){
+      var dAmt=parseFloat(d.ds_amount)||0;
+      dsTotal+=dAmt;
+      var amtStr=dAmt>0?'+'+fmt(dAmt):(dAmt<0?'−'+fmt(Math.abs(dAmt)):'—');
+      var amtColor=dAmt>0?'#16a34a':(dAmt<0?'#dc2626':'#64748b');
+      var fileCell=d.ds_file_url?'<a href="'+esc(d.ds_file_url)+'" target="_blank" rel="noopener noreferrer" style="color:#3b82f6;font-size:12px;text-decoration:none">📎 Открыть</a>':'—';
+      html+='<tr><td><b>'+esc(d.ds_number||'—')+'</b></td><td>'+esc(d.ds_date||'—')+'</td><td>'+esc(d.ds_subject||'—')+'</td><td style="text-align:right;font-weight:700;color:'+amtColor+'">'+amtStr+'</td><td>'+statusBadge(d.ds_status)+'</td><td>'+fileCell+'</td></tr>';
+    });
+    html+='</tbody></table></div>';
+    var base=parseFloat(c.amount)||0;
+    var total=base+dsTotal;
+    var deltaStr=dsTotal>0?'+ '+fmt(dsTotal):(dsTotal<0?'− '+fmt(Math.abs(dsTotal)):'');
+    html+='<div style="background:#f8fafc;border-radius:8px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:16px">'+
+      '<span style="color:#64748b">Базовая сумма '+fmt(base)+(deltaStr?' &nbsp;'+deltaStr:'')+'</span>'+
+      '<span style="font-size:15px;font-weight:800;color:#0f172a">Итого: '+fmt(total)+'</span>'+
+    '</div>';
   }
   document.getElementById('detail-body').innerHTML=html;
   document.getElementById('detail-modal').classList.add('open');
@@ -1080,6 +1116,7 @@ function openEditInternal(c,isNew){
     '<div class="form-group"><label>Договор заказчика</label><input id="f-customer" type="text" value="'+esc(c.customer_contract||'')+'"></div>'+
   '</div>'+
   '<div class="form-grid full"><div class="form-group"><label>Предмет договора</label><textarea id="f-subject" style="min-height:80px">'+esc(c.subject||'')+'</textarea></div></div>'+
+  '<div class="form-grid full"><div class="form-group"><label>Ссылка на файл (Яндекс.Диск)</label><input id="f-file-url" type="url" placeholder="https://disk.yandex.ru/i/..." value="'+esc(c.file_url||'')+'"></div></div>'+
   '<div class="form-grid full"><div class="form-group"><label>Комментарий</label><textarea id="f-comment">'+esc(c.comment||'')+'</textarea></div></div>';
 
   html+='<div class="form-section-title">💳 Разбивка платежей <button type="button" class="btn btn-ghost btn-sm" onclick="addPayRow()" style="margin-left:8px">+ Добавить</button></div>';
@@ -1089,6 +1126,13 @@ function openEditInternal(c,isNew){
   pays.forEach(function(p,i){html+=buildPayRow(p,i);});
   html+='</div>';
   html+='<div id="pay-split-hint" style="margin-top:8px;font-size:12px;color:#64748b"></div>';
+
+  html+='<div class="form-section-title">📄 Дополнительные соглашения <button type="button" class="btn btn-ghost btn-sm" onclick="addDsRow()" style="margin-left:8px">+ Добавить ДС</button></div>';
+  html+='<div class="ds-rows-header"><span>Номер</span><span>Дата</span><span>Предмет изменений</span><span>Изм. суммы ₽</span><span>Статус</span><span>Ссылка на файл</span><span></span></div>';
+  html+='<div id="ds-rows-wrap">';
+  var dsList=c.ds&&c.ds.length?c.ds:[];
+  dsList.forEach(function(d,i){html+=buildDsRow(d,i);});
+  html+='</div>';
 
   document.getElementById('edit-body').innerHTML=html;
 
@@ -1129,6 +1173,72 @@ function delPayRow(idx){
   var row=document.getElementById('prow-'+idx);
   if(row)row.remove();
   recalcPaySplit();
+}
+
+var dsRowCounter=0;
+function buildDsRow(ds,i){
+  var stOpts='';
+  DS_STATUSES.forEach(function(s){stOpts+='<option value="'+esc(s)+'"'+(ds.ds_status===s?' selected':'')+'>'+esc(s)+'</option>';});
+  return '<div class="ds-row" id="dsrow-'+i+'" data-idx="'+i+'">'+
+    '<input type="text" class="dsr-num" placeholder="ДС №1" value="'+esc(ds.ds_number||'')+'" oninput="syncDsPayment(this.closest(\'.ds-row\'))">'+
+    '<input type="date" class="dsr-date" value="'+esc(ds.ds_date||'')+'">'+
+    '<input type="text" class="dsr-subj" placeholder="Предмет изменений" value="'+esc(ds.ds_subject||'')+'">'+
+    '<input type="number" class="dsr-amt" placeholder="Изм. суммы ₽" value="'+(ds.ds_amount||'')+'" oninput="syncDsPayment(this.closest(\'.ds-row\'))">'+
+    '<select class="dsr-st">'+stOpts+'</select>'+
+    '<input type="url" class="dsr-url" placeholder="Ссылка на файл ДС" value="'+esc(ds.ds_file_url||'')+'">'+
+    '<button type="button" class="pay-row-del" onclick="delDsRow(\''+i+'\')" title="Удалить">×</button>'+
+  '</div>';
+}
+function syncDsPayment(dsRow){
+  if(!dsRow)return;
+  var id=dsRow.id;
+  var num=(dsRow.querySelector('.dsr-num')||{}).value||'';
+  var amt=parseFloat((dsRow.querySelector('.dsr-amt')||{}).value)||0;
+  if(!num||amt===0){
+    var old=document.querySelector('.pay-row[data-ds-ref="'+id+'"]');
+    if(old)old.remove();
+    recalcPaySplit();
+    return;
+  }
+  var existing=document.querySelector('.pay-row[data-ds-ref="'+id+'"]');
+  if(existing){
+    var typeInp=existing.querySelector('.pr-type');
+    var amtInp=existing.querySelector('.pr-amt');
+    if(typeInp)typeInp.value='Оплата по '+num;
+    if(amtInp)amtInp.value=amt;
+  } else {
+    var wrap=document.getElementById('pay-rows-wrap');
+    if(!wrap)return;
+    payRowCounter++;
+    var idx=wrap.children.length+'_ds'+payRowCounter;
+    var p={pay_type:'Оплата по '+num,week:'',pay_amount:amt,paid:0,remainder:amt,pay_status:'Ожидается'};
+    var rowHtml=buildPayRow(p,idx);
+    rowHtml=rowHtml.replace('id="prow-'+idx+'"','id="prow-'+idx+'" data-ds-ref="'+id+'"');
+    wrap.insertAdjacentHTML('beforeend',rowHtml);
+  }
+  recalcPaySplit();
+}
+function addDsRow(){
+  var wrap=document.getElementById('ds-rows-wrap');
+  if(!wrap)return;
+  dsRowCounter++;
+  var idx=wrap.children.length;
+  var ds={ds_number:'ДС №'+(idx+1),ds_date:'',ds_subject:'',ds_amount:0,ds_status:'На согласовании',ds_file_url:''};
+  wrap.insertAdjacentHTML('beforeend',buildDsRow(ds,idx+'_'+dsRowCounter));
+}
+function delDsRow(idx){
+  var row=document.getElementById('dsrow-'+idx);
+  if(row){
+    var linked=document.querySelector('.pay-row[data-ds-ref="dsrow-'+idx+'"]');
+    if(linked)linked.remove();
+    row.remove();
+    recalcPaySplit();
+  }
+}
+function calcTotalWithDs(c){
+  var base=parseFloat(c.amount)||0;
+  var delta=(c.ds||[]).reduce(function(s,d){return s+(parseFloat(d.ds_amount)||0);},0);
+  return base+delta;
 }
 
 function recalcPaidRem(input){
@@ -1221,6 +1331,7 @@ function saveContract(id){
   c.responsible=(document.getElementById('f-responsible')||{}).value||'';
   c.customer_contract=(document.getElementById('f-customer')||{}).value||'';
   c.subject=(document.getElementById('f-subject')||{}).value||'';
+  c.file_url=(document.getElementById('f-file-url')||{}).value||'';
   c.comment=(document.getElementById('f-comment')||{}).value||'';
 
   // Collect pay rows
@@ -1237,6 +1348,21 @@ function saveContract(id){
     newPayments.push({pay_type:ptype,week:week,pay_amount:amt,paid:paid,remainder:Math.max(0,amt-paid),pay_status:st,notes:notes});
   });
   c.payments=newPayments;
+
+  // Collect DS rows
+  var dsRows=document.querySelectorAll('#ds-rows-wrap .ds-row');
+  var newDs=[];
+  dsRows.forEach(function(row){
+    var num=(row.querySelector('.dsr-num')||{}).value||'';
+    var date=(row.querySelector('.dsr-date')||{}).value||'';
+    var subj=(row.querySelector('.dsr-subj')||{}).value||'';
+    var amt=parseFloat((row.querySelector('.dsr-amt')||{}).value)||0;
+    var st=(row.querySelector('.dsr-st')||{}).value||'На согласовании';
+    var url=(row.querySelector('.dsr-url')||{}).value||'';
+    if(!num&&!subj&&amt===0)return;
+    newDs.push({ds_number:num,ds_date:date,ds_subject:subj,ds_amount:amt,ds_status:st,ds_file_url:url});
+  });
+  c.ds=newDs;
 
   if(isNew){
     var existingIds=contracts.filter(function(x){return !String(x.id).startsWith('new_');}).map(function(x){return parseInt(x.id)||0;});
