@@ -801,6 +801,10 @@ function showSection(name,el){
   if(el)el.classList.add('active');
   if(name==='payments')populatePaymentFilters();
   if(name==='contractors')renderContractors();
+  if(name==='analytics'){
+    document.getElementById('obj-detail-wrap').style.display='none';
+    document.getElementById('obj-list-wrap').style.display='';
+  }
 }
 
 // POPULATE FILTERS
@@ -1842,6 +1846,10 @@ function switchAnalyticsTab(tab){
   document.getElementById('analytics-tab-contractors').style.display=isObj?'none':'';
   document.getElementById('atab-objects').classList.toggle('active',isObj);
   document.getElementById('atab-contractors').classList.toggle('active',!isObj);
+  if(isObj){
+    document.getElementById('obj-detail-wrap').style.display='none';
+    document.getElementById('obj-list-wrap').style.display='';
+  }
 }
 
 // ANALYTICS BY CONTRACTORS
