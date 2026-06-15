@@ -1116,7 +1116,7 @@ function openEditInternal(c,isNew){
     '<div class="form-group"><label>Договор заказчика</label><input id="f-customer" type="text" value="'+esc(c.customer_contract||'')+'"></div>'+
   '</div>'+
   '<div class="form-grid full"><div class="form-group"><label>Предмет договора</label><textarea id="f-subject" style="min-height:80px">'+esc(c.subject||'')+'</textarea></div></div>'+
-  '<div class="form-grid full"><div class="form-group"><label>Ссылка на файл (Яндекс.Диск)</label><input id="f-file-url" type="url" placeholder="https://disk.yandex.ru/i/..." value="'+esc(c.file_url||'')+'"></div></div>'+
+  '<div class="form-grid full"><div class="form-group"><label>Ссылка на файл (Яндекс.Диск)</label><input id="f-file-url" type="text" placeholder="https://disk.yandex.ru/i/..." value="'+esc(c.file_url||'')+'"></div></div>'+
   '<div class="form-grid full"><div class="form-group"><label>Комментарий</label><textarea id="f-comment">'+esc(c.comment||'')+'</textarea></div></div>';
 
   html+='<div class="form-section-title">💳 Разбивка платежей <button type="button" class="btn btn-ghost btn-sm" onclick="addPayRow()" style="margin-left:8px">+ Добавить</button></div>';
@@ -1185,7 +1185,7 @@ function buildDsRow(ds,i){
     '<input type="text" class="dsr-subj" placeholder="Предмет изменений" value="'+esc(ds.ds_subject||'')+'">'+
     '<input type="number" class="dsr-amt" placeholder="Изм. суммы ₽" value="'+(ds.ds_amount||'')+'" oninput="syncDsPayment(this.closest(\'.ds-row\'))">'+
     '<select class="dsr-st">'+stOpts+'</select>'+
-    '<input type="url" class="dsr-url" placeholder="Ссылка на файл ДС" value="'+esc(ds.ds_file_url||'')+'">'+
+    '<input type="text" class="dsr-url" placeholder="Ссылка на файл ДС" value="'+esc(ds.ds_file_url||'')+'">'+
     '<button type="button" class="pay-row-del" onclick="delDsRow(\''+i+'\')" title="Удалить">×</button>'+
   '</div>';
 }
