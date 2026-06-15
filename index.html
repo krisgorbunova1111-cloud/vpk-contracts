@@ -1740,7 +1740,7 @@ function renderAnalytics(){
 
   var html='';
   rows.forEach(function(r){
-    html+='<tr class="clickable" onclick="openObjectDetail(\''+esc(r.object)+'\')">'+
+    html+='<tr class="clickable" data-obj="'+esc(r.object)+'" onclick="openObjectDetail(this.dataset.obj)">'+
       '<td style="font-weight:600;color:#3b82f6">'+esc(r.object)+'</td>'+
       '<td>'+r.count+'</td>'+
       '<td>'+fmt(r.amount)+'</td>'+
