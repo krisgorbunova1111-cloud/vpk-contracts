@@ -21,6 +21,27 @@
   --shadow:0 4px 16px rgba(0,0,0,.35);
   --sunset:linear-gradient(135deg,#d9808f,#d9a25b);
   --cosmic:linear-gradient(135deg,#7d6bb5,#c47593);
+  --header-bg:rgba(15,10,31,.85); --modal-bg:linear-gradient(160deg,#2a1a45,#1a0f2e);
+  --overlay-bg:rgba(10,6,20,.7); --scrollbar:#4a3a70; --track:rgba(255,255,255,.07);
+  --star-off:rgba(255,255,255,.15); --confirm-bg:rgba(15,8,28,.96);
+}
+:root[data-theme="light"]{
+  --bg1:#f6f3fa; --bg2:#ffffff; --bg3:#f3eff8;
+  --card:rgba(255,255,255,.75); --card2:rgba(20,10,40,.045);
+  --border:rgba(20,10,40,.1); --text:#2a2436; --muted:#6e6780; --muted2:#948da3;
+  --pink:#b8456f; --pink-d:rgba(184,69,111,.12);
+  --orange:#a06a2c; --orange-d:rgba(160,106,44,.12);
+  --yellow:#8a7620; --yellow-d:rgba(138,118,32,.12);
+  --teal:#1f8a76; --teal-d:rgba(31,138,118,.12);
+  --purple:#6a55a8; --purple-d:rgba(106,85,168,.12);
+  --blue:#3d7ba3; --blue-d:rgba(61,123,163,.12);
+  --green:#3c8f62; --green-d:rgba(60,143,98,.12);
+  --gray:#6b6478; --gray-d:rgba(107,100,120,.1);
+  --red:#c14456;
+  --shadow:0 4px 16px rgba(20,10,40,.08);
+  --header-bg:rgba(255,255,255,.85); --modal-bg:linear-gradient(160deg,#ffffff,#f3eff8);
+  --overlay-bg:rgba(40,30,60,.35); --scrollbar:rgba(20,10,40,.15); --track:rgba(20,10,40,.06);
+  --star-off:rgba(20,10,40,.15); --confirm-bg:rgba(255,255,255,.97);
 }
 *{box-sizing:border-box;}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:
@@ -30,12 +51,14 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Ari
   background-attachment:fixed;
   color:var(--text);min-height:100vh;padding-bottom:60px;}
 ::-webkit-scrollbar{width:8px;height:8px;}
-::-webkit-scrollbar-thumb{background:#4a3a70;border-radius:4px;}
+::-webkit-scrollbar-thumb{background:var(--scrollbar);border-radius:4px;}
 
-header{position:sticky;top:0;z-index:20;background:rgba(15,10,31,.85);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);padding:14px 16px 10px;}
+header{position:sticky;top:0;z-index:20;background:var(--header-bg);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);padding:14px 16px 10px;}
 .header-top{display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:1100px;margin:0 auto;}
 .title{font-size:20px;font-weight:700;display:flex;align-items:center;gap:8px;color:var(--text);}
 .title .em{opacity:.9;}
+.theme-btn{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;flex:none;}
+.theme-btn:hover{border-color:var(--muted);}
 .sync{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);}
 .sync .dot{width:8px;height:8px;border-radius:50%;background:var(--gray);transition:background .3s;}
 .sync .dot.ok{background:var(--teal);box-shadow:0 0 6px var(--teal);}
@@ -99,7 +122,7 @@ main{max-width:1100px;margin:0 auto;padding:16px;}
 .note{font-size:12px;color:var(--muted2);line-height:1.4;}
 
 .progress-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);}
-.progress-bar{flex:1;height:6px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden;}
+.progress-bar{flex:1;height:6px;border-radius:4px;background:var(--track);overflow:hidden;}
 .progress-fill{height:100%;background:var(--card-accent,var(--purple));border-radius:4px;transition:width .3s;}
 .progress-num{white-space:nowrap;font-variant-numeric:tabular-nums;}
 .watch-controls{display:flex;align-items:center;gap:4px;}
@@ -108,7 +131,7 @@ main{max-width:1100px;margin:0 auto;padding:16px;}
 .watch-controls input{width:44px;background:transparent;border:none;color:var(--text);text-align:center;font-size:12px;outline:none;}
 
 .stars{display:flex;gap:2px;}
-.stars span{cursor:pointer;font-size:17px;color:rgba(255,255,255,.15);user-select:none;}
+.stars span{cursor:pointer;font-size:17px;color:var(--star-off);user-select:none;}
 .stars span.on{color:var(--yellow);}
 
 .status-select{margin-top:2px;width:100%;padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-size:12px;outline:none;}
@@ -116,29 +139,33 @@ main{max-width:1100px;margin:0 auto;padding:16px;}
 .empty{text-align:center;padding:60px 20px;color:var(--muted);}
 .empty .em{font-size:40px;margin-bottom:10px;}
 
-.modal-overlay{position:fixed;inset:0;background:rgba(10,6,20,.7);z-index:100;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px);}
+.modal-overlay{position:fixed;inset:0;background:var(--overlay-bg);z-index:100;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px);}
 @media(min-width:640px){.modal-overlay{align-items:center;}}
-.modal{background:linear-gradient(160deg,#2a1a45,#1a0f2e);border:1px solid var(--border);border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow);}
+.modal{background:var(--modal-bg);border:1px solid var(--border);border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow);}
 @media(min-width:640px){.modal{border-radius:16px;}}
 .modal h3{margin:0 0 14px;font-size:17px;color:var(--text);}
 .field{margin-bottom:12px;}
 .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;}
-.field input[type=text],.field input[type=number],.field textarea,.field select{width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--text);font-size:14px;outline:none;font-family:inherit;}
+.field input[type=text],.field input[type=number],.field input[type=month],.field textarea,.field select{width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-size:14px;outline:none;font-family:inherit;}
 .field input:focus,.field textarea:focus,.field select:focus{border-color:var(--pink);}
 .field textarea{resize:vertical;min-height:50px;}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .type-toggle{display:flex;gap:8px;}
-.type-toggle button{flex:1;padding:9px;border-radius:9px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--muted);cursor:pointer;font-size:13px;font-weight:600;}
+.type-toggle button{flex:1;padding:9px;border-radius:9px;border:1px solid var(--border);background:var(--card2);color:var(--muted);cursor:pointer;font-size:13px;font-weight:600;}
 .type-toggle button.on{background:var(--cosmic);color:#fff;border-color:transparent;}
 .modal-actions{display:flex;gap:8px;margin-top:16px;}
 .btn{flex:1;padding:11px;border-radius:10px;border:none;font-weight:700;font-size:14px;cursor:pointer;}
 .btn.primary{background:var(--cosmic);color:#fff;}
-.btn.ghost{background:rgba(255,255,255,.06);color:var(--text);border:1px solid var(--border);}
+.btn.ghost{background:var(--card2);color:var(--text);border:1px solid var(--border);}
 .btn.danger{background:transparent;color:var(--red);border:1px solid var(--red);}
 
-.confirm-del{position:absolute;inset:0;background:rgba(15,8,28,.96);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:14px;z-index:5;}
+.confirm-del{position:absolute;inset:0;background:var(--confirm-bg);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:14px;z-index:5;}
 .confirm-del div{font-size:13px;text-align:center;}
 .confirm-del .row{display:flex;gap:8px;width:100%;}
+
+.badge.due-soon{background:var(--teal-d);color:var(--teal);}
+.badge.due-over{background:var(--pink-d);color:var(--pink);}
+.badge.due-later{background:var(--card2);color:var(--muted);}
 </style>
 </head>
 <body>
@@ -146,7 +173,10 @@ main{max-width:1100px;margin:0 auto;padding:16px;}
 <header>
   <div class="header-top">
     <div class="title"><span class="em">🎬</span> Кино и сериалы</div>
-    <div class="sync"><span class="dot" id="sync-dot"></span><span id="sync-text">Загрузка…</span></div>
+    <div class="sync">
+      <span class="dot" id="sync-dot"></span><span id="sync-text">Загрузка…</span>
+      <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Тема">🌙</button>
+    </div>
   </div>
   <div class="toolbar">
     <div class="search-wrap">
@@ -157,6 +187,7 @@ main{max-width:1100px;margin:0 auto;padding:16px;}
       <option value="title">По названию</option>
       <option value="rating">По оценке</option>
       <option value="progress">По прогрессу</option>
+      <option value="due">По дате выхода</option>
     </select>
     <button class="btn-add" onclick="openModal()">+ Добавить</button>
   </div>
@@ -180,9 +211,27 @@ const LS_KEY='kino_tracker_v1_local';
 
 const STATUS_LABEL={want:'◎ Хочу посмотреть',watching:'▶ Смотрю',waiting_season:'⏳ Ждём продолжения',completed:'✓ Досмотрено',paused:'⏸ На паузе'};
 const STATUS_ORDER=['watching','waiting_season','want','completed','paused'];
-const STATUS_ACCENT={watching:'#4fbfa8',waiting_season:'#d9c15b',want:'#726d84',completed:'#6bbf8f',paused:'#8b7bc7'};
+const STATUS_ACCENT_DARK={watching:'#4fbfa8',waiting_season:'#d9c15b',want:'#726d84',completed:'#6bbf8f',paused:'#8b7bc7'};
+const STATUS_ACCENT_LIGHT={watching:'#1f8a76',waiting_season:'#8a7620',want:'#6e6780',completed:'#3c8f62',paused:'#6a55a8'};
 
-const GENRE_PALETTE=[
+function isLight(){return document.documentElement.getAttribute('data-theme')==='light';}
+function statusAccent(status){const m=isLight()?STATUS_ACCENT_LIGHT:STATUS_ACCENT_DARK;return m[status]||m.want;}
+
+function toggleTheme(){
+  const next=isLight()?'dark':'light';
+  document.documentElement.setAttribute('data-theme',next);
+  try{localStorage.setItem('kino_theme',next);}catch(e){}
+  document.getElementById('theme-btn').textContent=next==='light'?'🌙':'☀️';
+  render();
+}
+function initTheme(){
+  let saved='dark';
+  try{saved=localStorage.getItem('kino_theme')||'dark';}catch(e){}
+  document.documentElement.setAttribute('data-theme',saved);
+  document.getElementById('theme-btn').textContent=saved==='light'?'🌙':'☀️';
+}
+
+const GENRE_PALETTE_DARK=[
   {bg:'rgba(224,114,154,.13)',fg:'#d992ac'},
   {bg:'rgba(217,154,91,.13)',fg:'#cfa578'},
   {bg:'rgba(79,191,168,.13)',fg:'#7dc4b3'},
@@ -192,10 +241,37 @@ const GENRE_PALETTE=[
   {bg:'rgba(217,112,127,.13)',fg:'#cf8f9b'},
   {bg:'rgba(107,191,143,.13)',fg:'#8fcaa9'},
 ];
+const GENRE_PALETTE_LIGHT=[
+  {bg:'rgba(184,69,111,.10)',fg:'#b8456f'},
+  {bg:'rgba(160,106,44,.10)',fg:'#a06a2c'},
+  {bg:'rgba(31,138,118,.10)',fg:'#1f8a76'},
+  {bg:'rgba(106,85,168,.10)',fg:'#6a55a8'},
+  {bg:'rgba(61,123,163,.10)',fg:'#3d7ba3'},
+  {bg:'rgba(138,118,32,.10)',fg:'#8a7620'},
+  {bg:'rgba(193,68,86,.10)',fg:'#c14456'},
+  {bg:'rgba(60,143,98,.10)',fg:'#3c8f62'},
+];
 function hashStr(s){let h=0;for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))|0;}return Math.abs(h);}
-function genreColor(g){if(!g)return{bg:'rgba(255,255,255,.05)',fg:'#948fa6'};return GENRE_PALETTE[hashStr(g)%GENRE_PALETTE.length];}
+function genreColor(g){
+  if(!g)return isLight()?{bg:'rgba(20,10,40,.04)',fg:'#6e6780'}:{bg:'rgba(255,255,255,.05)',fg:'#948fa6'};
+  const pal=isLight()?GENRE_PALETTE_LIGHT:GENRE_PALETTE_DARK;
+  return pal[hashStr(g)%pal.length];
+}
 
-const INITIAL_DATA = [{"id": 1, "type": "series", "title": "Для тебя во всем цвету", "genre": "Аниме", "note": "(ЖДЕМ ВТОРОЙ СЕЗОН)", "watched": 12.0, "total": 12.0, "status": "waiting_season", "rating": 5}, {"id": 2, "type": "series", "title": "Благоухающий цветок расцветает с достоинством", "genre": "Аниме", "note": "продолжение ожидается не ранее 2027–2028 годов", "watched": 13.0, "total": 13.0, "status": "waiting_season", "rating": 5}, {"id": 3, "type": "series", "title": "Гачиакута", "genre": "Аниме", "note": "Стоит ожидать не раньше 2027–2028 годов", "watched": 24.0, "total": 24.0, "status": "waiting_season", "rating": 5}, {"id": 4, "type": "series", "title": "Ты и я полные противоположности", "genre": "Аниме", "note": "2 сезон будет в конце 2026", "watched": 12.0, "total": 24, "status": "waiting_season", "rating": 4}, {"id": 5, "type": "series", "title": "Эта фарфоровая кукла влюбилась", "genre": "Аниме", "note": "Продолжение не раньше 2027–2028 года", "watched": 24.0, "total": 24.0, "status": "waiting_season", "rating": 4}, {"id": 6, "type": "series", "title": "Адский рай", "genre": "Аниме", "note": "продолжение ожидается не ранее 2027–2028 годов", "watched": 25.0, "total": 25.0, "status": "waiting_season", "rating": 4}, {"id": 7, "type": "series", "title": "Магия и мускулы", "genre": "Аниме", "note": "3 сезон запланирована на 2027", "watched": 25.0, "total": 25.0, "status": "waiting_season", "rating": 5}, {"id": 8, "type": "series", "title": "Песнь ночных сов", "genre": "Аниме", "note": "2 сезона, 3 не анонсирован, но обещают", "watched": 25.0, "total": 25.0, "status": "waiting_season", "rating": 4}, {"id": 9, "type": "series", "title": "Семья шпиона", "genre": "Аниме", "note": "Продолжение с конца 2026 по 2027 год", "watched": 50.0, "total": 50.0, "status": "waiting_season", "rating": 5}, {"id": 10, "type": "movie", "title": "Форма голоса", "genre": "Аниме", "note": "", "watched": 1.0, "total": 1.0, "status": "completed", "rating": 4}, {"id": 11, "type": "series", "title": "Первородный грех Такопи", "genre": "Аниме", "note": "1 сезон", "watched": 6.0, "total": 6.0, "status": "completed", "rating": 2}, {"id": 12, "type": "series", "title": "Папаши дружбаны", "genre": "Аниме", "note": "завершён", "watched": 12.0, "total": 12.0, "status": "completed", "rating": 4}, {"id": 13, "type": "series", "title": "На этот раз одержи победу над императорским драконом благородная девушка", "genre": "Аниме", "note": "завершён", "watched": 12.0, "total": 12.0, "status": "completed", "rating": 5}, {"id": 14, "type": "series", "title": "Незнакомцы в другой жизни", "genre": "Аниме", "note": "завершён", "watched": 12.0, "total": 12.0, "status": "completed", "rating": 3}, {"id": 15, "type": "series", "title": "я владыка демонов взял эльфийку-рабыню в жены и как же мне ее любить", "genre": "Аниме", "note": "1 сезон, 2 не анонсирован", "watched": 12.0, "total": 12.0, "status": "completed", "rating": 5}, {"id": 16, "type": "series", "title": "Доктор Амеку: Великий детектив", "genre": "Аниме", "note": "1 сезон", "watched": 12.0, "total": 12.0, "status": "completed", "rating": 2}, {"id": 17, "type": "series", "title": "Кае не страшно", "genre": "Аниме", "note": "1 сезон", "watched": 12.0, "total": 12.0, "status": "completed", "rating": 2}, {"id": 18, "type": "series", "title": "инцидент кэмоно", "genre": "Аниме", "note": "завершён", "watched": 12.0, "total": 12.0, "status": "completed", "rating": 5}, {"id": 19, "type": "series", "title": "Бог Старшей школы", "genre": "Аниме", "note": "Продолжение не анонсировано", "watched": 13.0, "total": 13.0, "status": "completed", "rating": 5}, {"id": 20, "type": "series", "title": "Какой сейчас Тамон", "genre": "Аниме", "note": "завершён", "watched": 13.0, "total": 13.0, "status": "completed", "rating": 4}, {"id": 21, "type": "series", "title": "Пантеон", "genre": "Аниме", "note": "2 сезона", "watched": 16.0, "total": 16.0, "status": "completed", "rating": 3}, {"id": 22, "type": "series", "title": "Летнее время", "genre": "Аниме", "note": "завершён", "watched": 25.0, "total": 25.0, "status": "completed", "rating": 3}, {"id": 23, "type": "series", "title": "Клинок рассекающий демонов", "genre": "Аниме", "note": "завершён", "watched": 63.0, "total": 63.0, "status": "completed", "rating": 5}, {"id": 24, "type": "series", "title": "Атака титанов", "genre": "Аниме", "note": "завершён", "watched": 89.0, "total": 89.0, "status": "completed", "rating": 5}, {"id": 25, "type": "series", "title": "Боруто", "genre": "Аниме", "note": "Вторая часть - точная дата премьеры пока не объявлена", "watched": 293.0, "total": 293.0, "status": "completed", "rating": 4}, {"id": 26, "type": "series", "title": "Наруто", "genre": "Аниме", "note": "завершён", "watched": 720.0, "total": 720.0, "status": "completed", "rating": 5}, {"id": 27, "type": "movie", "title": "Золотая бронза", "genre": "Драма", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 28, "type": "movie", "title": "(без названия — исправьте)", "genre": "Драма", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 29, "type": "movie", "title": "На границе миров", "genre": "Фантастика", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 30, "type": "movie", "title": "Исчезнувшая в звездах", "genre": "Детектив", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 31, "type": "movie", "title": "Зов предков", "genre": "Мелодрама", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 32, "type": "movie", "title": "Вверх тормашками", "genre": "Мелодрама", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 33, "type": "movie", "title": "Хостатый переполох", "genre": "Комедия", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 34, "type": "series", "title": "Приключения Аргонавтов", "genre": "Комедия", "note": "Мультфильм", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 35, "type": "movie", "title": "Я хочу съесть твою поджелудочную железу", "genre": "Аниме", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 36, "type": "movie", "title": "Могила светлячков", "genre": "Аниме", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 37, "type": "movie", "title": "Она видела небо", "genre": "Аниме", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 38, "type": "movie", "title": "Укрась прощальное утро цветами обещаний", "genre": "Аниме", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 39, "type": "series", "title": "Голубоглазый самурай", "genre": "Аниме", "note": "2 сезон планируется в 2026, но еще не вышел", "watched": null, "total": 8.0, "status": "want", "rating": 0}, {"id": 40, "type": "series", "title": "Маг целитель новый старт", "genre": "Аниме", "note": "Официального анонса продолжения нет", "watched": null, "total": 12.0, "status": "want", "rating": 0}, {"id": 41, "type": "series", "title": "Я требую Яоя", "genre": "Аниме", "note": "завершён", "watched": null, "total": 12.0, "status": "want", "rating": 0}, {"id": 42, "type": "series", "title": "ежемесячное сёдзё нодзаки", "genre": "Аниме", "note": "завершён", "watched": null, "total": 12.0, "status": "want", "rating": 0}, {"id": 43, "type": "series", "title": "одинокий рокер", "genre": "Аниме", "note": "2 сезон анонсирован, но точная дата релиза пока держится в секрете", "watched": null, "total": 12.0, "status": "want", "rating": 0}, {"id": 44, "type": "series", "title": "школа строгого режима", "genre": "Аниме", "note": "завершён", "watched": null, "total": 12.0, "status": "want", "rating": 0}, {"id": 45, "type": "series", "title": "Мой телохранитель", "genre": "Аниме", "note": "2 сезон пока не анонсирован", "watched": null, "total": 13.0, "status": "want", "rating": 0}, {"id": 46, "type": "series", "title": "Пластиковые Воспоминания", "genre": "Аниме", "note": "завершён", "watched": null, "total": 13.0, "status": "want", "rating": 0}, {"id": 47, "type": "series", "title": "Нарутару", "genre": "Аниме", "note": "завершён", "watched": null, "total": 13.0, "status": "want", "rating": 0}, {"id": 48, "type": "series", "title": "монстр за соседней партой", "genre": "Аниме", "note": "завершён", "watched": null, "total": 13.0, "status": "want", "rating": 0}, {"id": 49, "type": "series", "title": "Ледяная стена", "genre": "Аниме", "note": "продолжение находится в разработке и станет заключительным", "watched": null, "total": 14.0, "status": "want", "rating": 0}, {"id": 50, "type": "series", "title": "Твоя Апрельская ложь", "genre": "Аниме", "note": "завершён", "watched": null, "total": 22.0, "status": "want", "rating": 0}, {"id": 51, "type": "series", "title": "Необъятный океан", "genre": "Аниме", "note": "2 сезона, 3 стартует в июле 2026 года", "watched": null, "total": 24.0, "status": "want", "rating": 0}, {"id": 52, "type": "series", "title": "Цугаи загробного мира", "genre": "Аниме", "note": "финальный эпизод выйдет 12 сентября 2026 года", "watched": null, "total": 24.0, "status": "want", "rating": 0}, {"id": 53, "type": "series", "title": "рагна кримзон", "genre": "Аниме", "note": "завершён", "watched": null, "total": 24.0, "status": "want", "rating": 0}, {"id": 54, "type": "series", "title": "Безоблачная завтра", "genre": "Аниме", "note": "завершён", "watched": null, "total": 26.0, "status": "want", "rating": 0}, {"id": 55, "type": "series", "title": "Ванпачмен", "genre": "Аниме", "note": "4 сезон планируется в 2027", "watched": null, "total": 36.0, "status": "want", "rating": 0}, {"id": 56, "type": "series", "title": "Теория лжи", "genre": "Детектив", "note": "3 сезона", "watched": null, "total": 48.0, "status": "want", "rating": 0}, {"id": 57, "type": "series", "title": "Мотель бейтса", "genre": "Ужасы", "note": "5 сезонов", "watched": null, "total": 50.0, "status": "want", "rating": 0}, {"id": 58, "type": "series", "title": "Токийский мститель", "genre": "Аниме", "note": "4 сезон в конце 2026", "watched": null, "total": 50, "status": "want", "rating": 0}, {"id": 59, "type": "series", "title": "девушка на час", "genre": "Аниме", "note": "5 сезонов", "watched": null, "total": 60.0, "status": "want", "rating": 0}, {"id": 60, "type": "series", "title": "Монолог фармацевта", "genre": "Аниме", "note": "3 сезон - состоится в октябре 2026 года", "watched": null, "total": 72, "status": "want", "rating": 0}, {"id": 61, "type": "series", "title": "Волейбол", "genre": "Аниме", "note": "нет полноценного 5-го сезона в формате сериала. Вместо этого финал истории экранизируется в виде полнометражных фильмов дилогии «Haikyu!! FINAL»", "watched": null, "total": 85.0, "status": "want", "rating": 0}, {"id": 62, "type": "series", "title": "Моя геройская академия", "genre": "Аниме", "note": "Завершен + 4 фильма/8 сезонов", "watched": null, "total": 171.0, "status": "want", "rating": 0}, {"id": 63, "type": "series", "title": "Ван Пис", "genre": "Аниме", "note": "Еще выходит", "watched": null, "total": 1133.0, "status": "want", "rating": 0}, {"id": 64, "type": "series", "title": "Пощади меня Великий господин", "genre": "Аниме", "note": "3 сезон Точная дата премьеры пока не объявлена, однако сериал находится в активной разработке.", "watched": 6.0, "total": 36.0, "status": "watching", "rating": 1}, {"id": 65, "type": "series", "title": "Магическая битва", "genre": "Аниме", "note": "4 сезон планируется в 2027", "watched": 8.0, "total": 60.0, "status": "watching", "rating": 3}, {"id": 66, "type": "series", "title": "Голубая шкатулка", "genre": "Аниме", "note": "Второй сезон стартует 4 октября 2026 года", "watched": null, "total": 25.0, "status": "want", "rating": 0}, {"id": 67, "type": "series", "title": "Добро пожаловать в класс превосходства", "genre": "Аниме", "note": "4 сезона, премьера продолжения состоится не ранее 2027 года", "watched": null, "total": 54.0, "status": "want", "rating": 0}, {"id": 68, "type": "series", "title": "Президент студсовета - горничная", "genre": "Аниме", "note": "Завершен", "watched": null, "total": 26.0, "status": "want", "rating": 0}, {"id": 69, "type": "series", "title": "Госпожа Кагуя: в любви как на войне", "genre": "Аниме", "note": "3 сезона + Фильм «Первый поцелуй никогда не заканчивается», специального мини-сериала из 2-х эпизодов под названием Госпожа Кагуя: в любви как на войне — Лестница во взрослую жизнь", "watched": null, "total": 37.0, "status": "want", "rating": 0}, {"id": 70, "type": "series", "title": "Тада не может влюбиться", "genre": "Аниме", "note": "завершён", "watched": null, "total": 13.0, "status": "want", "rating": 0}, {"id": 71, "type": "series", "title": "Ангел по соседству", "genre": "Аниме", "note": "Не анонсирован, возможно будет продолжение", "watched": null, "total": 24.0, "status": "want", "rating": 0}, {"id": 72, "type": "series", "title": "Ямада и семь ведьм", "genre": "Аниме", "note": "завершён", "watched": null, "total": 12.0, "status": "want", "rating": 0}, {"id": 73, "type": "series", "title": "Этот глупый свин не понимает мечту девочки-зайки", "genre": "Аниме", "note": "Псоле первого сезона 3 фильма, только потом 2 и 3 сезон, на октябрь 2026 года запланирована премьера финального фильма.", "watched": null, "total": 26.0, "status": "want", "rating": 0}, {"id": 74, "type": "movie", "title": "Этот глупый свин не понимает мечту девочки-мечтательницы", "genre": "Аниме", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 75, "type": "movie", "title": "Этот глупый свин не понимает мечту сестры на прогулке", "genre": "Аниме", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 76, "type": "movie", "title": "Этот глупый свин не понимает мечту девушки с рюкзаком", "genre": "Аниме", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 77, "type": "movie", "title": "Этот глупый свин не понимает мечту Санта-Клауса", "genre": "Аниме", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 78, "type": "series", "title": "Повторная жизнь", "genre": "Аниме", "note": "существует сюжетное продолжение — мини-сериал из 4 серий («Повторная жизнь: Финал»), которые завершают основную историю", "watched": null, "total": 17.0, "status": "want", "rating": 0}, {"id": 79, "type": "series", "title": "Торадора", "genre": "Аниме", "note": "завершён", "watched": null, "total": 25.0, "status": "want", "rating": 0}, {"id": 80, "type": "series", "title": "У коми проблемы с общением", "genre": "Аниме", "note": "Создатели сериала пока не подтвердили производство продолжения.", "watched": null, "total": 24.0, "status": "want", "rating": 0}, {"id": 81, "type": "series", "title": "Томо - девушка", "genre": "Аниме", "note": "завершён", "watched": null, "total": 13.0, "status": "want", "rating": 0}, {"id": 82, "type": "series", "title": "Вторая юность Хайбары", "genre": "Аниме", "note": "завершён", "watched": null, "total": 12.0, "status": "want", "rating": 0}, {"id": 83, "type": "series", "title": "Токийский Гуль", "genre": "Аниме", "note": "завершён", "watched": null, "total": 48.0, "status": "want", "rating": 0}];
+const MONTH_RU=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+function dueInfo(due){
+  if(!due)return null;
+  const [y,m]=due.split('-').map(Number);
+  const now=new Date();
+  const monthsDiff=(y-now.getFullYear())*12+(m-1-now.getMonth());
+  const label=MONTH_RU[m-1]+' '+y;
+  let cls='due-later';
+  if(monthsDiff<=0)cls='due-over';
+  else if(monthsDiff<=3)cls='due-soon';
+  return {label,cls,monthsDiff};
+}
+
+const INITIAL_DATA = [{"id": 1, "type": "series", "title": "Для тебя во всем цвету", "genre": "Аниме", "note": "(ЖДЕМ ВТОРОЙ СЕЗОН)", "watched": 12.0, "total": 12.0, "status": "waiting_season", "rating": 5, "due": null}, {"id": 2, "type": "series", "title": "Благоухающий цветок расцветает с достоинством", "genre": "Аниме", "note": "продолжение ожидается не ранее 2027–2028 годов", "watched": 13.0, "total": 13.0, "status": "waiting_season", "rating": 5, "due": null}, {"id": 3, "type": "series", "title": "Гачиакута", "genre": "Аниме", "note": "Стоит ожидать не раньше 2027–2028 годов", "watched": 24.0, "total": 24.0, "status": "waiting_season", "rating": 5, "due": null}, {"id": 4, "type": "series", "title": "Ты и я полные противоположности", "genre": "Аниме", "note": "2 сезон будет в конце 2026", "watched": 12.0, "total": 24, "status": "waiting_season", "rating": 4, "due": "2026-12"}, {"id": 5, "type": "series", "title": "Эта фарфоровая кукла влюбилась", "genre": "Аниме", "note": "Продолжение не раньше 2027–2028 года", "watched": 24.0, "total": 24.0, "status": "waiting_season", "rating": 4, "due": null}, {"id": 6, "type": "series", "title": "Адский рай", "genre": "Аниме", "note": "продолжение ожидается не ранее 2027–2028 годов", "watched": 25.0, "total": 25.0, "status": "waiting_season", "rating": 4, "due": null}, {"id": 7, "type": "series", "title": "Магия и мускулы", "genre": "Аниме", "note": "3 сезон запланирована на 2027", "watched": 25.0, "total": 25.0, "status": "waiting_season", "rating": 5, "due": null}, {"id": 8, "type": "series", "title": "Песнь ночных сов", "genre": "Аниме", "note": "2 сезона, 3 не анонсирован, но обещают", "watched": 25.0, "total": 25.0, "status": "waiting_season", "rating": 4, "due": null}, {"id": 9, "type": "series", "title": "Семья шпиона", "genre": "Аниме", "note": "Продолжение с конца 2026 по 2027 год", "watched": 50.0, "total": 50.0, "status": "waiting_season", "rating": 5, "due": null}, {"id": 10, "type": "movie", "title": "Форма голоса", "genre": "Аниме", "note": "", "watched": 1.0, "total": 1.0, "status": "completed", "rating": 4, "due": null}, {"id": 11, "type": "series", "title": "Первородный грех Такопи", "genre": "Аниме", "note": "1 сезон", "watched": 6.0, "total": 6.0, "status": "completed", "rating": 2, "due": null}, {"id": 12, "type": "series", "title": "Папаши дружбаны", "genre": "Аниме", "note": "завершён", "watched": 12.0, "total": 12.0, "status": "completed", "rating": 4, "due": null}, {"id": 13, "type": "series", "title": "На этот раз одержи победу над императорским драконом благородная девушка", "genre": "Аниме", "note": "завершён", "watched": 12.0, "total": 12.0, "status": "completed", "rating": 5, "due": null}, {"id": 14, "type": "series", "title": "Незнакомцы в другой жизни", "genre": "Аниме", "note": "завершён", "watched": 12.0, "total": 12.0, "status": "completed", "rating": 3, "due": null}, {"id": 15, "type": "series", "title": "я владыка демонов взял эльфийку-рабыню в жены и как же мне ее любить", "genre": "Аниме", "note": "1 сезон, 2 не анонсирован", "watched": 12.0, "total": 12.0, "status": "completed", "rating": 5, "due": null}, {"id": 16, "type": "series", "title": "Доктор Амеку: Великий детектив", "genre": "Аниме", "note": "1 сезон", "watched": 12.0, "total": 12.0, "status": "completed", "rating": 2, "due": null}, {"id": 17, "type": "series", "title": "Кае не страшно", "genre": "Аниме", "note": "1 сезон", "watched": 12.0, "total": 12.0, "status": "completed", "rating": 2, "due": null}, {"id": 18, "type": "series", "title": "инцидент кэмоно", "genre": "Аниме", "note": "завершён", "watched": 12.0, "total": 12.0, "status": "completed", "rating": 5, "due": null}, {"id": 19, "type": "series", "title": "Бог Старшей школы", "genre": "Аниме", "note": "Продолжение не анонсировано", "watched": 13.0, "total": 13.0, "status": "completed", "rating": 5, "due": null}, {"id": 20, "type": "series", "title": "Какой сейчас Тамон", "genre": "Аниме", "note": "завершён", "watched": 13.0, "total": 13.0, "status": "completed", "rating": 4, "due": null}, {"id": 21, "type": "series", "title": "Пантеон", "genre": "Аниме", "note": "2 сезона", "watched": 16.0, "total": 16.0, "status": "completed", "rating": 3, "due": null}, {"id": 22, "type": "series", "title": "Летнее время", "genre": "Аниме", "note": "завершён", "watched": 25.0, "total": 25.0, "status": "completed", "rating": 3, "due": null}, {"id": 23, "type": "series", "title": "Клинок рассекающий демонов", "genre": "Аниме", "note": "завершён", "watched": 63.0, "total": 63.0, "status": "completed", "rating": 5, "due": null}, {"id": 24, "type": "series", "title": "Атака титанов", "genre": "Аниме", "note": "завершён", "watched": 89.0, "total": 89.0, "status": "completed", "rating": 5, "due": null}, {"id": 25, "type": "series", "title": "Боруто", "genre": "Аниме", "note": "Вторая часть - точная дата премьеры пока не объявлена", "watched": 293.0, "total": 293.0, "status": "completed", "rating": 4, "due": null}, {"id": 26, "type": "series", "title": "Наруто", "genre": "Аниме", "note": "завершён", "watched": 720.0, "total": 720.0, "status": "completed", "rating": 5, "due": null}, {"id": 27, "type": "movie", "title": "Золотая бронза", "genre": "Драма", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0, "due": null}, {"id": 28, "type": "movie", "title": "(без названия — исправьте)", "genre": "Драма", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0, "due": null}, {"id": 29, "type": "movie", "title": "На границе миров", "genre": "Фантастика", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0, "due": null}, {"id": 30, "type": "movie", "title": "Исчезнувшая в звездах", "genre": "Детектив", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0, "due": null}, {"id": 31, "type": "movie", "title": "Зов предков", "genre": "Мелодрама", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0, "due": null}, {"id": 32, "type": "movie", "title": "Вверх тормашками", "genre": "Мелодрама", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0, "due": null}, {"id": 33, "type": "movie", "title": "Хостатый переполох", "genre": "Комедия", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0, "due": null}, {"id": 34, "type": "series", "title": "Приключения Аргонавтов", "genre": "Комедия", "note": "Мультфильм", "watched": null, "total": 1.0, "status": "want", "rating": 0, "due": null}, {"id": 35, "type": "movie", "title": "Я хочу съесть твою поджелудочную железу", "genre": "Аниме", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0, "due": null}, {"id": 36, "type": "movie", "title": "Могила светлячков", "genre": "Аниме", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0, "due": null}, {"id": 37, "type": "movie", "title": "Она видела небо", "genre": "Аниме", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0, "due": null}, {"id": 38, "type": "movie", "title": "Укрась прощальное утро цветами обещаний", "genre": "Аниме", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0, "due": null}, {"id": 39, "type": "series", "title": "Голубоглазый самурай", "genre": "Аниме", "note": "2 сезон планируется в 2026, но еще не вышел", "watched": null, "total": 8.0, "status": "want", "rating": 0, "due": null}, {"id": 40, "type": "series", "title": "Маг целитель новый старт", "genre": "Аниме", "note": "Официального анонса продолжения нет", "watched": null, "total": 12.0, "status": "want", "rating": 0, "due": null}, {"id": 41, "type": "series", "title": "Я требую Яоя", "genre": "Аниме", "note": "завершён", "watched": null, "total": 12.0, "status": "want", "rating": 0, "due": null}, {"id": 42, "type": "series", "title": "ежемесячное сёдзё нодзаки", "genre": "Аниме", "note": "завершён", "watched": null, "total": 12.0, "status": "want", "rating": 0, "due": null}, {"id": 43, "type": "series", "title": "одинокий рокер", "genre": "Аниме", "note": "2 сезон анонсирован, но точная дата релиза пока держится в секрете", "watched": null, "total": 12.0, "status": "want", "rating": 0, "due": null}, {"id": 44, "type": "series", "title": "школа строгого режима", "genre": "Аниме", "note": "завершён", "watched": null, "total": 12.0, "status": "want", "rating": 0, "due": null}, {"id": 45, "type": "series", "title": "Мой телохранитель", "genre": "Аниме", "note": "2 сезон пока не анонсирован", "watched": null, "total": 13.0, "status": "want", "rating": 0, "due": null}, {"id": 46, "type": "series", "title": "Пластиковые Воспоминания", "genre": "Аниме", "note": "завершён", "watched": null, "total": 13.0, "status": "want", "rating": 0, "due": null}, {"id": 47, "type": "series", "title": "Нарутару", "genre": "Аниме", "note": "завершён", "watched": null, "total": 13.0, "status": "want", "rating": 0, "due": null}, {"id": 48, "type": "series", "title": "монстр за соседней партой", "genre": "Аниме", "note": "завершён", "watched": null, "total": 13.0, "status": "want", "rating": 0, "due": null}, {"id": 49, "type": "series", "title": "Ледяная стена", "genre": "Аниме", "note": "продолжение находится в разработке и станет заключительным", "watched": null, "total": 14.0, "status": "want", "rating": 0, "due": null}, {"id": 50, "type": "series", "title": "Твоя Апрельская ложь", "genre": "Аниме", "note": "завершён", "watched": null, "total": 22.0, "status": "want", "rating": 0, "due": null}, {"id": 51, "type": "series", "title": "Необъятный океан", "genre": "Аниме", "note": "2 сезона, 3 стартует в июле 2026 года", "watched": null, "total": 24.0, "status": "want", "rating": 0, "due": "2026-07"}, {"id": 52, "type": "series", "title": "Цугаи загробного мира", "genre": "Аниме", "note": "финальный эпизод выйдет 12 сентября 2026 года", "watched": null, "total": 24.0, "status": "want", "rating": 0, "due": "2026-09"}, {"id": 53, "type": "series", "title": "рагна кримзон", "genre": "Аниме", "note": "завершён", "watched": null, "total": 24.0, "status": "want", "rating": 0, "due": null}, {"id": 54, "type": "series", "title": "Безоблачная завтра", "genre": "Аниме", "note": "завершён", "watched": null, "total": 26.0, "status": "want", "rating": 0, "due": null}, {"id": 55, "type": "series", "title": "Ванпачмен", "genre": "Аниме", "note": "4 сезон планируется в 2027", "watched": null, "total": 36.0, "status": "want", "rating": 0, "due": null}, {"id": 56, "type": "series", "title": "Теория лжи", "genre": "Детектив", "note": "3 сезона", "watched": null, "total": 48.0, "status": "want", "rating": 0, "due": null}, {"id": 57, "type": "series", "title": "Мотель бейтса", "genre": "Ужасы", "note": "5 сезонов", "watched": null, "total": 50.0, "status": "want", "rating": 0, "due": null}, {"id": 58, "type": "series", "title": "Токийский мститель", "genre": "Аниме", "note": "4 сезон в конце 2026", "watched": null, "total": 50, "status": "want", "rating": 0, "due": null}, {"id": 59, "type": "series", "title": "девушка на час", "genre": "Аниме", "note": "5 сезонов", "watched": null, "total": 60.0, "status": "want", "rating": 0, "due": null}, {"id": 60, "type": "series", "title": "Монолог фармацевта", "genre": "Аниме", "note": "3 сезон - состоится в октябре 2026 года", "watched": null, "total": 72, "status": "want", "rating": 0, "due": "2026-10"}, {"id": 61, "type": "series", "title": "Волейбол", "genre": "Аниме", "note": "нет полноценного 5-го сезона в формате сериала. Вместо этого финал истории экранизируется в виде полнометражных фильмов дилогии «Haikyu!! FINAL»", "watched": null, "total": 85.0, "status": "want", "rating": 0, "due": null}, {"id": 62, "type": "series", "title": "Моя геройская академия", "genre": "Аниме", "note": "Завершен + 4 фильма/8 сезонов", "watched": null, "total": 171.0, "status": "want", "rating": 0, "due": null}, {"id": 63, "type": "series", "title": "Ван Пис", "genre": "Аниме", "note": "Еще выходит", "watched": null, "total": 1133.0, "status": "want", "rating": 0, "due": null}, {"id": 64, "type": "series", "title": "Пощади меня Великий господин", "genre": "Аниме", "note": "3 сезон Точная дата премьеры пока не объявлена, однако сериал находится в активной разработке.", "watched": 6.0, "total": 36.0, "status": "watching", "rating": 1, "due": null}, {"id": 65, "type": "series", "title": "Магическая битва", "genre": "Аниме", "note": "4 сезон планируется в 2027", "watched": 8.0, "total": 60.0, "status": "watching", "rating": 3, "due": null}, {"id": 66, "type": "series", "title": "Голубая шкатулка", "genre": "Аниме", "note": "Второй сезон стартует 4 октября 2026 года", "watched": null, "total": 25.0, "status": "want", "rating": 0, "due": "2026-10"}, {"id": 67, "type": "series", "title": "Добро пожаловать в класс превосходства", "genre": "Аниме", "note": "4 сезона, премьера продолжения состоится не ранее 2027 года", "watched": null, "total": 54.0, "status": "want", "rating": 0, "due": null}, {"id": 68, "type": "series", "title": "Президент студсовета - горничная", "genre": "Аниме", "note": "Завершен", "watched": null, "total": 26.0, "status": "want", "rating": 0, "due": null}, {"id": 69, "type": "series", "title": "Госпожа Кагуя: в любви как на войне", "genre": "Аниме", "note": "3 сезона + Фильм «Первый поцелуй никогда не заканчивается», специального мини-сериала из 2-х эпизодов под названием Госпожа Кагуя: в любви как на войне — Лестница во взрослую жизнь", "watched": null, "total": 37.0, "status": "want", "rating": 0, "due": null}, {"id": 70, "type": "series", "title": "Тада не может влюбиться", "genre": "Аниме", "note": "завершён", "watched": null, "total": 13.0, "status": "want", "rating": 0, "due": null}, {"id": 71, "type": "series", "title": "Ангел по соседству", "genre": "Аниме", "note": "Не анонсирован, возможно будет продолжение", "watched": null, "total": 24.0, "status": "want", "rating": 0, "due": null}, {"id": 72, "type": "series", "title": "Ямада и семь ведьм", "genre": "Аниме", "note": "завершён", "watched": null, "total": 12.0, "status": "want", "rating": 0, "due": null}, {"id": 73, "type": "series", "title": "Этот глупый свин не понимает мечту девочки-зайки", "genre": "Аниме", "note": "Псоле первого сезона 3 фильма, только потом 2 и 3 сезон, на октябрь 2026 года запланирована премьера финального фильма.", "watched": null, "total": 26.0, "status": "want", "rating": 0, "due": "2026-10"}, {"id": 74, "type": "movie", "title": "Этот глупый свин не понимает мечту девочки-мечтательницы", "genre": "Аниме", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0, "due": null}, {"id": 75, "type": "movie", "title": "Этот глупый свин не понимает мечту сестры на прогулке", "genre": "Аниме", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0, "due": null}, {"id": 76, "type": "movie", "title": "Этот глупый свин не понимает мечту девушки с рюкзаком", "genre": "Аниме", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0, "due": null}, {"id": 77, "type": "movie", "title": "Этот глупый свин не понимает мечту Санта-Клауса", "genre": "Аниме", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0, "due": null}, {"id": 78, "type": "series", "title": "Повторная жизнь", "genre": "Аниме", "note": "существует сюжетное продолжение — мини-сериал из 4 серий («Повторная жизнь: Финал»), которые завершают основную историю", "watched": null, "total": 17.0, "status": "want", "rating": 0, "due": null}, {"id": 79, "type": "series", "title": "Торадора", "genre": "Аниме", "note": "завершён", "watched": null, "total": 25.0, "status": "want", "rating": 0, "due": null}, {"id": 80, "type": "series", "title": "У коми проблемы с общением", "genre": "Аниме", "note": "Создатели сериала пока не подтвердили производство продолжения.", "watched": null, "total": 24.0, "status": "want", "rating": 0, "due": null}, {"id": 81, "type": "series", "title": "Томо - девушка", "genre": "Аниме", "note": "завершён", "watched": null, "total": 13.0, "status": "want", "rating": 0, "due": null}, {"id": 82, "type": "series", "title": "Вторая юность Хайбары", "genre": "Аниме", "note": "завершён", "watched": null, "total": 12.0, "status": "want", "rating": 0, "due": null}, {"id": 83, "type": "series", "title": "Токийский Гуль", "genre": "Аниме", "note": "завершён", "watched": null, "total": 48.0, "status": "want", "rating": 0, "due": null}];
 
 let items=[];
 let state={type:'all',status:'all',search:'',sort:'title'};
@@ -226,7 +302,10 @@ function mergeRemote(remote){
   if(!remote||!remote.length)return;
   const remoteMap={};
   remote.forEach(r=>remoteMap[String(r.id)]=r);
-  items=items.map(it=>remoteMap[String(it.id)]||it);
+  items=items.map(it=>{
+    const r=remoteMap[String(it.id)];
+    return r?Object.assign({},it,r):it;
+  });
   const localIds=new Set(items.map(it=>String(it.id)));
   remote.forEach(r=>{if(!localIds.has(String(r.id)))items.push(r);});
 }
@@ -287,6 +366,12 @@ function filtered(){
   if(state.sort==='title')list.sort((a,b)=>a.title.localeCompare(b.title,'ru'));
   else if(state.sort==='rating')list.sort((a,b)=>(b.rating||0)-(a.rating||0)||a.title.localeCompare(b.title,'ru'));
   else if(state.sort==='progress')list.sort((a,b)=>progressPct(b)-progressPct(a)||a.title.localeCompare(b.title,'ru'));
+  else if(state.sort==='due')list.sort((a,b)=>{
+    if(!a.due&&!b.due)return a.title.localeCompare(b.title,'ru');
+    if(!a.due)return 1;
+    if(!b.due)return -1;
+    return a.due.localeCompare(b.due)||a.title.localeCompare(b.title,'ru');
+  });
   return list;
 }
 
@@ -346,8 +431,9 @@ function cardHtml(it){
   const isMovie=it.type==='movie';
   const total=it.total==null?'':it.total;
   const watched=it.watched==null?0:it.watched;
-  const accent=STATUS_ACCENT[it.status]||'var(--purple)';
+  const accent=statusAccent(it.status);
   const gc=genreColor(it.genre);
+  const di=dueInfo(it.due);
   return `<div class="card" id="card-${it.id}" style="--card-accent:${accent}">
     <div class="card-top">
       <div class="card-title" onclick="openModal(${it.id})">${esc(it.title)}</div>
@@ -359,6 +445,7 @@ function cardHtml(it){
     <div class="badges">
       <span class="badge ${isMovie?'type-movie':'type-series'}">${isMovie?'🎬 Фильм':'📺 Сериал'}</span>
       ${it.genre?`<span class="badge" style="background:${gc.bg};color:${gc.fg}">${esc(it.genre)}</span>`:''}
+      ${di?`<span class="badge ${di.cls}">${di.cls==='due-over'?'⏰ уже пора · ':(di.cls==='due-soon'?'🔜 скоро · ':'')}${di.label}</span>`:''}
     </div>
     <select class="status-select" onchange="setStatus(${it.id},this.value)">
       ${STATUS_ORDER.map(s=>`<option value="${s}" ${it.status===s?'selected':''}>${STATUS_LABEL[s]}</option>`).join('')}
@@ -440,7 +527,7 @@ function deleteItem(id){
 
 function openModal(id){
   const it=id?findItem(id):null;
-  const data=it||{id:uid(),type:'series',title:'',genre:'',note:'',watched:0,total:0,status:'want',rating:0};
+  const data=it||{id:uid(),type:'series',title:'',genre:'',note:'',watched:0,total:0,status:'want',rating:0,due:null};
   const genres=genreList();
   document.getElementById('modal-root').innerHTML=`
   <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
@@ -477,6 +564,10 @@ function openModal(id){
           <label>Всего серий</label>
           <input type="number" id="f-total" value="${data.total==null?0:data.total}" min="0">
         </div>
+      </div>
+      <div class="field">
+        <label>Ожидаемая дата выхода</label>
+        <input type="month" id="f-due" value="${data.due||''}">
       </div>
       <div class="field">
         <label>Оценка</label>
@@ -525,21 +616,37 @@ function saveModal(existingId){
   const watched=Math.max(0,Number(document.getElementById('f-watched').value)||0);
   const total=Math.max(0,Number(document.getElementById('f-total').value)||0);
   const note=document.getElementById('f-note').value.trim();
+  const due=document.getElementById('f-due').value||null;
   const type=window._modalType||'series';
   const rating=window._modalRating||0;
 
   if(existingId){
     const it=findItem(existingId);
-    Object.assign(it,{title,genre,status,watched,total,note,type,rating});
+    Object.assign(it,{title,genre,status,watched,total,note,type,rating,due});
   }else{
-    items.push({id:uid(),title,genre,status,watched,total,note,type,rating});
+    items.push({id:uid(),title,genre,status,watched,total,note,type,rating,due});
   }
   closeModal();render();persist();
 }
 
+function backfillDue(){
+  const initMap={};
+  INITIAL_DATA.forEach(d=>initMap[d.id]=d.due);
+  let changed=false;
+  items.forEach(it=>{
+    if(!('due' in it)){
+      it.due=initMap[it.id]||null;
+      changed=true;
+    }
+  });
+  if(changed)saveLocal();
+}
+
 function init(){
+  initTheme();
   const local=loadLocal();
   items=local?local:JSON.parse(JSON.stringify(INITIAL_DATA));
+  backfillDue();
   render();
   fetchRemote();
 }
