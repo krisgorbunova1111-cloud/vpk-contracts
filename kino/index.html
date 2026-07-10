@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Кино и сериалы</title>
+<style>
+:root{
+  --bg1:#15141c; --bg2:#101017; --bg3:#161620;
+  --card:rgba(35,33,46,.55); --card2:rgba(255,255,255,.05);
+  --border:rgba(255,255,255,.08); --text:#eceaf2; --muted:#948fa6; --muted2:#726d84;
+  --pink:#e0729a; --pink-d:rgba(224,114,154,.14);
+  --orange:#d99a5b; --orange-d:rgba(217,154,91,.14);
+  --yellow:#d9c15b; --yellow-d:rgba(217,193,91,.14);
+  --teal:#4fbfa8; --teal-d:rgba(79,191,168,.14);
+  --purple:#8b7bc7; --purple-d:rgba(139,123,199,.14);
+  --blue:#6b9fc2; --blue-d:rgba(107,159,194,.14);
+  --green:#6bbf8f; --green-d:rgba(107,191,143,.14);
+  --gray:#8b86a0; --gray-d:rgba(139,134,160,.12);
+  --red:#d9707f;
+  --shadow:0 4px 16px rgba(0,0,0,.35);
+  --sunset:linear-gradient(135deg,#d9808f,#d9a25b);
+  --cosmic:linear-gradient(135deg,#7d6bb5,#c47593);
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:
+  radial-gradient(circle at 15% 0%,rgba(139,123,199,.09),transparent 45%),
+  radial-gradient(circle at 85% 15%,rgba(224,114,154,.07),transparent 40%),
+  linear-gradient(180deg,var(--bg1),var(--bg2) 40%,var(--bg3));
+  background-attachment:fixed;
+  color:var(--text);min-height:100vh;padding-bottom:60px;}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-thumb{background:#4a3a70;border-radius:4px;}
+
+header{position:sticky;top:0;z-index:20;background:rgba(15,10,31,.85);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);padding:14px 16px 10px;}
+.header-top{display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:1100px;margin:0 auto;}
+.title{font-size:20px;font-weight:700;display:flex;align-items:center;gap:8px;color:var(--text);}
+.title .em{opacity:.9;}
+.sync{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);}
+.sync .dot{width:8px;height:8px;border-radius:50%;background:var(--gray);transition:background .3s;}
+.sync .dot.ok{background:var(--teal);box-shadow:0 0 6px var(--teal);}
+.sync .dot.err{background:var(--red);}
+.sync .dot.busy{background:var(--yellow);animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+.toolbar{max-width:1100px;margin:12px auto 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.search-wrap{flex:1 1 200px;position:relative;}
+.search-wrap input{width:100%;padding:9px 12px 9px 34px;border-radius:10px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-size:14px;outline:none;}
+.search-wrap input:focus{border-color:var(--pink);}
+.search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--muted);}
+select.sortsel{padding:9px 10px;border-radius:10px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-size:13px;outline:none;}
+.btn-add{background:var(--cosmic);color:#fff;border:none;border-radius:10px;padding:9px 16px;font-weight:600;font-size:14px;cursor:pointer;white-space:nowrap;}
+.btn-add:active{transform:scale(.97);}
+
+.tabs{max-width:1100px;margin:10px auto 0;display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;}
+.tab{flex:none;padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:var(--card2);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;}
+.tab.active{background:rgba(224,114,154,.16);color:var(--pink);border-color:rgba(224,114,154,.4);}
+
+.chips{max-width:1100px;margin:8px auto 0;display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;}
+.chip{flex:none;padding:6px 12px;border-radius:16px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:5px;}
+.chip .cnt{background:rgba(255,255,255,.1);border-radius:10px;padding:1px 6px;font-size:11px;}
+.chip.active{border-color:var(--pink);color:var(--pink);background:var(--pink-d);}
+
+.stats{max-width:1100px;margin:14px auto 0;padding:0 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 12px;backdrop-filter:blur(8px);}
+.stat:nth-child(1) .n{color:var(--pink);}
+.stat:nth-child(2) .n{color:var(--blue);}
+.stat:nth-child(3) .n{color:var(--green);}
+.stat:nth-child(4) .n{color:var(--purple);}
+.stat:nth-child(5) .n{color:var(--orange);}
+.stat:nth-child(6) .n{color:var(--yellow);}
+.stat:nth-child(7) .n{color:var(--teal);}
+.stat .n{font-size:19px;font-weight:800;}
+.stat .l{font-size:11px;color:var(--muted);margin-top:2px;}
+
+main{max-width:1100px;margin:0 auto;padding:16px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px;}
+
+.card{background:var(--card);border:1px solid var(--border);border-top:2px solid var(--card-accent,var(--purple));border-radius:14px;padding:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;position:relative;transition:transform .15s,border-color .15s,box-shadow .15s;backdrop-filter:blur(10px);}
+.card:hover{border-color:rgba(255,255,255,.16);transform:translateY(-1px);}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+.card-title{font-size:15px;font-weight:700;line-height:1.3;cursor:pointer;}
+.card-title:hover{color:var(--pink);}
+.card-actions{display:flex;gap:4px;flex:none;}
+.icon-btn{width:26px;height:26px;border-radius:7px;border:1px solid var(--border);background:var(--card2);color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;}
+.icon-btn:hover{color:var(--text);border-color:var(--muted);}
+.icon-btn.danger:hover{color:var(--red);border-color:var(--red);}
+
+.badges{display:flex;flex-wrap:wrap;gap:6px;}
+.badge{font-size:11px;padding:3px 9px;border-radius:8px;font-weight:700;white-space:nowrap;}
+.badge.type-movie{background:var(--orange-d);color:var(--orange);}
+.badge.type-series{background:var(--blue-d);color:var(--blue);}
+.badge.status-want{background:var(--gray-d);color:var(--gray);}
+.badge.status-watching{background:var(--teal-d);color:var(--teal);}
+.badge.status-waiting_season{background:var(--yellow-d);color:var(--yellow);}
+.badge.status-completed{background:var(--green-d);color:var(--green);}
+.badge.status-paused{background:var(--purple-d);color:var(--purple);}
+
+.note{font-size:12px;color:var(--muted2);line-height:1.4;}
+
+.progress-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);}
+.progress-bar{flex:1;height:6px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden;}
+.progress-fill{height:100%;background:var(--card-accent,var(--purple));border-radius:4px;transition:width .3s;}
+.progress-num{white-space:nowrap;font-variant-numeric:tabular-nums;}
+.watch-controls{display:flex;align-items:center;gap:4px;}
+.watch-controls button{width:22px;height:22px;border-radius:6px;border:1px solid var(--border);background:var(--card2);color:var(--text);cursor:pointer;font-size:13px;line-height:1;}
+.watch-controls button:hover{border-color:var(--pink);color:var(--pink);}
+.watch-controls input{width:44px;background:transparent;border:none;color:var(--text);text-align:center;font-size:12px;outline:none;}
+
+.stars{display:flex;gap:2px;}
+.stars span{cursor:pointer;font-size:17px;color:rgba(255,255,255,.15);user-select:none;}
+.stars span.on{color:var(--yellow);}
+
+.status-select{margin-top:2px;width:100%;padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-size:12px;outline:none;}
+
+.empty{text-align:center;padding:60px 20px;color:var(--muted);}
+.empty .em{font-size:40px;margin-bottom:10px;}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(10,6,20,.7);z-index:100;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px);}
+@media(min-width:640px){.modal-overlay{align-items:center;}}
+.modal{background:linear-gradient(160deg,#2a1a45,#1a0f2e);border:1px solid var(--border);border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow);}
+@media(min-width:640px){.modal{border-radius:16px;}}
+.modal h3{margin:0 0 14px;font-size:17px;color:var(--text);}
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;}
+.field input[type=text],.field input[type=number],.field textarea,.field select{width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--text);font-size:14px;outline:none;font-family:inherit;}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--pink);}
+.field textarea{resize:vertical;min-height:50px;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.type-toggle{display:flex;gap:8px;}
+.type-toggle button{flex:1;padding:9px;border-radius:9px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--muted);cursor:pointer;font-size:13px;font-weight:600;}
+.type-toggle button.on{background:var(--cosmic);color:#fff;border-color:transparent;}
+.modal-actions{display:flex;gap:8px;margin-top:16px;}
+.btn{flex:1;padding:11px;border-radius:10px;border:none;font-weight:700;font-size:14px;cursor:pointer;}
+.btn.primary{background:var(--cosmic);color:#fff;}
+.btn.ghost{background:rgba(255,255,255,.06);color:var(--text);border:1px solid var(--border);}
+.btn.danger{background:transparent;color:var(--red);border:1px solid var(--red);}
+
+.confirm-del{position:absolute;inset:0;background:rgba(15,8,28,.96);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:14px;z-index:5;}
+.confirm-del div{font-size:13px;text-align:center;}
+.confirm-del .row{display:flex;gap:8px;width:100%;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div class="title"><span class="em">🎬</span> Кино и сериалы</div>
+    <div class="sync"><span class="dot" id="sync-dot"></span><span id="sync-text">Загрузка…</span></div>
+  </div>
+  <div class="toolbar">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input id="search" type="text" placeholder="Поиск по названию…" oninput="setSearch(this.value)">
+    </div>
+    <select class="sortsel" id="sortsel" onchange="setSort(this.value)">
+      <option value="title">По названию</option>
+      <option value="rating">По оценке</option>
+      <option value="progress">По прогрессу</option>
+    </select>
+    <button class="btn-add" onclick="openModal()">+ Добавить</button>
+  </div>
+  <div class="tabs" id="tabs"></div>
+  <div class="chips" id="chips"></div>
+</header>
+
+<div class="stats" id="stats"></div>
+
+<main>
+  <div class="grid" id="grid"></div>
+</main>
+
+<div id="modal-root"></div>
+
+<script>
+const SUPABASE_URL='https://urfnpjumxkewyizaxgns.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVyZm5wanVteGtld3lpemF4Z25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMzkyNDMsImV4cCI6MjA5MTgxNTI0M30.vDbdyE3Z4whApQo50Mfgor11SL-dT1PWDOygipxVKtE';
+const REMOTE_KEY='kino_tracker_v1';
+const LS_KEY='kino_tracker_v1_local';
+
+const STATUS_LABEL={want:'◎ Хочу посмотреть',watching:'▶ Смотрю',waiting_season:'⏳ Ждём продолжения',completed:'✓ Досмотрено',paused:'⏸ На паузе'};
+const STATUS_ORDER=['watching','waiting_season','want','completed','paused'];
+const STATUS_ACCENT={watching:'#4fbfa8',waiting_season:'#d9c15b',want:'#726d84',completed:'#6bbf8f',paused:'#8b7bc7'};
+
+const GENRE_PALETTE=[
+  {bg:'rgba(224,114,154,.13)',fg:'#d992ac'},
+  {bg:'rgba(217,154,91,.13)',fg:'#cfa578'},
+  {bg:'rgba(79,191,168,.13)',fg:'#7dc4b3'},
+  {bg:'rgba(139,123,199,.13)',fg:'#a89adb'},
+  {bg:'rgba(107,159,194,.13)',fg:'#8fb6d4'},
+  {bg:'rgba(217,193,91,.13)',fg:'#cbb976'},
+  {bg:'rgba(217,112,127,.13)',fg:'#cf8f9b'},
+  {bg:'rgba(107,191,143,.13)',fg:'#8fcaa9'},
+];
+function hashStr(s){let h=0;for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))|0;}return Math.abs(h);}
+function genreColor(g){if(!g)return{bg:'rgba(255,255,255,.05)',fg:'#948fa6'};return GENRE_PALETTE[hashStr(g)%GENRE_PALETTE.length];}
+
+const INITIAL_DATA = [{"id": 1, "type": "series", "title": "Для тебя во всем цвету", "genre": "Аниме", "note": "(ЖДЕМ ВТОРОЙ СЕЗОН)", "watched": 12.0, "total": 12.0, "status": "waiting_season", "rating": 5}, {"id": 2, "type": "series", "title": "Благоухающий цветок расцветает с достоинством", "genre": "Аниме", "note": "продолжение ожидается не ранее 2027–2028 годов", "watched": 13.0, "total": 13.0, "status": "waiting_season", "rating": 5}, {"id": 3, "type": "series", "title": "Гачиакута", "genre": "Аниме", "note": "Стоит ожидать не раньше 2027–2028 годов", "watched": 24.0, "total": 24.0, "status": "waiting_season", "rating": 5}, {"id": 4, "type": "series", "title": "Ты и я полные противоположности", "genre": "Аниме", "note": "2 сезон будет в конце 2026", "watched": 12.0, "total": 24, "status": "waiting_season", "rating": 4}, {"id": 5, "type": "series", "title": "Эта фарфоровая кукла влюбилась", "genre": "Аниме", "note": "Продолжение не раньше 2027–2028 года", "watched": 24.0, "total": 24.0, "status": "waiting_season", "rating": 4}, {"id": 6, "type": "series", "title": "Адский рай", "genre": "Аниме", "note": "продолжение ожидается не ранее 2027–2028 годов", "watched": 25.0, "total": 25.0, "status": "waiting_season", "rating": 4}, {"id": 7, "type": "series", "title": "Магия и мускулы", "genre": "Аниме", "note": "3 сезон запланирована на 2027", "watched": 25.0, "total": 25.0, "status": "waiting_season", "rating": 5}, {"id": 8, "type": "series", "title": "Песнь ночных сов", "genre": "Аниме", "note": "2 сезона, 3 не анонсирован, но обещают", "watched": 25.0, "total": 25.0, "status": "waiting_season", "rating": 4}, {"id": 9, "type": "series", "title": "Семья шпиона", "genre": "Аниме", "note": "Продолжение с конца 2026 по 2027 год", "watched": 50.0, "total": 50.0, "status": "waiting_season", "rating": 5}, {"id": 10, "type": "movie", "title": "Форма голоса", "genre": "Аниме", "note": "", "watched": 1.0, "total": 1.0, "status": "completed", "rating": 4}, {"id": 11, "type": "series", "title": "Первородный грех Такопи", "genre": "Аниме", "note": "1 сезон", "watched": 6.0, "total": 6.0, "status": "completed", "rating": 2}, {"id": 12, "type": "series", "title": "Папаши дружбаны", "genre": "Аниме", "note": "завершён", "watched": 12.0, "total": 12.0, "status": "completed", "rating": 4}, {"id": 13, "type": "series", "title": "На этот раз одержи победу над императорским драконом благородная девушка", "genre": "Аниме", "note": "завершён", "watched": 12.0, "total": 12.0, "status": "completed", "rating": 5}, {"id": 14, "type": "series", "title": "Незнакомцы в другой жизни", "genre": "Аниме", "note": "завершён", "watched": 12.0, "total": 12.0, "status": "completed", "rating": 3}, {"id": 15, "type": "series", "title": "я владыка демонов взял эльфийку-рабыню в жены и как же мне ее любить", "genre": "Аниме", "note": "1 сезон, 2 не анонсирован", "watched": 12.0, "total": 12.0, "status": "completed", "rating": 5}, {"id": 16, "type": "series", "title": "Доктор Амеку: Великий детектив", "genre": "Аниме", "note": "1 сезон", "watched": 12.0, "total": 12.0, "status": "completed", "rating": 2}, {"id": 17, "type": "series", "title": "Кае не страшно", "genre": "Аниме", "note": "1 сезон", "watched": 12.0, "total": 12.0, "status": "completed", "rating": 2}, {"id": 18, "type": "series", "title": "инцидент кэмоно", "genre": "Аниме", "note": "завершён", "watched": 12.0, "total": 12.0, "status": "completed", "rating": 5}, {"id": 19, "type": "series", "title": "Бог Старшей школы", "genre": "Аниме", "note": "Продолжение не анонсировано", "watched": 13.0, "total": 13.0, "status": "completed", "rating": 5}, {"id": 20, "type": "series", "title": "Какой сейчас Тамон", "genre": "Аниме", "note": "завершён", "watched": 13.0, "total": 13.0, "status": "completed", "rating": 4}, {"id": 21, "type": "series", "title": "Пантеон", "genre": "Аниме", "note": "2 сезона", "watched": 16.0, "total": 16.0, "status": "completed", "rating": 3}, {"id": 22, "type": "series", "title": "Летнее время", "genre": "Аниме", "note": "завершён", "watched": 25.0, "total": 25.0, "status": "completed", "rating": 3}, {"id": 23, "type": "series", "title": "Клинок рассекающий демонов", "genre": "Аниме", "note": "завершён", "watched": 63.0, "total": 63.0, "status": "completed", "rating": 5}, {"id": 24, "type": "series", "title": "Атака титанов", "genre": "Аниме", "note": "завершён", "watched": 89.0, "total": 89.0, "status": "completed", "rating": 5}, {"id": 25, "type": "series", "title": "Боруто", "genre": "Аниме", "note": "Вторая часть - точная дата премьеры пока не объявлена", "watched": 293.0, "total": 293.0, "status": "completed", "rating": 4}, {"id": 26, "type": "series", "title": "Наруто", "genre": "Аниме", "note": "завершён", "watched": 720.0, "total": 720.0, "status": "completed", "rating": 5}, {"id": 27, "type": "movie", "title": "Золотая бронза", "genre": "Драма", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 28, "type": "movie", "title": "(без названия — исправьте)", "genre": "Драма", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 29, "type": "movie", "title": "На границе миров", "genre": "Фантастика", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 30, "type": "movie", "title": "Исчезнувшая в звездах", "genre": "Детектив", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 31, "type": "movie", "title": "Зов предков", "genre": "Мелодрама", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 32, "type": "movie", "title": "Вверх тормашками", "genre": "Мелодрама", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 33, "type": "movie", "title": "Хостатый переполох", "genre": "Комедия", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 34, "type": "series", "title": "Приключения Аргонавтов", "genre": "Комедия", "note": "Мультфильм", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 35, "type": "movie", "title": "Я хочу съесть твою поджелудочную железу", "genre": "Аниме", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 36, "type": "movie", "title": "Могила светлячков", "genre": "Аниме", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 37, "type": "movie", "title": "Она видела небо", "genre": "Аниме", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 38, "type": "movie", "title": "Укрась прощальное утро цветами обещаний", "genre": "Аниме", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 39, "type": "series", "title": "Голубоглазый самурай", "genre": "Аниме", "note": "2 сезон планируется в 2026, но еще не вышел", "watched": null, "total": 8.0, "status": "want", "rating": 0}, {"id": 40, "type": "series", "title": "Маг целитель новый старт", "genre": "Аниме", "note": "Официального анонса продолжения нет", "watched": null, "total": 12.0, "status": "want", "rating": 0}, {"id": 41, "type": "series", "title": "Я требую Яоя", "genre": "Аниме", "note": "завершён", "watched": null, "total": 12.0, "status": "want", "rating": 0}, {"id": 42, "type": "series", "title": "ежемесячное сёдзё нодзаки", "genre": "Аниме", "note": "завершён", "watched": null, "total": 12.0, "status": "want", "rating": 0}, {"id": 43, "type": "series", "title": "одинокий рокер", "genre": "Аниме", "note": "2 сезон анонсирован, но точная дата релиза пока держится в секрете", "watched": null, "total": 12.0, "status": "want", "rating": 0}, {"id": 44, "type": "series", "title": "школа строгого режима", "genre": "Аниме", "note": "завершён", "watched": null, "total": 12.0, "status": "want", "rating": 0}, {"id": 45, "type": "series", "title": "Мой телохранитель", "genre": "Аниме", "note": "2 сезон пока не анонсирован", "watched": null, "total": 13.0, "status": "want", "rating": 0}, {"id": 46, "type": "series", "title": "Пластиковые Воспоминания", "genre": "Аниме", "note": "завершён", "watched": null, "total": 13.0, "status": "want", "rating": 0}, {"id": 47, "type": "series", "title": "Нарутару", "genre": "Аниме", "note": "завершён", "watched": null, "total": 13.0, "status": "want", "rating": 0}, {"id": 48, "type": "series", "title": "монстр за соседней партой", "genre": "Аниме", "note": "завершён", "watched": null, "total": 13.0, "status": "want", "rating": 0}, {"id": 49, "type": "series", "title": "Ледяная стена", "genre": "Аниме", "note": "продолжение находится в разработке и станет заключительным", "watched": null, "total": 14.0, "status": "want", "rating": 0}, {"id": 50, "type": "series", "title": "Твоя Апрельская ложь", "genre": "Аниме", "note": "завершён", "watched": null, "total": 22.0, "status": "want", "rating": 0}, {"id": 51, "type": "series", "title": "Необъятный океан", "genre": "Аниме", "note": "2 сезона, 3 стартует в июле 2026 года", "watched": null, "total": 24.0, "status": "want", "rating": 0}, {"id": 52, "type": "series", "title": "Цугаи загробного мира", "genre": "Аниме", "note": "финальный эпизод выйдет 12 сентября 2026 года", "watched": null, "total": 24.0, "status": "want", "rating": 0}, {"id": 53, "type": "series", "title": "рагна кримзон", "genre": "Аниме", "note": "завершён", "watched": null, "total": 24.0, "status": "want", "rating": 0}, {"id": 54, "type": "series", "title": "Безоблачная завтра", "genre": "Аниме", "note": "завершён", "watched": null, "total": 26.0, "status": "want", "rating": 0}, {"id": 55, "type": "series", "title": "Ванпачмен", "genre": "Аниме", "note": "4 сезон планируется в 2027", "watched": null, "total": 36.0, "status": "want", "rating": 0}, {"id": 56, "type": "series", "title": "Теория лжи", "genre": "Детектив", "note": "3 сезона", "watched": null, "total": 48.0, "status": "want", "rating": 0}, {"id": 57, "type": "series", "title": "Мотель бейтса", "genre": "Ужасы", "note": "5 сезонов", "watched": null, "total": 50.0, "status": "want", "rating": 0}, {"id": 58, "type": "series", "title": "Токийский мститель", "genre": "Аниме", "note": "4 сезон в конце 2026", "watched": null, "total": 50, "status": "want", "rating": 0}, {"id": 59, "type": "series", "title": "девушка на час", "genre": "Аниме", "note": "5 сезонов", "watched": null, "total": 60.0, "status": "want", "rating": 0}, {"id": 60, "type": "series", "title": "Монолог фармацевта", "genre": "Аниме", "note": "3 сезон - состоится в октябре 2026 года", "watched": null, "total": 72, "status": "want", "rating": 0}, {"id": 61, "type": "series", "title": "Волейбол", "genre": "Аниме", "note": "нет полноценного 5-го сезона в формате сериала. Вместо этого финал истории экранизируется в виде полнометражных фильмов дилогии «Haikyu!! FINAL»", "watched": null, "total": 85.0, "status": "want", "rating": 0}, {"id": 62, "type": "series", "title": "Моя геройская академия", "genre": "Аниме", "note": "Завершен + 4 фильма/8 сезонов", "watched": null, "total": 171.0, "status": "want", "rating": 0}, {"id": 63, "type": "series", "title": "Ван Пис", "genre": "Аниме", "note": "Еще выходит", "watched": null, "total": 1133.0, "status": "want", "rating": 0}, {"id": 64, "type": "series", "title": "Пощади меня Великий господин", "genre": "Аниме", "note": "3 сезон Точная дата премьеры пока не объявлена, однако сериал находится в активной разработке.", "watched": 6.0, "total": 36.0, "status": "watching", "rating": 1}, {"id": 65, "type": "series", "title": "Магическая битва", "genre": "Аниме", "note": "4 сезон планируется в 2027", "watched": 8.0, "total": 60.0, "status": "watching", "rating": 3}, {"id": 66, "type": "series", "title": "Голубая шкатулка", "genre": "Аниме", "note": "Второй сезон стартует 4 октября 2026 года", "watched": null, "total": 25.0, "status": "want", "rating": 0}, {"id": 67, "type": "series", "title": "Добро пожаловать в класс превосходства", "genre": "Аниме", "note": "4 сезона, премьера продолжения состоится не ранее 2027 года", "watched": null, "total": 54.0, "status": "want", "rating": 0}, {"id": 68, "type": "series", "title": "Президент студсовета - горничная", "genre": "Аниме", "note": "Завершен", "watched": null, "total": 26.0, "status": "want", "rating": 0}, {"id": 69, "type": "series", "title": "Госпожа Кагуя: в любви как на войне", "genre": "Аниме", "note": "3 сезона + Фильм «Первый поцелуй никогда не заканчивается», специального мини-сериала из 2-х эпизодов под названием Госпожа Кагуя: в любви как на войне — Лестница во взрослую жизнь", "watched": null, "total": 37.0, "status": "want", "rating": 0}, {"id": 70, "type": "series", "title": "Тада не может влюбиться", "genre": "Аниме", "note": "завершён", "watched": null, "total": 13.0, "status": "want", "rating": 0}, {"id": 71, "type": "series", "title": "Ангел по соседству", "genre": "Аниме", "note": "Не анонсирован, возможно будет продолжение", "watched": null, "total": 24.0, "status": "want", "rating": 0}, {"id": 72, "type": "series", "title": "Ямада и семь ведьм", "genre": "Аниме", "note": "завершён", "watched": null, "total": 12.0, "status": "want", "rating": 0}, {"id": 73, "type": "series", "title": "Этот глупый свин не понимает мечту девочки-зайки", "genre": "Аниме", "note": "Псоле первого сезона 3 фильма, только потом 2 и 3 сезон, на октябрь 2026 года запланирована премьера финального фильма.", "watched": null, "total": 26.0, "status": "want", "rating": 0}, {"id": 74, "type": "movie", "title": "Этот глупый свин не понимает мечту девочки-мечтательницы", "genre": "Аниме", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 75, "type": "movie", "title": "Этот глупый свин не понимает мечту сестры на прогулке", "genre": "Аниме", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 76, "type": "movie", "title": "Этот глупый свин не понимает мечту девушки с рюкзаком", "genre": "Аниме", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 77, "type": "movie", "title": "Этот глупый свин не понимает мечту Санта-Клауса", "genre": "Аниме", "note": "", "watched": null, "total": 1.0, "status": "want", "rating": 0}, {"id": 78, "type": "series", "title": "Повторная жизнь", "genre": "Аниме", "note": "существует сюжетное продолжение — мини-сериал из 4 серий («Повторная жизнь: Финал»), которые завершают основную историю", "watched": null, "total": 17.0, "status": "want", "rating": 0}, {"id": 79, "type": "series", "title": "Торадора", "genre": "Аниме", "note": "завершён", "watched": null, "total": 25.0, "status": "want", "rating": 0}, {"id": 80, "type": "series", "title": "У коми проблемы с общением", "genre": "Аниме", "note": "Создатели сериала пока не подтвердили производство продолжения.", "watched": null, "total": 24.0, "status": "want", "rating": 0}, {"id": 81, "type": "series", "title": "Томо - девушка", "genre": "Аниме", "note": "завершён", "watched": null, "total": 13.0, "status": "want", "rating": 0}, {"id": 82, "type": "series", "title": "Вторая юность Хайбары", "genre": "Аниме", "note": "завершён", "watched": null, "total": 12.0, "status": "want", "rating": 0}, {"id": 83, "type": "series", "title": "Токийский Гуль", "genre": "Аниме", "note": "завершён", "watched": null, "total": 48.0, "status": "want", "rating": 0}];
+
+let items=[];
+let state={type:'all',status:'all',search:'',sort:'title'};
+let pushTimer=null;
+let confirmDelId=null;
+
+function uid(){return Date.now()+Math.floor(Math.random()*1000);}
+
+function loadLocal(){
+  try{
+    const raw=localStorage.getItem(LS_KEY);
+    if(raw){const d=JSON.parse(raw); if(d&&d.length) return d;}
+  }catch(e){}
+  return null;
+}
+function saveLocal(){
+  try{localStorage.setItem(LS_KEY,JSON.stringify(items));}catch(e){}
+}
+
+function setSyncStatus(kind,msg){
+  const dot=document.getElementById('sync-dot');
+  const txt=document.getElementById('sync-text');
+  dot.className='dot '+kind;
+  txt.textContent=msg;
+}
+
+function mergeRemote(remote){
+  if(!remote||!remote.length)return;
+  const remoteMap={};
+  remote.forEach(r=>remoteMap[String(r.id)]=r);
+  items=items.map(it=>remoteMap[String(it.id)]||it);
+  const localIds=new Set(items.map(it=>String(it.id)));
+  remote.forEach(r=>{if(!localIds.has(String(r.id)))items.push(r);});
+}
+
+function fetchRemote(){
+  setSyncStatus('busy','Синхронизация…');
+  fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.'+REMOTE_KEY,{
+    headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY}
+  }).then(r=>r.json()).then(rows=>{
+    if(rows&&rows.length&&rows[0].value){
+      const parsed=JSON.parse(rows[0].value);
+      if(parsed&&parsed.length){
+        mergeRemote(parsed);
+        saveLocal();
+        render();
+        setSyncStatus('ok','Синхронизировано');
+        return;
+      }
+    }
+    pushRemote(true);
+    setSyncStatus('ok','Локальные данные');
+  }).catch(()=>setSyncStatus('err','Нет соединения'));
+}
+
+function pushRemote(immediate){
+  if(pushTimer)clearTimeout(pushTimer);
+  const fn=()=>{
+    const body=JSON.stringify({key:REMOTE_KEY,value:JSON.stringify(items)});
+    fetch(SUPABASE_URL+'/rest/v1/storage',{
+      method:'POST',
+      headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},
+      body:body
+    }).then(r=>{if(r.ok)setSyncStatus('ok','Сохранено ☁️'); else setSyncStatus('err','Ошибка сохранения');})
+      .catch(()=>setSyncStatus('err','Нет соединения'));
+  };
+  if(immediate)fn(); else pushTimer=setTimeout(fn,900);
+}
+
+function persist(){saveLocal();pushRemote();}
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+function setSearch(v){state.search=v;render();}
+function setSort(v){state.sort=v;render();}
+function setType(v){state.type=v;render();}
+function setStatusFilter(v){state.status=v;render();}
+
+function genreList(){
+  const set=new Set(items.map(it=>it.genre).filter(Boolean));
+  return Array.from(set).sort((a,b)=>a.localeCompare(b,'ru'));
+}
+
+function filtered(){
+  let list=items.slice();
+  if(state.type!=='all')list=list.filter(it=>it.type===state.type);
+  if(state.status!=='all')list=list.filter(it=>it.status===state.status);
+  if(state.search.trim())list=list.filter(it=>it.title.toLowerCase().includes(state.search.trim().toLowerCase()));
+  if(state.sort==='title')list.sort((a,b)=>a.title.localeCompare(b.title,'ru'));
+  else if(state.sort==='rating')list.sort((a,b)=>(b.rating||0)-(a.rating||0)||a.title.localeCompare(b.title,'ru'));
+  else if(state.sort==='progress')list.sort((a,b)=>progressPct(b)-progressPct(a)||a.title.localeCompare(b.title,'ru'));
+  return list;
+}
+
+function progressPct(it){
+  const total=Number(it.total)||0, watched=Number(it.watched)||0;
+  if(!total)return 0;
+  return Math.max(0,Math.min(100,Math.round(watched/total*100)));
+}
+
+function renderTabs(){
+  const counts={all:items.length,series:items.filter(i=>i.type==='series').length,movie:items.filter(i=>i.type==='movie').length};
+  const defs=[['all','Всё'],['series','📺 Сериалы'],['movie','🎬 Фильмы']];
+  document.getElementById('tabs').innerHTML=defs.map(([k,l])=>
+    `<button class="tab ${state.type===k?'active':''}" onclick="setType('${k}')">${l} (${counts[k]})</button>`
+  ).join('');
+}
+
+function renderChips(){
+  const base=state.type==='all'?items:items.filter(i=>i.type===state.type);
+  const counts={all:base.length};
+  STATUS_ORDER.forEach(s=>counts[s]=base.filter(i=>i.status===s).length);
+  const defs=[['all','Все']].concat(STATUS_ORDER.map(s=>[s,STATUS_LABEL[s]]));
+  document.getElementById('chips').innerHTML=defs.map(([k,l])=>
+    `<button class="chip ${state.status===k?'active':''}" onclick="setStatusFilter('${k}')">${l}<span class="cnt">${counts[k]||0}</span></button>`
+  ).join('');
+}
+
+function renderStats(){
+  const base=state.type==='all'?items:items.filter(i=>i.type==='series'?i.type===state.type:i.type===state.type);
+  const list=state.type==='all'?items:items.filter(i=>i.type===state.type);
+  const totalEp=list.reduce((s,i)=>s+(Number(i.total)||0),0);
+  const watchedEp=list.reduce((s,i)=>s+(Number(i.watched)||0),0);
+  const pct=totalEp?Math.round(watchedEp/totalEp*100):0;
+  const stats=[
+    ['Всего',list.length],
+    ['Смотрю',list.filter(i=>i.status==='watching').length],
+    ['Досмотрено',list.filter(i=>i.status==='completed').length],
+    ['Хочу посмотреть',list.filter(i=>i.status==='want').length],
+    ['Ждём продолжения',list.filter(i=>i.status==='waiting_season').length],
+    ['Серий просмотрено',watchedEp+' / '+totalEp],
+    ['% завершено',pct+'%'],
+  ];
+  document.getElementById('stats').innerHTML=stats.map(([l,n])=>`<div class="stat"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
+}
+
+function starsHtml(it){
+  let h='<div class="stars">';
+  for(let i=1;i<=5;i++){
+    h+=`<span class="${i<=(it.rating||0)?'on':''}" onclick="setRating(${it.id},${i})">★</span>`;
+  }
+  h+='</div>';
+  return h;
+}
+
+function cardHtml(it){
+  const pct=progressPct(it);
+  const isMovie=it.type==='movie';
+  const total=it.total==null?'':it.total;
+  const watched=it.watched==null?0:it.watched;
+  const accent=STATUS_ACCENT[it.status]||'var(--purple)';
+  const gc=genreColor(it.genre);
+  return `<div class="card" id="card-${it.id}" style="--card-accent:${accent}">
+    <div class="card-top">
+      <div class="card-title" onclick="openModal(${it.id})">${esc(it.title)}</div>
+      <div class="card-actions">
+        <button class="icon-btn" onclick="openModal(${it.id})" title="Изменить">✎</button>
+        <button class="icon-btn danger" onclick="askDelete(${it.id})" title="Удалить">🗑</button>
+      </div>
+    </div>
+    <div class="badges">
+      <span class="badge ${isMovie?'type-movie':'type-series'}">${isMovie?'🎬 Фильм':'📺 Сериал'}</span>
+      ${it.genre?`<span class="badge" style="background:${gc.bg};color:${gc.fg}">${esc(it.genre)}</span>`:''}
+    </div>
+    <select class="status-select" onchange="setStatus(${it.id},this.value)">
+      ${STATUS_ORDER.map(s=>`<option value="${s}" ${it.status===s?'selected':''}>${STATUS_LABEL[s]}</option>`).join('')}
+    </select>
+    ${it.note?`<div class="note">${esc(it.note)}</div>`:''}
+    <div class="progress-row">
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <div class="progress-num">${pct}%</div>
+    </div>
+    <div class="progress-row">
+      <div class="watch-controls">
+        <button onclick="stepWatched(${it.id},-1)">−</button>
+        <input type="number" value="${watched}" onchange="editWatched(${it.id},this.value)">
+        <span>/</span>
+        <input type="number" value="${total}" onchange="editTotal(${it.id},this.value)" style="width:44px">
+        <button onclick="stepWatched(${it.id},1)">+</button>
+      </div>
+      ${starsHtml(it)}
+    </div>
+    <div id="confirm-${it.id}"></div>
+  </div>`;
+}
+
+function render(){
+  renderTabs();
+  renderChips();
+  renderStats();
+  const list=filtered();
+  const grid=document.getElementById('grid');
+  if(!list.length){
+    grid.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="em">🍿</div>Ничего не найдено</div>`;
+  }else{
+    grid.innerHTML=list.map(cardHtml).join('');
+  }
+}
+
+function findItem(id){return items.find(it=>String(it.id)===String(id));}
+
+function setRating(id,n){
+  const it=findItem(id); if(!it)return;
+  it.rating=(it.rating===n)?n:n;
+  render();persist();
+}
+function setStatus(id,status){
+  const it=findItem(id); if(!it)return;
+  it.status=status;
+  render();persist();
+}
+function stepWatched(id,delta){
+  const it=findItem(id); if(!it)return;
+  let w=(Number(it.watched)||0)+delta;
+  if(w<0)w=0;
+  const total=Number(it.total)||0;
+  if(total&&w>total)w=total;
+  it.watched=w;
+  render();persist();
+}
+function editWatched(id,val){
+  const it=findItem(id); if(!it)return;
+  let w=Math.max(0,Number(val)||0);
+  it.watched=w;
+  render();persist();
+}
+function editTotal(id,val){
+  const it=findItem(id); if(!it)return;
+  it.total=Math.max(0,Number(val)||0);
+  render();persist();
+}
+
+function askDelete(id){
+  const el=document.getElementById('confirm-'+id);
+  if(!el)return;
+  el.parentElement.insertAdjacentHTML('beforeend',`<div class="confirm-del"><div>Удалить «${esc(findItem(id).title)}»?</div><div class="row"><button class="btn ghost" onclick="render()">Отмена</button><button class="btn danger" onclick="deleteItem(${id})">Удалить</button></div></div>`);
+}
+function deleteItem(id){
+  items=items.filter(it=>String(it.id)!==String(id));
+  render();persist();
+}
+
+function openModal(id){
+  const it=id?findItem(id):null;
+  const data=it||{id:uid(),type:'series',title:'',genre:'',note:'',watched:0,total:0,status:'want',rating:0};
+  const genres=genreList();
+  document.getElementById('modal-root').innerHTML=`
+  <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <h3>${it?'Изменить':'Добавить'}</h3>
+      <div class="field">
+        <label>Тип</label>
+        <div class="type-toggle">
+          <button type="button" id="type-series" class="${data.type==='series'?'on':''}" onclick="pickType('series')">📺 Сериал</button>
+          <button type="button" id="type-movie" class="${data.type==='movie'?'on':''}" onclick="pickType('movie')">🎬 Фильм</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Название</label>
+        <input type="text" id="f-title" value="${esc(data.title)}" placeholder="Название">
+      </div>
+      <div class="field">
+        <label>Жанр</label>
+        <input type="text" id="f-genre" list="genre-list" value="${esc(data.genre)}" placeholder="Аниме, Драма…">
+        <datalist id="genre-list">${genres.map(g=>`<option value="${esc(g)}">`).join('')}</datalist>
+      </div>
+      <div class="field">
+        <label>Статус</label>
+        <select id="f-status">
+          ${STATUS_ORDER.map(s=>`<option value="${s}" ${data.status===s?'selected':''}>${STATUS_LABEL[s]}</option>`).join('')}
+        </select>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Просмотрено серий</label>
+          <input type="number" id="f-watched" value="${data.watched==null?0:data.watched}" min="0">
+        </div>
+        <div class="field">
+          <label>Всего серий</label>
+          <input type="number" id="f-total" value="${data.total==null?0:data.total}" min="0">
+        </div>
+      </div>
+      <div class="field">
+        <label>Оценка</label>
+        <div id="f-stars">${starsEditHtml(data.rating||0)}</div>
+      </div>
+      <div class="field">
+        <label>Заметка</label>
+        <textarea id="f-note" placeholder="Когда выйдет продолжение и т.п.">${esc(data.note)}</textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn ghost" onclick="closeModal()">Отмена</button>
+        <button class="btn primary" onclick="saveModal(${it?data.id:'null'})">Сохранить</button>
+      </div>
+    </div>
+  </div>`;
+  window._modalType=data.type;
+  window._modalRating=data.rating||0;
+}
+
+function pickType(t){
+  window._modalType=t;
+  document.getElementById('type-series').className=t==='series'?'on':'';
+  document.getElementById('type-movie').className=t==='movie'?'on':'';
+}
+
+function starsEditHtml(rating){
+  let h='<div class="stars">';
+  for(let i=1;i<=5;i++){
+    h+=`<span class="${i<=rating?'on':''}" onclick="pickRating(${i})">★</span>`;
+  }
+  h+='</div>';
+  return h;
+}
+function pickRating(n){
+  window._modalRating=n;
+  document.getElementById('f-stars').innerHTML=starsEditHtml(n);
+}
+
+function closeModal(){document.getElementById('modal-root').innerHTML='';}
+
+function saveModal(existingId){
+  const title=document.getElementById('f-title').value.trim();
+  if(!title){alert('Введите название');return;}
+  const genre=document.getElementById('f-genre').value.trim();
+  const status=document.getElementById('f-status').value;
+  const watched=Math.max(0,Number(document.getElementById('f-watched').value)||0);
+  const total=Math.max(0,Number(document.getElementById('f-total').value)||0);
+  const note=document.getElementById('f-note').value.trim();
+  const type=window._modalType||'series';
+  const rating=window._modalRating||0;
+
+  if(existingId){
+    const it=findItem(existingId);
+    Object.assign(it,{title,genre,status,watched,total,note,type,rating});
+  }else{
+    items.push({id:uid(),title,genre,status,watched,total,note,type,rating});
+  }
+  closeModal();render();persist();
+}
+
+function init(){
+  const local=loadLocal();
+  items=local?local:JSON.parse(JSON.stringify(INITIAL_DATA));
+  render();
+  fetchRemote();
+}
+init();
+</script>
+</body>
+</html>
