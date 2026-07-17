@@ -121,6 +121,9 @@ main{max-width:1100px;margin:0 auto;padding:16px;}
 
 .note{font-size:12px;color:var(--muted2);line-height:1.4;}
 .desc{font-size:12.5px;color:var(--muted);line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+.desc.expanded{display:block;-webkit-line-clamp:unset;overflow:visible;}
+.desc-toggle{background:none;border:none;padding:0;margin-top:-2px;color:var(--pink);font-size:11px;font-weight:600;cursor:pointer;align-self:flex-start;}
+.desc-toggle:hover{text-decoration:underline;}
 
 .progress-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);}
 .progress-bar{flex:1;height:6px;border-radius:4px;background:var(--track);overflow:hidden;}
@@ -427,6 +430,14 @@ function starsHtml(it){
   return h;
 }
 
+function toggleDesc(id){
+  const el=document.getElementById('desc-'+id);
+  const btn=document.getElementById('desc-toggle-'+id);
+  if(!el||!btn)return;
+  const expanded=el.classList.toggle('expanded');
+  btn.textContent=expanded?'▴ свернуть':'▾ ещё';
+}
+
 function cardHtml(it){
   const pct=progressPct(it);
   const isMovie=it.type==='movie';
@@ -448,7 +459,7 @@ function cardHtml(it){
       ${it.genre?`<span class="badge" style="background:${gc.bg};color:${gc.fg}">${esc(it.genre)}</span>`:''}
       ${di?`<span class="badge ${di.cls}">${di.cls==='due-over'?'⏰ уже пора · ':(di.cls==='due-soon'?'🔜 скоро · ':'')}${di.label}</span>`:''}
     </div>
-    ${it.desc?`<div class="desc">${esc(it.desc)}</div>`:''}
+    ${it.desc?`<div class="desc" id="desc-${it.id}">${esc(it.desc)}</div>${it.desc.length>110?`<button class="desc-toggle" id="desc-toggle-${it.id}" onclick="toggleDesc(${it.id})">▾ ещё</button>`:''}`:''}
     <select class="status-select" onchange="setStatus(${it.id},this.value)">
       ${STATUS_ORDER.map(s=>`<option value="${s}" ${it.status===s?'selected':''}>${STATUS_LABEL[s]}</option>`).join('')}
     </select>
