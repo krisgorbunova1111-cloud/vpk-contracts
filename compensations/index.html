@@ -398,8 +398,8 @@ function renderTabs(){
 function renderStats(){
   const totalAmount=items.reduce((s,i)=>s+(Number(i.amount)||0),0);
   const totalPaid=items.reduce((s,i)=>s+paidTotal(i),0);
-  const totalOwed=items.reduce((s,i)=>s+Math.max(0,balanceOf(i)),0);
-  const totalOver=items.reduce((s,i)=>s+Math.max(0,-balanceOf(i)),0);
+  const totalOwed=employeesWithRecords().reduce((s,e)=>s+Math.max(0,empBalance(e.id)),0);
+  const totalOver=employeesWithRecords().reduce((s,e)=>s+Math.max(0,-empBalance(e.id)),0);
   const stats=[
     ['Записей',items.length],
     ['Сотрудников',employeesWithRecords().length],
