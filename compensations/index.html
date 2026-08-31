@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Компенсации сотрудникам</title>
+<style>
+:root{
+  --bg1:#15141c; --bg2:#101017; --bg3:#161620;
+  --card:rgba(35,33,46,.55); --card2:rgba(255,255,255,.05);
+  --border:rgba(255,255,255,.08); --text:#eceaf2; --muted:#948fa6; --muted2:#726d84;
+  --pink:#e0729a; --pink-d:rgba(224,114,154,.14);
+  --orange:#d99a5b; --orange-d:rgba(217,154,91,.14);
+  --yellow:#d9c15b; --yellow-d:rgba(217,193,91,.14);
+  --teal:#4fbfa8; --teal-d:rgba(79,191,168,.14);
+  --purple:#8b7bc7; --purple-d:rgba(139,123,199,.14);
+  --blue:#6b9fc2; --blue-d:rgba(107,159,194,.14);
+  --green:#6bbf8f; --green-d:rgba(107,191,143,.14);
+  --gray:#8b86a0; --gray-d:rgba(139,134,160,.12);
+  --red:#d9707f; --red-d:rgba(217,112,127,.14);
+  --shadow:0 4px 16px rgba(0,0,0,.35);
+  --cosmic:linear-gradient(135deg,#7d6bb5,#c47593);
+  --header-bg:rgba(15,10,31,.85); --modal-bg:linear-gradient(160deg,#2a1a45,#1a0f2e);
+  --overlay-bg:rgba(10,6,20,.7); --scrollbar:#4a3a70; --track:rgba(255,255,255,.07);
+  --confirm-bg:rgba(15,8,28,.96);
+}
+:root[data-theme="light"]{
+  --bg1:#f6f3fa; --bg2:#ffffff; --bg3:#f3eff8;
+  --card:rgba(255,255,255,.75); --card2:rgba(20,10,40,.045);
+  --border:rgba(20,10,40,.1); --text:#2a2436; --muted:#6e6780; --muted2:#948da3;
+  --pink:#b8456f; --pink-d:rgba(184,69,111,.12);
+  --orange:#a06a2c; --orange-d:rgba(160,106,44,.12);
+  --yellow:#8a7620; --yellow-d:rgba(138,118,32,.12);
+  --teal:#1f8a76; --teal-d:rgba(31,138,118,.12);
+  --purple:#6a55a8; --purple-d:rgba(106,85,168,.12);
+  --blue:#3d7ba3; --blue-d:rgba(61,123,163,.12);
+  --green:#3c8f62; --green-d:rgba(60,143,98,.12);
+  --gray:#6b6478; --gray-d:rgba(107,100,120,.1);
+  --red:#c14456; --red-d:rgba(193,68,86,.10);
+  --shadow:0 4px 16px rgba(20,10,40,.08);
+  --header-bg:rgba(255,255,255,.85); --modal-bg:linear-gradient(160deg,#ffffff,#f3eff8);
+  --overlay-bg:rgba(40,30,60,.35); --scrollbar:rgba(20,10,40,.15); --track:rgba(20,10,40,.06);
+  --confirm-bg:rgba(255,255,255,.97);
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:
+  radial-gradient(circle at 15% 0%,rgba(139,123,199,.09),transparent 45%),
+  radial-gradient(circle at 85% 15%,rgba(224,114,154,.07),transparent 40%),
+  linear-gradient(180deg,var(--bg1),var(--bg2) 40%,var(--bg3));
+  background-attachment:fixed;
+  color:var(--text);min-height:100vh;padding-bottom:60px;}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-thumb{background:var(--scrollbar);border-radius:4px;}
+
+header{position:sticky;top:0;z-index:20;background:var(--header-bg);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);padding:14px 16px 10px;}
+.header-top{display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:1200px;margin:0 auto;}
+.title{font-size:20px;font-weight:700;display:flex;align-items:center;gap:8px;color:var(--text);}
+.theme-btn{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;flex:none;}
+.theme-btn:hover{border-color:var(--muted);}
+.sync{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);}
+.sync .dot{width:8px;height:8px;border-radius:50%;background:var(--gray);transition:background .3s;}
+.sync .dot.ok{background:var(--teal);box-shadow:0 0 6px var(--teal);}
+.sync .dot.err{background:var(--red);}
+.sync .dot.busy{background:var(--yellow);animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+.toolbar{max-width:1200px;margin:12px auto 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.search-wrap{flex:1 1 200px;position:relative;}
+.search-wrap input{width:100%;padding:9px 12px 9px 34px;border-radius:10px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-size:14px;outline:none;}
+.search-wrap input:focus{border-color:var(--pink);}
+.search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--muted);}
+select.sortsel{padding:9px 10px;border-radius:10px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-size:13px;outline:none;}
+.btn-add{background:var(--cosmic);color:#fff;border:none;border-radius:10px;padding:9px 16px;font-weight:600;font-size:14px;cursor:pointer;white-space:nowrap;}
+.btn-add:active{transform:scale(.97);}
+.btn-tool{background:var(--card2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:9px 14px;font-weight:600;font-size:13px;cursor:pointer;white-space:nowrap;}
+.btn-tool:hover{border-color:var(--muted);}
+
+.tabs{max-width:1200px;margin:10px auto 0;display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;}
+.tab{flex:none;padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:var(--card2);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;}
+.tab.active{background:rgba(224,114,154,.16);color:var(--pink);border-color:rgba(224,114,154,.4);}
+
+.stats{max-width:1200px;margin:14px auto 0;padding:0 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 12px;backdrop-filter:blur(8px);}
+.stat:nth-child(1) .n{color:var(--blue);}
+.stat:nth-child(2) .n{color:var(--purple);}
+.stat:nth-child(3) .n{color:var(--teal);}
+.stat:nth-child(4) .n{color:var(--orange);}
+.stat:nth-child(5) .n{color:var(--red);}
+.stat:nth-child(6) .n{color:var(--pink);}
+.stat .n{font-size:18px;font-weight:800;white-space:nowrap;}
+.stat .l{font-size:11px;color:var(--muted);margin-top:2px;}
+
+main{max-width:1200px;margin:0 auto;padding:16px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;}
+
+.card{background:var(--card);border:1px solid var(--border);border-top:2px solid var(--card-accent,var(--purple));border-radius:14px;padding:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;position:relative;transition:transform .15s,border-color .15s;backdrop-filter:blur(10px);}
+.card:hover{border-color:rgba(255,255,255,.16);transform:translateY(-1px);}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+.card-title{font-size:15px;font-weight:700;line-height:1.3;cursor:pointer;}
+.card-title:hover{color:var(--pink);}
+.card-actions{display:flex;gap:4px;flex:none;}
+.icon-btn{width:26px;height:26px;border-radius:7px;border:1px solid var(--border);background:var(--card2);color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;}
+.icon-btn:hover{color:var(--text);border-color:var(--muted);}
+.icon-btn.danger:hover{color:var(--red);border-color:var(--red);}
+
+.badges{display:flex;flex-wrap:wrap;gap:6px;}
+.badge{font-size:11px;padding:3px 9px;border-radius:8px;font-weight:700;white-space:nowrap;}
+.badge.status-debt{background:var(--orange-d);color:var(--orange);}
+.badge.status-overpaid{background:var(--red-d);color:var(--red);}
+.badge.status-closed{background:var(--green-d);color:var(--green);}
+.badge.muted{background:var(--card2);color:var(--muted);}
+
+.addr{font-size:12px;color:var(--muted2);display:flex;align-items:center;gap:4px;}
+.purpose{font-size:12.5px;color:var(--muted);line-height:1.45;}
+
+.money-row{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted);margin-top:2px;}
+.progress-bar{height:6px;border-radius:4px;background:var(--track);overflow:hidden;margin-top:4px;}
+.progress-fill{height:100%;background:var(--card-accent,var(--purple));border-radius:4px;transition:width .3s;}
+
+.pay-list{display:flex;flex-direction:column;gap:4px;margin-top:2px;}
+.pay-item{font-size:11.5px;color:var(--muted2);background:var(--card2);border-radius:7px;padding:4px 8px;display:flex;justify-content:space-between;gap:8px;}
+
+.balance{display:flex;justify-content:space-between;align-items:baseline;margin-top:4px;padding-top:8px;border-top:1px solid var(--border);}
+.balance .l{font-size:12px;color:var(--muted);}
+.balance .v{font-size:17px;font-weight:800;}
+.balance .v.debt{color:var(--orange);}
+.balance .v.overpaid{color:var(--red);}
+.balance .v.closed{color:var(--green);}
+
+.note{font-size:12px;color:var(--muted2);line-height:1.4;font-style:italic;}
+
+.empty{text-align:center;padding:60px 20px;color:var(--muted);}
+.empty .em{font-size:40px;margin-bottom:10px;}
+
+.modal-overlay{position:fixed;inset:0;background:var(--overlay-bg);z-index:100;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px);}
+@media(min-width:640px){.modal-overlay{align-items:center;}}
+.modal{background:var(--modal-bg);border:1px solid var(--border);border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow);}
+@media(min-width:640px){.modal{border-radius:16px;}}
+.modal h3{margin:0 0 14px;font-size:17px;color:var(--text);}
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;}
+.field input[type=text],.field input[type=number],.field input[type=date],.field textarea,.field select{width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-size:14px;outline:none;font-family:inherit;}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--pink);}
+.field textarea{resize:vertical;min-height:50px;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.modal-actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;}
+.btn{flex:1;padding:11px;border-radius:10px;border:none;font-weight:700;font-size:14px;cursor:pointer;min-width:110px;}
+.btn.primary{background:var(--cosmic);color:#fff;}
+.btn.ghost{background:var(--card2);color:var(--text);border:1px solid var(--border);}
+.btn.danger{background:transparent;color:var(--red);border:1px solid var(--red);}
+
+.form-section-title{font-size:13px;font-weight:700;color:var(--text);margin:16px 0 8px;display:flex;align-items:center;justify-content:space-between;}
+.btn-sm{padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--pink);font-size:12px;font-weight:600;cursor:pointer;}
+.pay-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;margin-bottom:6px;align-items:center;}
+.pay-row input{padding:7px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-size:12.5px;outline:none;font-family:inherit;width:100%;}
+.pay-row input:focus{border-color:var(--pink);}
+.pay-row .rm{width:26px;height:26px;border-radius:7px;border:1px solid var(--border);background:var(--card2);color:var(--red);cursor:pointer;font-size:13px;flex:none;}
+.pay-empty{font-size:12px;color:var(--muted);margin-bottom:6px;}
+.modal-balance{background:var(--card2);border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;margin-top:14px;font-size:13px;gap:10px;flex-wrap:wrap;}
+.modal-balance b{font-size:16px;}
+
+.confirm-del{position:absolute;inset:0;background:var(--confirm-bg);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:14px;z-index:5;}
+.confirm-del div{font-size:13px;text-align:center;}
+.confirm-del .row{display:flex;gap:8px;width:100%;}
+
+.detail-record{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;position:relative;display:flex;flex-direction:column;gap:6px;}
+
+.emp-row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.emp-row:last-child{border-bottom:none;}
+.emp-row-name{font-weight:700;font-size:14px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div class="title"><span>💰</span> Компенсации сотрудникам</div>
+    <div class="sync">
+      <span class="dot" id="sync-dot"></span><span id="sync-text">Загрузка…</span>
+      <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Тема">🌙</button>
+    </div>
+  </div>
+  <div class="toolbar">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input id="search" type="text" placeholder="Поиск по ФИО, адресу, назначению…" oninput="setSearch(this.value)">
+    </div>
+    <select class="sortsel" id="sortsel" onchange="setSort(this.value)">
+      <option value="balance">По остатку</option>
+      <option value="amount">По сумме долга</option>
+      <option value="name">По ФИО</option>
+      <option value="date">По дате</option>
+    </select>
+    <button class="btn-tool" onclick="openEmployeeRegistry()">👥 Сотрудники</button>
+    <button class="btn-tool" onclick="printAll()">🖨️ Печать всех</button>
+    <button class="btn-add" onclick="openModal()">+ Добавить</button>
+  </div>
+  <div class="tabs" id="tabs"></div>
+</header>
+
+<div class="stats" id="stats"></div>
+
+<main>
+  <div class="grid" id="grid"></div>
+</main>
+
+<div id="modal-root"></div>
+
+<script>
+const SUPABASE_URL='https://urfnpjumxkewyizaxgns.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVyZm5wanVteGtld3lpemF4Z25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMzkyNDMsImV4cCI6MjA5MTgxNTI0M30.vDbdyE3Z4whApQo50Mfgor11SL-dT1PWDOygipxVKtE';
+const STATUS_LABEL={debt:'Есть долг',overpaid:'Переплата',closed:'Закрыто'};
+const STATUS_ORDER=['debt','overpaid','closed'];
+
+function isLight(){return document.documentElement.getAttribute('data-theme')==='light';}
+function statusAccent(status){
+  const map=isLight()?{debt:'#a06a2c',overpaid:'#c14456',closed:'#3c8f62'}:{debt:'#d99a5b',overpaid:'#d9707f',closed:'#6bbf8f'};
+  return map[status]||map.debt;
+}
+
+function toggleTheme(){
+  const next=isLight()?'dark':'light';
+  document.documentElement.setAttribute('data-theme',next);
+  try{localStorage.setItem('comp_theme',next);}catch(e){}
+  document.getElementById('theme-btn').textContent=next==='light'?'🌙':'☀️';
+  render();
+}
+function initTheme(){
+  let saved='dark';
+  try{saved=localStorage.getItem('comp_theme')||'dark';}catch(e){}
+  document.documentElement.setAttribute('data-theme',saved);
+  document.getElementById('theme-btn').textContent=saved==='light'?'🌙':'☀️';
+}
+
+let employees=[];
+let items=[];
+let state={status:'all',search:'',sort:'balance'};
+
+function uid(){return Date.now()+Math.floor(Math.random()*1000);}
+
+function setSyncStatus(kind,msg){
+  const dot=document.getElementById('sync-dot');
+  const txt=document.getElementById('sync-text');
+  dot.className='dot '+kind;
+  txt.textContent=msg;
+}
+
+const REST=SUPABASE_URL+'/rest/v1/';
+const REST_HEADERS={apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY};
+
+async function apiGet(table){
+  const r=await fetch(REST+table+'?select=*',{headers:REST_HEADERS});
+  if(!r.ok)throw new Error('GET '+table+' — '+r.status);
+  return r.json();
+}
+async function apiInsert(table,row){
+  const r=await fetch(REST+table,{
+    method:'POST',
+    headers:Object.assign({'Content-Type':'application/json',Prefer:'return=representation'},REST_HEADERS),
+    body:JSON.stringify(row)
+  });
+  if(!r.ok)throw new Error('INSERT '+table+' — '+r.status);
+  return r.json();
+}
+async function apiUpdate(table,id,patch){
+  const r=await fetch(REST+table+'?id=eq.'+id,{
+    method:'PATCH',
+    headers:Object.assign({'Content-Type':'application/json',Prefer:'return=minimal'},REST_HEADERS),
+    body:JSON.stringify(patch)
+  });
+  if(!r.ok)throw new Error('UPDATE '+table+' — '+r.status);
+}
+async function apiDelete(table,col,id){
+  const r=await fetch(REST+table+'?'+col+'=eq.'+id,{method:'DELETE',headers:REST_HEADERS});
+  if(!r.ok)throw new Error('DELETE '+table+' — '+r.status);
+}
+async function apiQuery(table,query){
+  const r=await fetch(REST+table+'?'+query,{headers:REST_HEADERS});
+  if(!r.ok)throw new Error('GET '+table+' — '+r.status);
+  return r.json();
+}
+async function apiRpc(fn,args){
+  const r=await fetch(REST+'rpc/'+fn,{
+    method:'POST',
+    headers:Object.assign({'Content-Type':'application/json'},REST_HEADERS),
+    body:JSON.stringify(args)
+  });
+  if(!r.ok)throw new Error('RPC '+fn+' — '+r.status);
+}
+
+async function syncAndRender(){
+  setSyncStatus('busy','Синхронизация…');
+  try{
+    const [emps,recs,pays]=await Promise.all([apiGet('comp_employees'),apiGet('comp_records'),apiGet('comp_payments')]);
+    employees=emps.map(e=>({id:e.id,name:e.name,address:e.address||''}));
+    const payByRecord={};
+    pays.forEach(p=>{
+      (payByRecord[p.record_id]=payByRecord[p.record_id]||[]).push({date:p.pay_date||'',amount:Number(p.amount)||0,method:p.method||''});
+    });
+    items=recs.map(r=>({
+      id:r.id,employeeId:r.employee_id,purpose:r.purpose||'',amount:Number(r.amount)||0,note:r.note||'',
+      payments:payByRecord[r.id]||[],created:r.created_at?new Date(r.created_at).getTime():Date.now()
+    }));
+    render();
+    setSyncStatus('ok','Синхронизировано');
+  }catch(e){
+    setSyncStatus('err','Нет соединения');
+    throw e;
+  }
+}
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function money(n){return Math.round(Number(n)||0).toLocaleString('ru-RU')+' ₽';}
+function fmtDate(d){
+  if(!d)return '';
+  const [y,m,day]=d.split('-');
+  if(!y||!m||!day)return d;
+  return day+'.'+m+'.'+y;
+}
+function recordsWord(n){
+  n=Math.abs(n)%100;
+  const n1=n%10;
+  if(n>10&&n<20)return 'записей';
+  if(n1>1&&n1<5)return 'записи';
+  if(n1===1)return 'запись';
+  return 'записей';
+}
+
+// ---- record-level helpers ----
+function paidTotal(it){return (it.payments||[]).reduce((s,p)=>s+(Number(p.amount)||0),0);}
+function balanceOf(it){return (Number(it.amount)||0)-paidTotal(it);}
+function statusOf(it){
+  const b=balanceOf(it);
+  if(b>0.5)return 'debt';
+  if(b<-0.5)return 'overpaid';
+  return 'closed';
+}
+function findItem(id){return items.find(it=>String(it.id)===String(id));}
+
+// ---- employee-level helpers ----
+function findEmployee(id){return employees.find(e=>String(e.id)===String(id));}
+function employeeName(id){const e=findEmployee(id);return e?e.name:'(сотрудник удалён)';}
+function employeeRecords(id){return items.filter(it=>String(it.employeeId)===String(id));}
+function empAmount(id){return employeeRecords(id).reduce((s,it)=>s+(Number(it.amount)||0),0);}
+function empPaid(id){return employeeRecords(id).reduce((s,it)=>s+paidTotal(it),0);}
+function empBalance(id){return empAmount(id)-empPaid(id);}
+function empStatus(id){
+  const b=empBalance(id);
+  if(b>0.5)return 'debt';
+  if(b<-0.5)return 'overpaid';
+  return 'closed';
+}
+function employeesWithRecords(){
+  const ids=new Set(items.map(it=>String(it.employeeId)));
+  return employees.filter(e=>ids.has(String(e.id)));
+}
+function paymentMethods(){
+  const set=new Set();
+  items.forEach(it=>(it.payments||[]).forEach(p=>{if(p.method)set.add(p.method);}));
+  return Array.from(set).sort((a,b)=>a.localeCompare(b,'ru'));
+}
+
+function setSearch(v){state.search=v;render();}
+function setSort(v){state.sort=v;render();}
+function setStatusFilter(v){state.status=v;render();}
+
+function filteredEmployees(){
+  let list=employeesWithRecords();
+  if(state.status!=='all')list=list.filter(e=>empStatus(e.id)===state.status);
+  if(state.search.trim()){
+    const q=state.search.trim().toLowerCase();
+    list=list.filter(e=>
+      (e.name||'').toLowerCase().includes(q)||
+      (e.address||'').toLowerCase().includes(q)||
+      employeeRecords(e.id).some(it=>(it.purpose||'').toLowerCase().includes(q)||(it.note||'').toLowerCase().includes(q))
+    );
+  }
+  if(state.sort==='balance')list.sort((a,b)=>empBalance(b.id)-empBalance(a.id)||(a.name||'').localeCompare(b.name||'','ru'));
+  else if(state.sort==='amount')list.sort((a,b)=>empAmount(b.id)-empAmount(a.id));
+  else if(state.sort==='name')list.sort((a,b)=>(a.name||'').localeCompare(b.name||'','ru'));
+  else if(state.sort==='date'){
+    const latest=id=>employeeRecords(id).reduce((m,it)=>Math.max(m,it.created||0),0);
+    list.sort((a,b)=>latest(b.id)-latest(a.id));
+  }
+  return list;
+}
+
+function renderTabs(){
+  const base=employeesWithRecords();
+  const counts={all:base.length};
+  STATUS_ORDER.forEach(s=>counts[s]=base.filter(e=>empStatus(e.id)===s).length);
+  const defs=[['all','Все']].concat(STATUS_ORDER.map(s=>[s,STATUS_LABEL[s]]));
+  document.getElementById('tabs').innerHTML=defs.map(([k,l])=>
+    `<button class="tab ${state.status===k?'active':''}" onclick="setStatusFilter('${k}')">${l} (${counts[k]||0})</button>`
+  ).join('');
+}
+
+function renderStats(){
+  const totalAmount=items.reduce((s,i)=>s+(Number(i.amount)||0),0);
+  const totalPaid=items.reduce((s,i)=>s+paidTotal(i),0);
+  const totalOwed=items.reduce((s,i)=>s+Math.max(0,balanceOf(i)),0);
+  const totalOver=items.reduce((s,i)=>s+Math.max(0,-balanceOf(i)),0);
+  const stats=[
+    ['Записей',items.length],
+    ['Сотрудников',employeesWithRecords().length],
+    ['Начислено всего',money(totalAmount)],
+    ['Осталось выплатить',money(totalOwed)],
+    ['Переплачено',money(totalOver)],
+    ['Оплачено всего',money(totalPaid)],
+  ];
+  document.getElementById('stats').innerHTML=stats.map(([l,n])=>`<div class="stat"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
+}
+
+function employeeCardHtml(emp){
+  const status=empStatus(emp.id);
+  const accent=statusAccent(status);
+  const amount=empAmount(emp.id);
+  const paid=empPaid(emp.id);
+  const bal=empBalance(emp.id);
+  const pct=amount>0?Math.max(0,Math.min(100,Math.round(paid/amount*100))):(paid>0?100:0);
+  const badgeText=status==='debt'?`Должны ${money(bal)}`:(status==='overpaid'?`Переплата ${money(-bal)}`:'Закрыто');
+  const count=employeeRecords(emp.id).length;
+  return `<div class="card" style="--card-accent:${accent}">
+    <div class="card-top">
+      <div class="card-title" onclick="openDetail(${emp.id})">${esc(emp.name)}</div>
+      <div class="card-actions">
+        <button class="icon-btn" onclick="openDetail(${emp.id})" title="Подробнее">📂</button>
+      </div>
+    </div>
+    <div class="badges">
+      <span class="badge status-${status}">${badgeText}</span>
+      <span class="badge muted">${count} ${recordsWord(count)}</span>
+    </div>
+    ${emp.address?`<div class="addr">📍 ${esc(emp.address)}</div>`:''}
+    <div class="money-row"><span>Долг: ${money(amount)}</span><span>Оплачено: ${money(paid)}</span></div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <div class="balance">
+      <span class="l">Задолженность</span>
+      <span class="v ${status}">${status==='overpaid'?'−':''}${money(Math.abs(bal))}</span>
+    </div>
+  </div>`;
+}
+
+function render(){
+  renderTabs();
+  renderStats();
+  const list=filteredEmployees();
+  const grid=document.getElementById('grid');
+  if(!list.length){
+    grid.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="em">💸</div>Ничего не найдено</div>`;
+  }else{
+    grid.innerHTML=list.map(employeeCardHtml).join('');
+  }
+}
+
+// ---- detail view (per employee) ----
+function openDetail(empId){
+  const emp=findEmployee(empId); if(!emp)return;
+  const recs=employeeRecords(empId).slice().sort((a,b)=>balanceOf(b)-balanceOf(a));
+  const amount=empAmount(empId),paid=empPaid(empId),bal=empBalance(empId),status=empStatus(empId);
+  document.getElementById('modal-root').innerHTML=`
+  <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal" style="max-width:640px">
+      <h3>${esc(emp.name)}</h3>
+      ${emp.address?`<div class="addr" style="margin-bottom:10px">📍 ${esc(emp.address)}</div>`:''}
+      <div class="modal-balance">
+        <span>Итого: долг ${money(amount)} · оплачено ${money(paid)}</span>
+        <b style="color:${status==='debt'?'var(--orange)':status==='overpaid'?'var(--red)':'var(--green)'}">${status==='overpaid'?'Переплата ':''}${money(Math.abs(bal))}</b>
+      </div>
+      <div class="modal-actions">
+        <button class="btn ghost" onclick="printEmployee(${empId})">🖨️ Печать</button>
+        <button class="btn primary" onclick="openModal(null,${empId})">+ Добавить запись</button>
+      </div>
+      <div class="form-section-title">Записи (${recs.length})</div>
+      <div>${recs.length?recs.map(recordRowHtml).join(''):'<div class="pay-empty">Записей пока нет</div>'}</div>
+      <div class="modal-actions">
+        <button class="btn ghost" onclick="closeModal()">Закрыть</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function recordRowHtml(it){
+  const status=statusOf(it);
+  const bal=balanceOf(it),paid=paidTotal(it),amount=Number(it.amount)||0;
+  const pays=(it.payments||[]).slice().sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  const badgeText=status==='debt'?`Должны ${money(bal)}`:(status==='overpaid'?`Переплата ${money(-bal)}`:'Закрыто');
+  return `<div class="detail-record">
+    <div class="card-top">
+      <div style="font-size:13px;font-weight:600">${it.purpose?esc(it.purpose):'<span style="color:var(--muted)">без назначения</span>'}</div>
+      <div class="card-actions">
+        <button class="icon-btn" onclick="openModal(${it.id})" title="Изменить">✎</button>
+        <button class="icon-btn danger" onclick="askDeleteRecord(${it.id})" title="Удалить">🗑</button>
+      </div>
+    </div>
+    <div class="badges"><span class="badge status-${status}">${badgeText}</span></div>
+    <div class="money-row"><span>Долг: ${money(amount)}</span><span>Оплачено: ${money(paid)}</span></div>
+    ${pays.length?`<div class="pay-list">${pays.map(p=>`<div class="pay-item"><span>${fmtDate(p.date)||'без даты'}${p.method?' · '+esc(p.method):''}</span><span>${money(p.amount)}</span></div>`).join('')}</div>`:''}
+    ${it.note?`<div class="note">${esc(it.note)}</div>`:''}
+    <div id="confirm-rec-${it.id}"></div>
+  </div>`;
+}
+
+function askDeleteRecord(id){
+  const el=document.getElementById('confirm-rec-'+id);
+  if(!el)return;
+  const it=findItem(id); if(!it)return;
+  el.insertAdjacentHTML('beforeend',`<div class="confirm-del"><div>Удалить запись «${esc(it.purpose||'без назначения')}»?</div><div class="row"><button class="btn ghost" onclick="openDetail(${it.employeeId})">Отмена</button><button class="btn danger" onclick="deleteRecord(${id})">Удалить</button></div></div>`);
+}
+async function deleteRecord(id){
+  const it=findItem(id); if(!it)return;
+  const empId=it.employeeId;
+  try{
+    setSyncStatus('busy','Удаление…');
+    await apiDelete('comp_records','id',id);
+    await syncAndRender();
+    if(findEmployee(empId))openDetail(empId); else closeModal();
+  }catch(e){
+    setSyncStatus('err','Ошибка удаления');
+    alert('Не удалось удалить запись. Проверьте соединение.');
+  }
+}
+
+// ---- employee registry ----
+function openEmployeeRegistry(){
+  const list=employees.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'','ru'));
+  document.getElementById('modal-root').innerHTML=`
+  <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal" style="max-width:560px">
+      <h3>Сотрудники</h3>
+      <button class="btn-sm" onclick="showAddEmployeeForm()">+ Добавить сотрудника</button>
+      <div id="add-emp-form" style="display:none;margin-top:10px"></div>
+      <div id="emp-registry-list" style="margin-top:14px">${list.length?list.map(employeeRowHtml).join(''):'<div class="pay-empty">Сотрудников пока нет</div>'}</div>
+      <div class="modal-actions">
+        <button class="btn ghost" onclick="closeModal()">Закрыть</button>
+      </div>
+    </div>
+  </div>`;
+}
+function employeeRowHtml(e){
+  const n=employeeRecords(e.id).length;
+  return `<div class="emp-row">
+    <div>
+      <div class="emp-row-name">${esc(e.name)}</div>
+      ${e.address?`<div class="addr">📍 ${esc(e.address)}</div>`:''}
+      <div class="note">${n} ${recordsWord(n)}</div>
+    </div>
+    <div class="card-actions">
+      <button class="icon-btn" onclick="showAddEmployeeForm(${e.id})" title="Изменить">✎</button>
+      <button class="icon-btn danger" onclick="deleteEmployee(${e.id})" title="Удалить">🗑</button>
+    </div>
+  </div>`;
+}
+function showAddEmployeeForm(editId){
+  const emp=editId?findEmployee(editId):null;
+  const box=document.getElementById('add-emp-form');
+  box.style.display='block';
+  box.innerHTML=`
+    <div class="row2">
+      <div class="field"><label>ФИО</label><input type="text" id="emp-name" value="${emp?esc(emp.name):''}" placeholder="Иванов Иван"></div>
+      <div class="field"><label>Адрес</label><input type="text" id="emp-address" value="${emp?esc(emp.address||''):''}" placeholder="Необязательно"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="hideAddEmployeeForm()">Отмена</button>
+      <button class="btn primary" onclick="saveEmployee(${editId||'null'})">Сохранить</button>
+    </div>`;
+}
+function hideAddEmployeeForm(){
+  const box=document.getElementById('add-emp-form');
+  if(!box)return;
+  box.style.display='none';box.innerHTML='';
+}
+async function saveEmployee(editId){
+  const name=document.getElementById('emp-name').value.trim();
+  if(!name){alert('Введите ФИО');return;}
+  const address=document.getElementById('emp-address').value.trim();
+  try{
+    setSyncStatus('busy','Сохранение…');
+    if(editId){
+      await apiUpdate('comp_employees',editId,{name,address});
+    }else{
+      await apiInsert('comp_employees',{id:uid(),name,address});
+    }
+    await syncAndRender();
+    openEmployeeRegistry();
+  }catch(e){
+    setSyncStatus('err','Ошибка сохранения');
+    alert('Не удалось сохранить сотрудника. Проверьте соединение.');
+  }
+}
+async function deleteEmployee(id){
+  let fresh;
+  try{
+    setSyncStatus('busy','Проверка…');
+    fresh=await apiQuery('comp_records','employee_id=eq.'+id+'&select=id');
+    setSyncStatus('ok','Синхронизировано');
+  }catch(e){
+    setSyncStatus('err','Нет соединения');
+    alert('Не удалось проверить записи сотрудника. Проверьте соединение и попробуйте ещё раз.');
+    return;
+  }
+  if(fresh.length>0){alert('У сотрудника «'+employeeName(id)+'» есть '+fresh.length+' '+recordsWord(fresh.length)+' о задолженности. Сначала удалите или перенесите их.');return;}
+  if(!confirm('Удалить сотрудника «'+employeeName(id)+'» из реестра?'))return;
+  try{
+    setSyncStatus('busy','Удаление…');
+    await apiDelete('comp_employees','id',id);
+    await syncAndRender();
+    openEmployeeRegistry();
+  }catch(e){
+    setSyncStatus('err','Ошибка удаления');
+    alert('Не удалось удалить сотрудника. Проверьте соединение.');
+  }
+}
+
+// ---- add/edit compensation record ----
+function openModal(id,presetEmployeeId){
+  const it=id?findItem(id):null;
+  const data=it||{id:uid(),employeeId:presetEmployeeId||'',purpose:'',amount:0,note:'',payments:[],created:Date.now()};
+  window._modalPayments=JSON.parse(JSON.stringify(data.payments||[]));
+  const empList=employees.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'','ru'));
+  const cancelTarget=data.employeeId?`openDetail(${data.employeeId})`:'closeModal()';
+  document.getElementById('modal-root').innerHTML=`
+  <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <h3>${it?'Изменить запись':'Добавить запись'}</h3>
+      <div class="field">
+        <label>Сотрудник</label>
+        <select id="f-employee" onchange="onEmployeeSelectChange(this.value)">
+          <option value="" ${!data.employeeId?'selected':''} disabled>— Выберите сотрудника —</option>
+          ${empList.map(e=>`<option value="${e.id}" ${String(data.employeeId)===String(e.id)?'selected':''}>${esc(e.name)}</option>`).join('')}
+          <option value="__new__">+ Новый сотрудник…</option>
+        </select>
+      </div>
+      <div id="new-emp-fields" style="display:none">
+        <div class="row2">
+          <div class="field"><label>ФИО нового сотрудника</label><input type="text" id="f-new-name" placeholder="Иванов Иван"></div>
+          <div class="field"><label>Адрес</label><input type="text" id="f-new-address" placeholder="Необязательно"></div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Назначение выплаты</label>
+        <textarea id="f-purpose" placeholder="Доплата ЗП, компенсация проезда, премия…">${esc(data.purpose)}</textarea>
+      </div>
+      <div class="field">
+        <label>Сумма долга, ₽</label>
+        <input type="number" id="f-amount" value="${data.amount||0}" min="0" oninput="updateModalBalance()">
+      </div>
+
+      <div class="form-section-title">Оплаты <button type="button" class="btn-sm" onclick="addPayRow()">+ Добавить оплату</button></div>
+      <div id="pay-rows"></div>
+
+      <div class="modal-balance">
+        <span>Остаток / переплата</span>
+        <b id="modal-balance-val">${money(0)}</b>
+      </div>
+
+      <div class="field" style="margin-top:14px">
+        <label>Заметка</label>
+        <textarea id="f-note" placeholder="Необязательно">${esc(data.note)}</textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn ghost" onclick="${cancelTarget}">Отмена</button>
+        ${it?`<button class="btn danger" onclick="if(confirm('Удалить эту запись?'))deleteRecord(${data.id})">Удалить</button>`:''}
+        <button class="btn primary" onclick="saveModal(${it?data.id:'null'})">Сохранить</button>
+      </div>
+    </div>
+  </div>`;
+  renderPayRows();
+}
+
+function onEmployeeSelectChange(val){
+  const box=document.getElementById('new-emp-fields');
+  if(box)box.style.display=val==='__new__'?'block':'none';
+}
+
+function renderPayRows(){
+  const container=document.getElementById('pay-rows');
+  if(!container)return;
+  const rows=window._modalPayments||[];
+  const methods=paymentMethods();
+  if(!rows.length){
+    container.innerHTML=`<div class="pay-empty">Оплат пока нет</div>`;
+  }else{
+    container.innerHTML=`<datalist id="method-list">${methods.map(m=>`<option value="${esc(m)}">`).join('')}</datalist>`+
+      rows.map((p,idx)=>`<div class="pay-row">
+        <input type="date" value="${p.date||''}" oninput="setPayField(${idx},'date',this.value)" title="Дата оплаты">
+        <input type="number" min="0" value="${p.amount||0}" oninput="setPayField(${idx},'amount',this.value)" placeholder="Сумма">
+        <input type="text" list="method-list" value="${esc(p.method||'')}" oninput="setPayField(${idx},'method',this.value)" placeholder="Как оплатили">
+        <button type="button" class="rm" onclick="removePayRow(${idx})" title="Удалить оплату">✕</button>
+      </div>`).join('');
+  }
+  updateModalBalance();
+}
+
+function addPayRow(){
+  window._modalPayments=window._modalPayments||[];
+  window._modalPayments.push({date:'',amount:0,method:''});
+  renderPayRows();
+}
+function removePayRow(idx){
+  window._modalPayments.splice(idx,1);
+  renderPayRows();
+}
+function setPayField(idx,field,value){
+  if(!window._modalPayments||!window._modalPayments[idx])return;
+  window._modalPayments[idx][field]=field==='amount'?Number(value)||0:value;
+  updateModalBalance();
+}
+
+function updateModalBalance(){
+  const amountEl=document.getElementById('f-amount');
+  const valEl=document.getElementById('modal-balance-val');
+  if(!amountEl||!valEl)return;
+  const amount=Number(amountEl.value)||0;
+  const paid=(window._modalPayments||[]).reduce((s,p)=>s+(Number(p.amount)||0),0);
+  const bal=amount-paid;
+  valEl.textContent=(bal<0?'Переплата ':'')+money(Math.abs(bal));
+  valEl.style.color=bal>0.5?'var(--orange)':(bal<-0.5?'var(--red)':'var(--green)');
+}
+
+function closeModal(){document.getElementById('modal-root').innerHTML='';window._modalPayments=null;}
+
+async function saveModal(existingId){
+  const rawEmployeeId=document.getElementById('f-employee').value;
+  let employeeId;
+  try{
+    setSyncStatus('busy','Сохранение…');
+    if(rawEmployeeId==='__new__'){
+      const newName=document.getElementById('f-new-name').value.trim();
+      if(!newName){alert('Введите ФИО нового сотрудника');setSyncStatus('ok','Синхронизировано');return;}
+      const newAddress=document.getElementById('f-new-address').value.trim();
+      employeeId=uid();
+      await apiInsert('comp_employees',{id:employeeId,name:newName,address:newAddress});
+    }else if(rawEmployeeId){
+      employeeId=Number(rawEmployeeId);
+    }
+    if(!employeeId){alert('Выберите сотрудника');setSyncStatus('ok','Синхронизировано');return;}
+    const purpose=document.getElementById('f-purpose').value.trim();
+    const amount=Math.max(0,Number(document.getElementById('f-amount').value)||0);
+    const note=document.getElementById('f-note').value.trim();
+    const payments=(window._modalPayments||[])
+      .filter(p=>(Number(p.amount)||0)>0||p.date||(p.method||'').trim())
+      .map(p=>({date:p.date||'',amount:Number(p.amount)||0,method:(p.method||'').trim()}));
+
+    const recordId=existingId||uid();
+    await apiRpc('comp_save_record',{
+      p_id:recordId,p_employee_id:employeeId,p_purpose:purpose,p_amount:amount,p_note:note,
+      p_payments:payments.map(p=>({date:p.date||null,amount:p.amount,method:p.method||null}))
+    });
+    closeModal();
+    await syncAndRender();
+    openDetail(employeeId);
+  }catch(e){
+    setSyncStatus('err','Ошибка сохранения');
+    alert('Не удалось сохранить запись. Проверьте соединение.');
+  }
+}
+
+// ---- printing ----
+const PRINT_CSS='*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:12px;color:#111;padding:24px}'+
+  'h1{font-size:18px;font-weight:700;margin-bottom:2px}'+
+  '.subtitle{font-size:12px;color:#555;margin-bottom:16px}'+
+  'table{width:100%;border-collapse:collapse;margin-bottom:14px}'+
+  'th{background:#f1f5f9;padding:7px 9px;text-align:left;font-size:11px;font-weight:700;border:1px solid #dde}'+
+  'td{padding:7px 9px;border:1px solid #e2e8f0;vertical-align:top}'+
+  '.pays{font-size:10.5px;color:#555;margin-top:3px}'+
+  'tr.total td{font-weight:700;background:#f8fafc}'+
+  '.footer{margin-top:16px;font-size:11px;color:#888;border-top:1px solid #ddd;padding-top:8px}'+
+  '@media print{body{padding:10px}}';
+
+function openPrintWindow(title,body){
+  const w=window.open('','_blank');
+  if(!w)return;
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+esc(title)+'</title><style>'+PRINT_CSS+'</style></head><body>'+body+'</body></html>');
+  w.document.close();
+  setTimeout(()=>w.print(),400);
+}
+
+function printEmployee(empId){
+  const emp=findEmployee(empId); if(!emp)return;
+  const recs=employeeRecords(empId).slice().sort((a,b)=>(a.created||0)-(b.created||0));
+  const now=new Date();
+  const dateStr=now.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
+  let body='<h1>Компенсация — '+esc(emp.name)+'</h1>';
+  body+='<div class="subtitle">'+(emp.address?'Адрес: '+esc(emp.address)+' &nbsp;·&nbsp; ':'')+'Дата: '+dateStr+'</div>';
+  body+='<table><thead><tr><th>Назначение</th><th>Долг</th><th>Оплаты</th><th>Оплачено</th><th>Остаток</th></tr></thead><tbody>';
+  let tAmt=0,tPaid=0;
+  recs.forEach(it=>{
+    const paid=paidTotal(it),amount=Number(it.amount)||0,bal=amount-paid;
+    tAmt+=amount;tPaid+=paid;
+    const pays=(it.payments||[]).map(p=>(fmtDate(p.date)||'без даты')+(p.method?' ('+esc(p.method)+')':'')+' — '+money(p.amount)).join('<br>');
+    body+='<tr><td>'+(it.purpose?esc(it.purpose):'—')+(it.note?'<div class="pays">'+esc(it.note)+'</div>':'')+'</td><td>'+money(amount)+'</td><td>'+(pays||'—')+'</td><td>'+money(paid)+'</td><td>'+(bal<0?'Переплата '+money(-bal):money(bal))+'</td></tr>';
+  });
+  const tBal=tAmt-tPaid;
+  body+='<tr class="total"><td>Итого</td><td>'+money(tAmt)+'</td><td></td><td>'+money(tPaid)+'</td><td>'+(tBal<0?'Переплата '+money(-tBal):money(tBal))+'</td></tr>';
+  body+='</tbody></table>';
+  body+='<div class="footer">Сформировано: '+now.toLocaleString('ru-RU')+'</div>';
+  openPrintWindow('Компенсация — '+emp.name,body);
+}
+
+function printAll(){
+  const list=employeesWithRecords().slice().sort((a,b)=>empBalance(b.id)-empBalance(a.id));
+  const now=new Date();
+  const dateStr=now.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
+  let body='<h1>Реестр компенсаций сотрудникам</h1><div class="subtitle">Дата: '+dateStr+'</div>';
+  body+='<table><thead><tr><th>ФИО</th><th>Адрес</th><th>Долг</th><th>Оплачено</th><th>Остаток</th></tr></thead><tbody>';
+  let tAmt=0,tPaid=0;
+  list.forEach(e=>{
+    const amount=empAmount(e.id),paid=empPaid(e.id),bal=amount-paid;
+    tAmt+=amount;tPaid+=paid;
+    body+='<tr><td>'+esc(e.name)+'</td><td>'+(e.address?esc(e.address):'—')+'</td><td>'+money(amount)+'</td><td>'+money(paid)+'</td><td>'+(bal<0?'Переплата '+money(-bal):money(bal))+'</td></tr>';
+  });
+  const tBal=tAmt-tPaid;
+  body+='<tr class="total"><td colspan="2">Итого</td><td>'+money(tAmt)+'</td><td>'+money(tPaid)+'</td><td>'+(tBal<0?'Переплата '+money(-tBal):money(tBal))+'</td></tr>';
+  body+='</tbody></table>';
+  body+='<div class="footer">Сформировано: '+now.toLocaleString('ru-RU')+'</div>';
+  openPrintWindow('Реестр компенсаций',body);
+}
+
+function init(){
+  initTheme();
+  render();
+  syncAndRender().catch(()=>{});
+}
+init();
+</script>
+</body>
+</html>
