@@ -189,7 +189,7 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     <div class="role" id="user-box-role"></div>
     <button class="logout-btn" onclick="logout()">Выйти</button>
   </div>
-  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-10.5</div>
+  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-10.6</div>
 </div>
 
 <div id="main" style="display:none">
@@ -1751,13 +1751,14 @@ function openDetail(id){
         const hasRate=rate!=null;
         const saved=mySectionsMap[s.id]||{};
         const isCustom=!hasRate||!!saved.customPrice;
-        return '<div style="padding:7px 0;border-bottom:1px solid var(--border);font-size:12.5px;'+(disabled?'opacity:.5':'')+'">'
+        const detailsId='sec-details-'+role+'-'+s.id;
+        return '<div style="padding:4px 0;border-bottom:1px solid var(--border);font-size:12.5px;'+(disabled?'opacity:.5':'')+'">'
           +'<label style="display:flex;align-items:center;gap:7px;min-width:0">'
-            +'<input type="checkbox" class="sec-pick-'+role+'" value="'+s.id+'" '+(isMine?'checked':'')+' '+(disabled?'disabled':'')+' onchange="updateSectionsCalc(\''+role+'\')">'
+            +'<input type="checkbox" class="sec-pick-'+role+'" value="'+s.id+'" '+(isMine?'checked':'')+' '+(disabled?'disabled':'')+' onchange="updateSectionsCalc(\''+role+'\');toggleSectionDetails(\''+role+'\',\''+s.id+'\')">'
             +'<span>'+escape(s.name)+(hasRate?' — '+rateCell(rate):' <span style="color:var(--muted)">(своя цена)</span>')
             +(isClaimedByOther?' <span style="color:var(--muted)">— уже выбрано другим исполнителем</span>':'')+'</span>'
           +'</label>'
-          +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px;padding-left:24px">'
+          +'<div id="'+detailsId+'" style="display:'+(isMine?'flex':'none')+';gap:6px;flex-wrap:wrap;margin-top:5px;padding-left:24px">'
             +'<input type="text" class="sec-exec-'+role+'" data-sec="'+s.id+'" placeholder="Исполнитель (ФИО/подрядчик)" style="flex:1;min-width:150px" value="'+escape(saved.executor||'')+'" '+(disabled?'disabled':'')+'>'
             +(hasRate?'<label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap"><input type="checkbox" class="sec-custom-'+role+'" data-sec="'+s.id+'" '+(isCustom?'checked':'')+' '+(disabled?'disabled':'')+' onchange="toggleSectionCustom(\''+role+'\',\''+s.id+'\')"> Подрядчик / своя цена</label>':'')
             +'<input type="number" min="0" step="1" class="sec-customprice-'+role+'" data-sec="'+s.id+'" placeholder="Своя цена, ₽" style="width:110px;'+(isCustom?'':'display:none')+'" value="'+escape(saved.customPrice||'')+'" '+(disabled?'disabled':'')+' oninput="updateSectionsCalc(\''+role+'\')">'
@@ -1769,15 +1770,36 @@ function openDetail(id){
       const list=(DB.sections||[]).filter(s=>!s._del);
       const stageKeys=[];
       list.forEach(function(s){const k=s.stage||'pd'; if(!stageKeys.includes(k))stageKeys.push(k);});
-      stageKeys.forEach(function(stageKey){
+      const stageTabPrefix='sec-stagetab-'+role+'-';
+      html+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">'
+        +stageKeys.map(function(stageKey,stageIdx){
+          const stageItems=list.filter(s=>(s.stage||'pd')===stageKey);
+          const pickedCount=stageItems.filter(s=>mySections.includes(s.id)).length;
+          return '<button type="button" class="filter-chip'+(stageIdx===0?' active':'')+'" id="'+stageTabPrefix+stageIdx+'-btn" onclick="switchSectionStageTab(\''+role+'\','+stageIdx+')">'
+            +escape(STAGE_NAME_BY_KEY[stageKey]||stageKey)+(pickedCount?' ('+pickedCount+')':'')
+          +'</button>';
+        }).join('')
+      +'</div>';
+      stageKeys.forEach(function(stageKey,stageIdx){
         const stageItems=list.filter(s=>(s.stage||'pd')===stageKey);
-        html+='<div style="margin-top:12px;font-weight:700;font-size:12.5px">'+escape(STAGE_NAME_BY_KEY[stageKey]||stageKey)+'</div>';
+        html+='<div id="'+stageTabPrefix+stageIdx+'" style="display:'+(stageIdx===0?'':'none')+';margin-top:10px">';
         const groups=[];
         stageItems.forEach(function(s){const g=s.group||''; if(!groups.includes(g))groups.push(g);});
-        groups.forEach(function(g){
-          if(g)html+='<div style="margin-top:6px;margin-left:8px;font-size:11.5px;color:var(--muted);font-weight:600">'+escape(g)+'</div>';
-          html+='<div>'+stageItems.filter(s=>(s.group||'')===g).map(renderRow).join('')+'</div>';
+        groups.forEach(function(g,groupIdx){
+          if(g){
+            const groupItems=stageItems.filter(s=>(s.group||'')===g);
+            const groupHasMine=groupItems.some(s=>mySections.includes(s.id));
+            const groupBlockId='sec-groupblock-'+role+'-'+stageIdx+'-'+groupIdx;
+            html+='<div style="margin-top:6px;font-size:11.5px;color:var(--muted);font-weight:600;cursor:pointer;user-select:none;display:flex;align-items:center;gap:5px" onclick="toggleCollapse(\''+groupBlockId+'\',this)">'
+              +'<span class="collapse-chevron">'+(groupHasMine?'▾':'▸')+'</span>'+escape(g)
+              +' ('+groupItems.filter(s=>mySections.includes(s.id)).length+'/'+groupItems.length+')'
+            +'</div>';
+            html+='<div id="'+groupBlockId+'" style="display:'+(groupHasMine?'':'none')+';margin-left:8px">'+groupItems.map(renderRow).join('')+'</div>';
+          }else{
+            html+='<div>'+stageItems.filter(s=>(s.group||'')===g).map(renderRow).join('')+'</div>';
+          }
         });
+        html+='</div>';
       });
       html+='<div id="sub-sec-total-'+role+'" style="font-size:13px;margin-top:6px;font-weight:600"></div>';
       html+='</div>';
@@ -1879,6 +1901,30 @@ function toggleSectionCustom(role,secId){
   const priceEl=document.querySelector('.sec-customprice-'+role+'[data-sec="'+secId+'"]');
   priceEl.style.display=isCustom?'':'none';
   updateSectionsCalc(role);
+}
+function toggleSectionDetails(role,secId){
+  const cb=document.querySelector('.sec-pick-'+role+'[value="'+secId+'"]');
+  const details=byId('sec-details-'+role+'-'+secId);
+  if(details)details.style.display=cb.checked?'flex':'none';
+}
+function switchSectionStageTab(role,stageIdx){
+  const prefix='sec-stagetab-'+role+'-';
+  document.querySelectorAll('[id^="'+prefix+'"]').forEach(function(el){
+    if(/^-?\d+$/.test(el.id.slice(prefix.length)))el.style.display='none';
+  });
+  document.querySelectorAll('button[id^="'+prefix+'"]').forEach(function(btn){btn.classList.remove('active');});
+  const panel=byId(prefix+stageIdx);
+  if(panel)panel.style.display='';
+  const btn=byId(prefix+stageIdx+'-btn');
+  if(btn)btn.classList.add('active');
+}
+function toggleCollapse(blockId,headerEl){
+  const block=byId(blockId);
+  if(!block)return;
+  const collapsed=block.style.display==='none';
+  block.style.display=collapsed?'':'none';
+  const chevron=headerEl&&headerEl.querySelector('.collapse-chevron');
+  if(chevron)chevron.textContent=collapsed?'▾':'▸';
 }
 function toggleSubForm(role){
   const insuf=byId('sub-insufficient-'+role).checked;
