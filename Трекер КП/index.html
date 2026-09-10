@@ -192,7 +192,7 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     <div class="role" id="user-box-role"></div>
     <button class="logout-btn" onclick="logout()">Выйти</button>
   </div>
-  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-10.7</div>
+  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-10.8</div>
 </div>
 
 <div id="main" style="display:none">
@@ -1775,7 +1775,7 @@ function openDetail(id){
             const saved=savedStages[s.key];
             return '<label style="display:flex;align-items:center;gap:7px;padding:4px 0;font-size:12.5px">'
               +'<input type="checkbox" class="stage-pick-production" data-stage="'+s.key+'" data-name="'+escape(s.name)+'" '+(saved?'checked':'')+' onchange="updateProdStagesCalc()">'
-              +escape(s.name)+' — <input type="number" class="stage-pct-production" data-stage="'+s.key+'" min="0" step="0.01" value="'+(saved?saved.pct:(s.pct==null?'':s.pct))+'" style="width:60px" oninput="updateProdStagesCalc()">% = <span class="stage-amount-production" data-stage="'+s.key+'">—</span>'
+              +escape(s.name)+' — <input type="number" class="stage-pct-production" data-stage="'+s.key+'" min="0" step="0.01" value="'+(saved?saved.pct:(s.pct==null?'':s.pct))+'" style="width:74px" oninput="updateProdStagesCalc()">% = <span class="stage-amount-production" data-stage="'+s.key+'">—</span>'
             +'</label>';
           }).join('')
           +'<div id="sub-stages-total-production" style="font-size:12px;margin-top:4px;font-weight:600"></div>'
@@ -1828,8 +1828,8 @@ function openDetail(id){
             +'<input type="text" class="sec-exec-'+role+'" data-sec="'+s.id+'" placeholder="Исполнитель (ФИО/подрядчик)" style="flex:1;min-width:150px" value="'+escape(saved.executor||'')+'" '+(disabled?'disabled':'')+'>'
             +(hasRate?'<label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap"><input type="checkbox" class="sec-custom-'+role+'" data-sec="'+s.id+'" '+(isCustom?'checked':'')+' '+(disabled?'disabled':'')+' onchange="toggleSectionCustom(\''+role+'\',\''+s.id+'\')"> Подрядчик / своя цена</label>':'')
             +'<input type="number" min="0" step="1" class="sec-customprice-'+role+'" data-sec="'+s.id+'" placeholder="Своя цена, ₽" style="width:110px;'+(isCustom?'':'display:none')+'" value="'+escape(saved.customPrice||'')+'" '+(disabled?'disabled':'')+' oninput="updateSectionsCalc(\''+role+'\')">'
-            +'<input type="number" min="0" step="1" class="sec-days-'+role+'" data-sec="'+s.id+'" placeholder="Дней" title="Кол-во дней на раздел (справочно, на стоимость не влияет)" style="width:56px" value="'+escape(saved.days||'')+'" '+(disabled?'disabled':'')+'>'
-            +'<input type="number" min="-100" step="1" placeholder="±%" class="sec-markup-'+role+'" data-sec="'+s.id+'" style="width:56px" title="Наценка или скидка на этот раздел, % (отрицательное — скидка)" value="'+escape(saved.markupPct||'')+'" '+(disabled?'disabled':'')+' oninput="updateSectionsCalc(\''+role+'\')">'
+            +'<input type="number" min="0" step="1" class="sec-days-'+role+'" data-sec="'+s.id+'" placeholder="Дней" title="Кол-во дней на раздел (справочно, на стоимость не влияет)" style="width:64px" value="'+escape(saved.days||'')+'" '+(disabled?'disabled':'')+'>'
+            +'<input type="number" min="-100" step="1" placeholder="±%" class="sec-markup-'+role+'" data-sec="'+s.id+'" style="width:66px" title="Наценка или скидка на этот раздел, % (отрицательное — скидка)" value="'+escape(saved.markupPct||'')+'" '+(disabled?'disabled':'')+' oninput="updateSectionsCalc(\''+role+'\')">'
           +'</div>'
         +'</div>';
       };
