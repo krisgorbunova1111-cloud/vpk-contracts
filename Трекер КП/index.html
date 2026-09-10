@@ -188,7 +188,7 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     <div class="role" id="user-box-role"></div>
     <button class="logout-btn" onclick="logout()">Выйти</button>
   </div>
-  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-10.1</div>
+  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-10.2</div>
 </div>
 
 <div id="main" style="display:none">
@@ -1724,12 +1724,42 @@ function deleteDivision(id){
 
 /* ---- Sections catalog (rate per m² for Стадия П, claimed exclusively by an assessor) ---- */
 function rateCell(v){return v==null||v===''?'—':tonum(v).toLocaleString('ru-RU')+' ₽/м²';}
+let editingSectionId=null;
 function renderSections(){
   const list=(DB.sections||[]).filter(s=>!s._del);
-  byId('sections-table-body').innerHTML=list.length?list.map(s=>
-    '<tr><td>'+escape(s.name)+'</td><td>'+rateCell(s.rate1)+'</td><td>'+rateCell(s.rate2)+'</td><td>'+rateCell(s.rate3)+'</td>'
-    +'<td><button class="btn btn-sm btn-danger" onclick="deleteSection(\''+s.id+'\')">Удалить</button></td></tr>'
-  ).join(''):'<tr><td colspan="5" style="color:var(--muted)">Список пуст</td></tr>';
+  byId('sections-table-body').innerHTML=list.length?list.map(s=>{
+    if(s.id===editingSectionId){
+      return '<tr>'
+        +'<td><input id="sce-name-'+s.id+'" value="'+escape(s.name)+'" style="width:100%"></td>'
+        +'<td><input id="sce-rate1-'+s.id+'" type="number" min="0" step="0.01" value="'+(s.rate1==null?'':s.rate1)+'" style="width:90px"></td>'
+        +'<td><input id="sce-rate2-'+s.id+'" type="number" min="0" step="0.01" value="'+(s.rate2==null?'':s.rate2)+'" style="width:90px"></td>'
+        +'<td><input id="sce-rate3-'+s.id+'" type="number" min="0" step="0.01" value="'+(s.rate3==null?'':s.rate3)+'" style="width:90px"></td>'
+        +'<td style="white-space:nowrap">'
+          +'<button class="btn btn-sm btn-primary" onclick="saveSection(\''+s.id+'\')">Сохранить</button> '
+          +'<button class="btn btn-sm" onclick="cancelEditSection()">Отмена</button>'
+        +'</td></tr>';
+    }
+    return '<tr><td>'+escape(s.name)+'</td><td>'+rateCell(s.rate1)+'</td><td>'+rateCell(s.rate2)+'</td><td>'+rateCell(s.rate3)+'</td>'
+    +'<td style="white-space:nowrap"><button class="btn btn-sm" onclick="editSection(\''+s.id+'\')">Изменить</button> '
+    +'<button class="btn btn-sm btn-danger" onclick="deleteSection(\''+s.id+'\')">Удалить</button></td></tr>';
+  }).join(''):'<tr><td colspan="5" style="color:var(--muted)">Список пуст</td></tr>';
+}
+function editSection(id){editingSectionId=id;renderSections();}
+function cancelEditSection(){editingSectionId=null;renderSections();}
+function saveSection(id){
+  const s=(DB.sections||[]).find(x=>x.id===id); if(!s)return;
+  const name=(byId('sce-name-'+id).value||'').trim();
+  const rate1=byId('sce-rate1-'+id).value.trim(), rate2=byId('sce-rate2-'+id).value.trim(), rate3=byId('sce-rate3-'+id).value.trim();
+  if(!name){alert('Укажите название раздела');return;}
+  if(!rate1&&!rate2){alert('Укажите хотя бы одну ставку (50–500 или 500–1500 м²)');return;}
+  if(DB.sections.some(x=>x.id!==id&&!x._del&&x.name.toLowerCase()===name.toLowerCase())){alert('Такой раздел уже есть');return;}
+  s.name=name;
+  s.rate1=rate1?tonum(rate1):null;
+  s.rate2=rate2?tonum(rate2):null;
+  s.rate3=rate3?tonum(rate3):null;
+  pushSections();
+  editingSectionId=null;
+  renderSections();
 }
 function createSection(){
   const name=(byId('scf-name').value||'').trim();
