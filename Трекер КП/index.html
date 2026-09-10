@@ -43,7 +43,7 @@ a{color:inherit}
 
 /* ---------- Cards / dashboard ---------- */
 .cards-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px}
-.stat-card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:16px 18px}
+.stat-card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:16px 18px;box-shadow:0 1px 4px rgba(15,23,42,.05)}
 .stat-card .num{font-size:26px;font-weight:800;line-height:1}
 .stat-card .lbl{font-size:12px;color:var(--muted);margin-top:6px;font-weight:600}
 .stat-card.accent{border-left:3px solid var(--accent)}
@@ -65,8 +65,8 @@ a{color:inherit}
 
 /* ---------- Request cards ---------- */
 .req-list{display:flex;flex-direction:column;gap:10px}
-.req-card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
-.req-card:hover{border-color:var(--accent);box-shadow:0 4px 14px rgba(15,23,42,.06)}
+.req-card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .15s;box-shadow:0 1px 4px rgba(15,23,42,.05)}
+.req-card:hover{border-color:var(--accent);box-shadow:0 4px 14px rgba(15,23,42,.08);transform:translateY(-1px)}
 .req-card .rc-main{flex:1;min-width:0}
 .req-card .rc-title{font-weight:700;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .req-card .rc-sub{font-size:12px;color:var(--muted);margin-top:3px;display:flex;gap:12px;flex-wrap:wrap}
@@ -74,6 +74,7 @@ a{color:inherit}
 .empty-state{color:var(--muted);font-size:13.5px;padding:30px 0;text-align:center;background:var(--white);border:1px dashed var(--border);border-radius:12px}
 
 .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.badge-dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
 .badge-new{background:#e2e8f0;color:#334155}
 .badge-subdivisions{background:#dbeafe;color:#1d4ed8}
 .badge-decision{background:#fef3c7;color:#92400e}
@@ -108,7 +109,7 @@ a{color:inherit}
 .field textarea{resize:vertical;min-height:64px}
 .field input[type=file]{border:1.5px dashed var(--border);border-radius:9px;padding:10px 12px;font-size:12.5px;background:#f8fafc;cursor:pointer}
 .form-actions{display:flex;gap:10px;margin-top:22px;justify-content:flex-end}
-.card-block{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:18px}
+.card-block{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:18px;box-shadow:0 1px 4px rgba(15,23,42,.05)}
 .card-block h3{font-size:15px;font-weight:800;margin-bottom:14px}
 
 /* ---------- Attachments ---------- */
@@ -158,7 +159,9 @@ a{color:inherit}
 table{width:100%;border-collapse:collapse}
 th{text-align:left;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.02em;padding:8px 10px;border-bottom:2px solid var(--border)}
 td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
-.table-wrap{background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.table-wrap{background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(15,23,42,.05)}
+.clickable-row{cursor:pointer;transition:background .12s}
+.clickable-row:hover{background:#f8fafc}
 </style>
 </head>
 <body>
@@ -189,7 +192,7 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     <div class="role" id="user-box-role"></div>
     <button class="logout-btn" onclick="logout()">Выйти</button>
   </div>
-  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-10.6</div>
+  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-10.7</div>
 </div>
 
 <div id="main" style="display:none">
@@ -219,12 +222,21 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
   <!-- ANALYTICS -->
   <div id="section-analytics" class="section">
     <div class="page-title">Аналитика</div>
-    <div class="page-sub">Сводка по клиентским менеджерам и заказчикам — по всем заявкам</div>
+    <div class="page-sub">Сводка по клиентским менеджерам и заказчикам — по всем заявкам. Кликните по строке, чтобы увидеть её заявки</div>
     <div id="req-stats-wrap">
       <div class="page-title" style="font-size:14px">Сводка по клиентским менеджерам</div>
       <div class="table-wrap"><table><thead><tr><th>Менеджер</th><th>Заявок</th><th>Сумма (принято)</th><th>На согласовании</th><th>Подписано</th></tr></thead><tbody id="req-stats-managers"></tbody></table></div>
       <div class="page-title" style="font-size:14px;margin-top:16px">Сводка по заказчикам</div>
       <div class="table-wrap"><table><thead><tr><th>Заказчик</th><th>Заявок</th><th>Сумма (принято)</th><th>На согласовании</th><th>Подписано</th></tr></thead><tbody id="req-stats-customers"></tbody></table></div>
+    </div>
+    <div id="analytics-detail-wrap" style="display:none">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+        <button class="btn btn-sm" onclick="closeAnalyticsDetail()">← Назад к сводке</button>
+        <div style="font-size:16px;font-weight:800" id="analytics-detail-title"></div>
+      </div>
+      <div class="cards-row" id="analytics-detail-summary" style="margin-bottom:14px"></div>
+      <div class="filters-row" id="analytics-detail-filters"></div>
+      <div class="req-list" id="analytics-detail-list"></div>
     </div>
   </div>
 
@@ -880,10 +892,16 @@ function setReqFilter(f){reqFilter=f;renderRequests();}
 function setManagerFilter(v){managerFilter=v;renderRequests();}
 function renderAnalytics(){
   const all=allRequests();
-  byId('req-stats-managers').innerHTML=renderGroupStatsRows(all,r=>r.clientManager);
-  byId('req-stats-customers').innerHTML=renderGroupStatsRows(all,r=>r.customer);
+  byId('req-stats-managers').innerHTML=renderGroupStatsRows(all,r=>r.clientManager,'manager');
+  byId('req-stats-customers').innerHTML=renderGroupStatsRows(all,r=>r.customer,'customer');
+  if(analyticsDetailState.key){
+    renderAnalyticsDetail();
+  }else{
+    byId('analytics-detail-wrap').style.display='none';
+    byId('req-stats-wrap').style.display='';
+  }
 }
-function renderGroupStatsRows(list,keyFn){
+function renderGroupStatsRows(list,keyFn,type){
   const map={};
   list.forEach(r=>{
     const key=keyFn(r)||'—';
@@ -901,14 +919,58 @@ function renderGroupStatsRows(list,keyFn){
   if(!keys.length)return '<tr><td colspan="5" style="color:var(--muted)">Нет данных</td></tr>';
   return keys.map(k=>{
     const g=map[k];
-    return '<tr><td>'+escape(k)+'</td><td>'+g.count+'</td><td>'+fmtMoney(g.acceptedSum)+'</td>'
+    return '<tr class="clickable-row" onclick="openAnalyticsDetail(\''+type+'\',\''+escape(k)+'\')"><td>'+escape(k)+'</td><td>'+g.count+'</td><td>'+fmtMoney(g.acceptedSum)+'</td>'
       +'<td>'+(g.reviewCount?g.reviewCount+' · '+fmtMoney(g.reviewSum):'—')+'</td>'
       +'<td>'+(g.signedCount?g.signedCount+' · '+fmtMoney(g.signedSum):'—')+'</td></tr>';
   }).join('');
 }
+let analyticsDetailState={type:'',key:'',stageFilter:'all'};
+function openAnalyticsDetail(type,key){
+  analyticsDetailState={type,key,stageFilter:'all'};
+  byId('req-stats-wrap').style.display='none';
+  byId('analytics-detail-wrap').style.display='';
+  renderAnalyticsDetail();
+}
+function closeAnalyticsDetail(){
+  analyticsDetailState={type:'',key:'',stageFilter:'all'};
+  byId('analytics-detail-wrap').style.display='none';
+  byId('req-stats-wrap').style.display='';
+}
+function setAnalyticsDetailFilter(f){analyticsDetailState.stageFilter=f;renderAnalyticsDetail();}
+function renderAnalyticsDetail(){
+  const {type,key}=analyticsDetailState;
+  const all=allRequests().filter(function(r){return (type==='manager'?(r.clientManager||'—'):(r.customer||'—'))===key;});
+  byId('analytics-detail-title').textContent=(type==='manager'?'Менеджер: ':'Заказчик: ')+key;
+
+  const count=all.length;
+  const accepted=all.filter(r=>r.stage==='accepted');
+  const acceptedSum=accepted.reduce((s,r)=>s+tonum(r.finalAmount||r.amount),0);
+  const signed=accepted.filter(r=>r.customerStatus==='signed');
+  const signedSum=signed.reduce((s,r)=>s+tonum(r.finalAmount||r.amount),0);
+  const review=accepted.filter(r=>r.customerStatus==='contract_review');
+  const reviewSum=review.reduce((s,r)=>s+tonum(r.finalAmount||r.amount),0);
+  const cards=[
+    ['Заявок',count,''],
+    ['Сумма принятых',fmtMoney(acceptedSum),''],
+    ['На согласовании',review.length+' · '+fmtMoney(reviewSum),'warn'],
+    ['Подписано',signed.length+' · '+fmtMoney(signedSum),'success']
+  ];
+  byId('analytics-detail-summary').innerHTML=cards.map(c=>
+    '<div class="stat-card '+c[2]+'"><div class="num" style="font-size:18px">'+c[1]+'</div><div class="lbl">'+c[0]+'</div></div>'
+  ).join('');
+
+  const stageFilter=analyticsDetailState.stageFilter;
+  const filters=[['all','Все']].concat(Object.keys(STAGE_NAME).map(k=>[k,STAGE_NAME[k]]));
+  byId('analytics-detail-filters').innerHTML=filters.map(f=>
+    '<button class="filter-chip '+(stageFilter===f[0]?'active':'')+'" onclick="setAnalyticsDetailFilter(\''+f[0]+'\')">'+f[1]+'</button>'
+  ).join('');
+
+  const filtered=stageFilter==='all'?all:all.filter(r=>r.stage===stageFilter);
+  byId('analytics-detail-list').innerHTML=filtered.length?filtered.map(renderReqCard).join(''):'<div class="empty-state">Заявок нет</div>';
+}
 
 function renderReqCard(r){
-  const stageBadge='<span class="badge badge-'+r.stage+'">'+STAGE_NAME[r.stage]+'</span>';
+  const stageBadge='<span class="badge badge-'+r.stage+'"><span class="badge-dot"></span>'+STAGE_NAME[r.stage]+'</span>';
   let clBadge='';
   if(r.stage==='accepted'&&r.kpGenerated){
     const cs=r.customerStatus||'waiting';
@@ -1468,8 +1530,9 @@ function openDetail(id){
   let html='';
   html+='<h2>'+escape(req.customer)+'</h2>';
   html+='<div class="modal-sub">'+escape(req.subject)+' · <span class="mono">'+req.id+'</span></div>';
-  html+='<span class="badge badge-'+req.stage+'">'+STAGE_NAME[req.stage]+'</span>';
+  html+='<span class="badge badge-'+req.stage+'"><span class="badge-dot"></span>'+STAGE_NAME[req.stage]+'</span>';
 
+  html+='<!--TAB:overview-->';
   html+='<div class="detail-grid" style="margin-top:16px">';
   const rows=[
     ['Менеджер клиента',req.manager],['Клиентский менеджер',req.clientManager],['Адрес',req.address],
@@ -1491,6 +1554,7 @@ function openDetail(id){
     html+='</div>';
   }
 
+  html+='<!--TAB:performers-->';
   // Subdivisions block
   if(req.stage==='subdivisions'||req.stage==='decision'||req.stage==='accepted'||req.stage==='rejected'){
     html+='<div class="divider"></div><h3 style="font-size:14px;font-weight:800;margin-bottom:6px">Исполнители</h3>';
@@ -1537,6 +1601,7 @@ function openDetail(id){
     html+='<div class="note-box"><b>Причина возврата (первичный контроль):</b><br>'+escape(req.returnReason)+'</div>';
   }
 
+  html+='<!--TAB:kp-->';
   // Commercial: generate КП document once accepted
   if((role==='commercial'||role==='admin')&&req.stage==='accepted'){
     html+='<div class="divider"></div><h3>Коммерческое предложение для заказчика</h3>';
@@ -1605,6 +1670,7 @@ function openDetail(id){
     }
   }
 
+  html+='<!--TAB:actions-->';
   // ===== ROLE ACTIONS =====
   // Production: initial control
   if((role==='production'||role==='admin')&&req.stage==='new'){
@@ -1807,6 +1873,7 @@ function openDetail(id){
     html+='<div class="form-actions"><button class="btn btn-primary" onclick="actionSubSubmit(\''+id+'\',\''+role+'\')">Отправить</button></div>';
   }
 
+  html+='<!--TAB:history-->';
   // History
   html+='<div class="divider"></div><h3 style="font-size:13px">История</h3>';
   (req.history||[]).slice().reverse().forEach(h=>{
@@ -1818,10 +1885,46 @@ function openDetail(id){
       +'<button class="btn btn-danger btn-sm" onclick="deleteRequest(\''+id+'\')">Удалить заявку</button></div>';
   }
 
+  html=assembleDetailTabs(html);
   byId('modal-detail-content').innerHTML=html;
   openModal('modal-detail');
   if(byId('kp-calc-result'))updateKpCalc();
   if(byId('sub-sec-total-'+role))updateSectionsCalc(role);
+}
+const DETAIL_TAB_DEFS=[['overview','Обзор'],['performers','Исполнители'],['kp','КП'],['history','История']];
+function assembleDetailTabs(html){
+  const keys=['actions','overview','performers','kp','history'];
+  const positions=[];
+  keys.forEach(function(k){
+    const idx=html.indexOf('<!--TAB:'+k+'-->');
+    if(idx!==-1)positions.push({k,idx});
+  });
+  positions.sort(function(a,b){return a.idx-b.idx;});
+  const seg={};
+  for(let i=0;i<positions.length;i++){
+    const markerLen=('<!--TAB:'+positions[i].k+'-->').length;
+    const start=positions[i].idx+markerLen;
+    const end=i+1<positions.length?positions[i+1].idx:html.length;
+    seg[positions[i].k]=html.slice(start,end);
+  }
+  const headerEnd=positions.length?positions[0].idx:html.length;
+  let out=html.slice(0,headerEnd);
+  if(seg.actions&&seg.actions.trim())out+=seg.actions;
+  const tabs=DETAIL_TAB_DEFS.filter(function(t){return seg[t[0]]&&seg[t[0]].trim();});
+  if(!tabs.length)return out;
+  out+='<div class="filters-row" style="margin-top:14px;margin-bottom:0">'+tabs.map(function(t,i){
+    return '<button type="button" class="filter-chip'+(i===0?' active':'')+'" id="dtab-btn-'+t[0]+'" onclick="switchDetailTab(\''+t[0]+'\')">'+t[1]+'</button>';
+  }).join('')+'</div>';
+  out+=tabs.map(function(t,i){
+    return '<div id="dtab-'+t[0]+'" style="display:'+(i===0?'':'none')+';margin-top:12px">'+seg[t[0]]+'</div>';
+  }).join('');
+  return out;
+}
+function switchDetailTab(key){
+  DETAIL_TAB_DEFS.forEach(function(t){
+    const panel=byId('dtab-'+t[0]); if(panel)panel.style.display=(t[0]===key?'':'none');
+    const btn=byId('dtab-btn-'+t[0]); if(btn)btn.classList.toggle('active',t[0]===key);
+  });
 }
 function computeSectionsPickedTotal(role,req){
   const checked=document.querySelectorAll('.sec-pick-'+role+':checked');
