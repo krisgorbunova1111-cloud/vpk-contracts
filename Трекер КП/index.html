@@ -179,6 +179,7 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
   <div class="brand">Трекер КП<small>ВПК · заявки на КП</small></div>
   <div class="nav-item" data-page="dashboard" onclick="showPage('dashboard')">📊 Дашборд</div>
   <div class="nav-item" data-page="requests" onclick="showPage('requests')">📋 Заявки</div>
+  <div class="nav-item" id="nav-analytics" data-page="analytics" onclick="showPage('analytics')" style="display:none">📈 Аналитика</div>
   <div class="nav-item" id="nav-new" data-page="new" onclick="showPage('new')" style="display:none">➕ Новая заявка</div>
   <div class="nav-item" id="nav-users" data-page="users" onclick="showPage('users')" style="display:none">👤 Пользователи</div>
   <div class="spacer"></div>
@@ -188,7 +189,7 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     <div class="role" id="user-box-role"></div>
     <button class="logout-btn" onclick="logout()">Выйти</button>
   </div>
-  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-10.3</div>
+  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-10.4</div>
 </div>
 
 <div id="main" style="display:none">
@@ -212,13 +213,19 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     <div class="page-sub" id="req-sub"></div>
     <div class="filters-row" id="req-filters"></div>
     <select id="req-manager-filter" onchange="setManagerFilter(this.value)" style="margin-bottom:14px;max-width:240px"></select>
-    <div id="req-stats-wrap" style="display:none;margin-bottom:18px">
+    <div class="req-list" id="req-list"></div>
+  </div>
+
+  <!-- ANALYTICS -->
+  <div id="section-analytics" class="section">
+    <div class="page-title">Аналитика</div>
+    <div class="page-sub">Сводка по клиентским менеджерам и заказчикам — по всем заявкам</div>
+    <div id="req-stats-wrap">
       <div class="page-title" style="font-size:14px">Сводка по клиентским менеджерам</div>
       <div class="table-wrap"><table><thead><tr><th>Менеджер</th><th>Заявок</th><th>Сумма (принято)</th><th>На согласовании</th><th>Подписано</th></tr></thead><tbody id="req-stats-managers"></tbody></table></div>
       <div class="page-title" style="font-size:14px;margin-top:16px">Сводка по заказчикам</div>
       <div class="table-wrap"><table><thead><tr><th>Заказчик</th><th>Заявок</th><th>Сумма (принято)</th><th>На согласовании</th><th>Подписано</th></tr></thead><tbody id="req-stats-customers"></tbody></table></div>
     </div>
-    <div class="req-list" id="req-list"></div>
   </div>
 
   <!-- NEW REQUEST -->
@@ -728,6 +735,7 @@ function enterApp(){
   byId('user-box-role').textContent=roleName(currentUser.role);
   byId('nav-new').style.display=(currentUser.role==='commercial'||currentUser.role==='admin')?'flex':'none';
   byId('nav-users').style.display=(currentUser.role==='admin')?'flex':'none';
+  byId('nav-analytics').style.display=(currentUser.role==='admin'||currentUser.role==='commercial'||currentUser.role==='production')?'flex':'none';
   showPage('dashboard');
 }
 
@@ -772,6 +780,7 @@ function renderAll(){
   if(!currentUser)return;
   if(activePage==='dashboard')renderDashboard();
   if(activePage==='requests')renderRequests();
+  if(activePage==='analytics')renderAnalytics();
   if(activePage==='users')renderUsers();
   if(activePage==='new')renderManagerSelect();
 }
@@ -866,21 +875,14 @@ function renderRequests(){
   if(managerFilter!=='all')list=list.filter(r=>r.clientManager===managerFilter);
 
   byId('req-list').innerHTML=list.length?list.map(renderReqCard).join(''):'<div class="empty-state">Заявок нет</div>';
-
-  const statsWrap=byId('req-stats-wrap');
-  if(statsWrap){
-    if(role==='admin'||role==='commercial'||role==='production'){
-      statsWrap.style.display='';
-      const all=allRequests();
-      byId('req-stats-managers').innerHTML=renderGroupStatsRows(all,r=>r.clientManager);
-      byId('req-stats-customers').innerHTML=renderGroupStatsRows(all,r=>r.customer);
-    }else{
-      statsWrap.style.display='none';
-    }
-  }
 }
 function setReqFilter(f){reqFilter=f;renderRequests();}
 function setManagerFilter(v){managerFilter=v;renderRequests();}
+function renderAnalytics(){
+  const all=allRequests();
+  byId('req-stats-managers').innerHTML=renderGroupStatsRows(all,r=>r.clientManager);
+  byId('req-stats-customers').innerHTML=renderGroupStatsRows(all,r=>r.customer);
+}
 function renderGroupStatsRows(list,keyFn){
   const map={};
   list.forEach(r=>{
@@ -1228,7 +1230,6 @@ async function generateKp(id){
     if(marginPct)req.kpMarginPct=marginPct;
     if(vatPct)req.kpVatPct=vatPct;
     if(appliedKpStages.length)req.kpStages=appliedKpStages;
-    if(appliedObjectType)req.kpObjectType=appliedObjectType;
     req.kpGenerated={amount,by:currentUser.name,at:nowIso()};
     if(!req.customerLog){req.customerLog=[];req.customerStatus='waiting';}
     pushHistory(req,'Сформировано коммерческое предложение №'+(outNum||kpNumber(req))+' (сумма: '+fmtMoney(amount)+')');
@@ -1419,7 +1420,18 @@ function actionSubSubmit(id,sub){
     });
     const complexityCategory=sub==='obsledovanie'?(byId('sub-complexity-'+sub).value||''):(req.subs[sub]&&req.subs[sub].complexityCategory)||'';
     req.subs[sub]={status:'done',resources,sections,complexityCategory,updatedAt:nowIso(),updatedBy:currentUser.name};
-    pushHistory(req,'«'+subLabel(sub)+'»: форма «Объём необходимых ресурсов» заполнена'+(sections.length?' · разделов выбрано: '+sections.length:''));
+    let objTypeNote='';
+    if(sub==='production'){
+      const objSel=byId('sub-objtype-production');
+      if(objSel&&objSel.value){
+        const opt=objSel.options[objSel.selectedIndex];
+        req.objectType={id:objSel.value,name:opt.dataset.name,coef:tonum(opt.dataset.coef)};
+        objTypeNote=' · тип объекта: '+opt.dataset.name+' (×'+opt.dataset.coef+')';
+      }else if(objSel){
+        req.objectType=null;
+      }
+    }
+    pushHistory(req,'«'+subLabel(sub)+'»: форма «Объём необходимых ресурсов» заполнена'+(sections.length?' · разделов выбрано: '+sections.length:'')+objTypeNote);
   }
   checkAutoDecision(req);
   pushRequest(id); closeModal('modal-detail'); renderAll();
@@ -1431,12 +1443,10 @@ function closeModal(id){byId(id).classList.remove('open');}
 
 let currentDetailId=null;
 let appliedKpStages=[];
-let appliedObjectType=null;
 function openDetail(id){
   const req=DB.requests[id]; if(!req)return;
   currentDetailId=id;
   appliedKpStages=[];
-  appliedObjectType=null;
   const role=currentUser.role;
   let html='';
   html+='<h2>'+escape(req.customer)+'</h2>';
@@ -1491,8 +1501,11 @@ function openDetail(id){
       html+='</div><span class="badge badge-'+st.status+'">'+SUB_STATUS_NAME[st.status]+'</span></div>';
     });
     if(sectionsGrandTotal>0){
-      html+='<div class="hint-box" style="margin-top:8px"><b>Итого по разделам (все исполнители):</b> '+fmtMoney(sectionsGrandTotal)+
-        ((role==='production'||role==='commercial'||role==='admin')?' <button type="button" class="btn btn-sm" style="margin-left:8px" onclick="applySectionsTotal(\''+id+'\','+sectionsGrandTotal+')">Подставить в себестоимость</button>':'')+'</div>';
+      const objCoef=req.objectType?tonum(req.objectType.coef):1;
+      const sectionsFinalTotal=sectionsGrandTotal*objCoef;
+      html+='<div class="hint-box" style="margin-top:8px"><b>Итого по разделам (все исполнители):</b> '+fmtMoney(sectionsGrandTotal)
+        +(req.objectType?' × '+objCoef+' ('+escape(req.objectType.name)+') = <b>'+fmtMoney(sectionsFinalTotal)+'</b>':'')
+        +((role==='production'||role==='commercial'||role==='admin')?' <button type="button" class="btn btn-sm" style="margin-left:8px" onclick="applySectionsTotal(\''+id+'\','+sectionsFinalTotal+')">Подставить в себестоимость</button>':'')+'</div>';
     }
   }
 
@@ -1546,19 +1559,11 @@ function openDetail(id){
         +'<div id="kp-stages-applied"></div>'
       +'</div>';
     }
-    const objectTypeList=(DB.objectTypes||[]).filter(s=>!s._del);
-    if(objectTypeList.length){
+    if(req.objectType){
       html+='<div class="card-block" style="padding:14px;margin-top:14px;background:var(--surface-2)">'
         +'<div style="font-weight:700;font-size:13px;margin-bottom:2px">Тип объекта (коэффициент сложности)</div>'
-        +'<div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">Коэффициент умножается на себестоимость выше — применяйте один раз, после того как собрали базовую сумму</div>'
-        +(req.kpObjectType?'<div class="hint-box" style="margin-bottom:10px">В последней сформированной КП применён тип объекта: '+escape(req.kpObjectType.name)+' (×'+req.kpObjectType.coef+')</div>':'')
-        +'<div class="form-grid"><div class="field span2"><label>Тип объекта</label><select id="kp-objtype" onchange="updateObjectTypeCalc()">'
-          +'<option value="">— не выбран —</option>'
-          +objectTypeList.map(function(s){return '<option value="'+s.id+'" data-coef="'+s.coef+'">'+escape(s.name)+' (×'+s.coef+')</option>';}).join('')
-        +'</select></div></div>'
-        +'<div id="kp-objtype-result" style="font-size:12.5px;margin-top:8px"></div>'
-        +'<div class="form-actions" style="justify-content:flex-start;margin-top:10px">'
-          +'<button type="button" class="btn btn-sm" onclick="applyObjectTypeCoef(\''+id+'\',this)">Применить к себестоимости</button></div>'
+        +'<div style="font-size:12.5px">'+escape(req.objectType.name)+' — коэффициент ×'+req.objectType.coef+'</div>'
+        +'<div style="font-size:11.5px;color:var(--muted);margin-top:4px">Выбирается производственным отделом при оценке заявки и уже учтён в «Итого по разделам» выше</div>'
       +'</div>';
     }
     html+='<div class="field" style="margin-top:14px"><label>Итоговая сумма КП, ₽</label><input id="kp-final-amount" type="number" min="0" step="1" value="'+escape(tonum(req.finalAmount||req.amount)||'')+'"></div>';
@@ -1674,6 +1679,19 @@ function openDetail(id){
       html+='<label style="display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;margin-bottom:12px">'
         +'<input type="checkbox" id="sub-insufficient-'+role+'" onchange="toggleSubForm(\''+role+'\')"> Данных недостаточно для оценки</label>';
     }
+    if(role==='production'){
+      const objectTypeList=(DB.objectTypes||[]).filter(s=>!s._del);
+      if(objectTypeList.length){
+        const savedType=req.objectType?req.objectType.id:'';
+        html+='<div class="field" style="margin-bottom:12px"><label>Тип объекта (коэффициент сложности)</label>'
+          +'<select id="sub-objtype-'+role+'">'
+          +'<option value="">— не выбран —</option>'
+          +objectTypeList.map(function(s){return '<option value="'+s.id+'" data-coef="'+s.coef+'" data-name="'+escape(s.name)+'"'+(savedType===s.id?' selected':'')+'>'+escape(s.name)+' (×'+s.coef+')</option>';}).join('')
+          +'</select>'
+          +'<div style="font-size:11px;color:var(--muted);margin-top:4px">Коэффициент автоматически умножит «Итого по разделам» ниже — задаётся один раз на всю заявку</div>'
+        +'</div>';
+      }
+    }
     if(role==='obsledovanie'){
       const savedCat=req.subs[role].complexityCategory||'';
       html+='<div class="field" style="margin-bottom:12px"><label>Категория сложности работ (СБЦП 81-2001-25, п. 2.1.5)</label>'
@@ -1759,9 +1777,7 @@ function openDetail(id){
   openModal('modal-detail');
   if(byId('kp-calc-result'))updateKpCalc();
   if(byId('sub-sec-total-'+role))updateSectionsCalc(role);
-  if(byId('kp-stages-total'))updateStagesCalc();
-  if(byId('kp-objtype-result'))updateObjectTypeCalc();
-}
+  if(byId('kp-stages-total'))updateStagesCalc();}
 function updateStagesCalc(){
   const totalEl=byId('kp-stages-total');
   if(!totalEl)return;
@@ -1804,29 +1820,6 @@ function renderAppliedKpStages(){
   const el=byId('kp-stages-applied');
   if(!el)return;
   el.innerHTML=appliedKpStages.length?('<div style="margin-top:8px;font-size:12px;color:var(--muted)">Добавлено сейчас: '+appliedKpStages.map(function(a){return escape(a.name)+' ('+a.pct+'%) — '+fmtMoney(a.amount);}).join('; ')+'</div>'):'';
-}
-function updateObjectTypeCalc(){
-  const resEl=byId('kp-objtype-result');
-  if(!resEl)return;
-  const sel=byId('kp-objtype');
-  const opt=sel.options[sel.selectedIndex];
-  const coef=opt?tonum(opt.dataset.coef):0;
-  const base=tonum(byId('kp-cost').value);
-  resEl.textContent=(sel.value&&base)?('Себестоимость с коэффициентом: '+fmtMoney(base*coef)+' (было '+fmtMoney(base)+')'):'';
-}
-function applyObjectTypeCoef(id,btn){
-  const req=DB.requests[id]; if(!req)return;
-  const sel=byId('kp-objtype');
-  const opt=sel.options[sel.selectedIndex];
-  if(!sel.value){alert('Выберите тип объекта');return;}
-  const coef=tonum(opt.dataset.coef);
-  const base=tonum(byId('kp-cost').value);
-  byId('kp-cost').value=Math.round(base*coef);
-  updateKpCalc();
-  appliedObjectType={id:sel.value,name:opt.textContent.replace(/\s*\(×[\d.]+\)$/,''),coef};
-  sel.disabled=true;
-  if(btn)btn.disabled=true;
-  updateObjectTypeCalc();
 }
 function updateSectionsCalc(role){
   const totalEl=byId('sub-sec-total-'+role);
