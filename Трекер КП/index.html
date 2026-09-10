@@ -86,6 +86,7 @@ a{color:inherit}
 .badge-cl-waiting{background:#f1f5f9;color:#64748b}
 .badge-cl-negotiating{background:#fef3c7;color:#92400e}
 .badge-cl-discount{background:#fef3c7;color:#92400e}
+.badge-cl-contract_review{background:#dbeafe;color:#1d4ed8}
 .badge-cl-signed{background:#dcfce7;color:#15803d}
 .badge-cl-declined{background:#fee2e2;color:#b91c1c}
 .sub-row-muted{opacity:.55}
@@ -187,7 +188,7 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     <div class="role" id="user-box-role"></div>
     <button class="logout-btn" onclick="logout()">Выйти</button>
   </div>
-  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-09.2</div>
+  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-10.1</div>
 </div>
 
 <div id="main" style="display:none">
@@ -211,6 +212,12 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     <div class="page-sub" id="req-sub"></div>
     <div class="filters-row" id="req-filters"></div>
     <select id="req-manager-filter" onchange="setManagerFilter(this.value)" style="margin-bottom:14px;max-width:240px"></select>
+    <div id="req-stats-wrap" style="display:none;margin-bottom:18px">
+      <div class="page-title" style="font-size:14px">Сводка по клиентским менеджерам</div>
+      <div class="table-wrap"><table><thead><tr><th>Менеджер</th><th>Заявок</th><th>Сумма (принято)</th><th>На согласовании</th><th>Подписано</th></tr></thead><tbody id="req-stats-managers"></tbody></table></div>
+      <div class="page-title" style="font-size:14px;margin-top:16px">Сводка по заказчикам</div>
+      <div class="table-wrap"><table><thead><tr><th>Заказчик</th><th>Заявок</th><th>Сумма (принято)</th><th>На согласовании</th><th>Подписано</th></tr></thead><tbody id="req-stats-customers"></tbody></table></div>
+    </div>
     <div class="req-list" id="req-list"></div>
   </div>
 
@@ -412,6 +419,7 @@ const CUSTOMER_STATUS_NAME={
   waiting:'Ожидаем ответ',
   negotiating:'На согласовании',
   discount:'Заказчик просит скидку',
+  contract_review:'Договор на согласовании с заказчиком',
   signed:'Договор подписан',
   declined:'Отказ заказчика'
 };
@@ -682,6 +690,7 @@ function renderDashboard(){
       ['Новые заявки',sum(all.filter(r=>r.stage==='new')),'accent'],
       ['В работе у подразделений',sum(all.filter(r=>r.stage==='subdivisions'||r.stage==='decision')),''],
       ['Принято в работу',sum(accepted),'success'],
+      ['из них договор на согласовании',sum(accepted.filter(r=>r.customerStatus==='contract_review')),'warn'],
       ['из них договор подписан',sum(accepted.filter(r=>r.customerStatus==='signed')),'success'],
       ['Отказано',sum(all.filter(r=>r.stage==='rejected')),'danger']
     ];
@@ -730,9 +739,44 @@ function renderRequests(){
   if(managerFilter!=='all')list=list.filter(r=>r.clientManager===managerFilter);
 
   byId('req-list').innerHTML=list.length?list.map(renderReqCard).join(''):'<div class="empty-state">Заявок нет</div>';
+
+  const statsWrap=byId('req-stats-wrap');
+  if(statsWrap){
+    if(role==='admin'||role==='commercial'||role==='production'){
+      statsWrap.style.display='';
+      const all=allRequests();
+      byId('req-stats-managers').innerHTML=renderGroupStatsRows(all,r=>r.clientManager);
+      byId('req-stats-customers').innerHTML=renderGroupStatsRows(all,r=>r.customer);
+    }else{
+      statsWrap.style.display='none';
+    }
+  }
 }
 function setReqFilter(f){reqFilter=f;renderRequests();}
 function setManagerFilter(v){managerFilter=v;renderRequests();}
+function renderGroupStatsRows(list,keyFn){
+  const map={};
+  list.forEach(r=>{
+    const key=keyFn(r)||'—';
+    if(!map[key])map[key]={count:0,acceptedSum:0,reviewCount:0,reviewSum:0,signedCount:0,signedSum:0};
+    const g=map[key];
+    g.count++;
+    if(r.stage==='accepted'){
+      const amt=tonum(r.finalAmount||r.amount);
+      g.acceptedSum+=amt;
+      if(r.customerStatus==='contract_review'){g.reviewCount++;g.reviewSum+=amt;}
+      if(r.customerStatus==='signed'){g.signedCount++;g.signedSum+=amt;}
+    }
+  });
+  const keys=Object.keys(map).sort((a,b)=>map[b].acceptedSum-map[a].acceptedSum);
+  if(!keys.length)return '<tr><td colspan="5" style="color:var(--muted)">Нет данных</td></tr>';
+  return keys.map(k=>{
+    const g=map[k];
+    return '<tr><td>'+escape(k)+'</td><td>'+g.count+'</td><td>'+fmtMoney(g.acceptedSum)+'</td>'
+      +'<td>'+(g.reviewCount?g.reviewCount+' · '+fmtMoney(g.reviewSum):'—')+'</td>'
+      +'<td>'+(g.signedCount?g.signedCount+' · '+fmtMoney(g.signedSum):'—')+'</td></tr>';
+  }).join('');
+}
 
 function renderReqCard(r){
   const stageBadge='<span class="badge badge-'+r.stage+'">'+STAGE_NAME[r.stage]+'</span>';
@@ -1233,8 +1277,14 @@ function actionSubSubmit(id,sub){
         const s=(DB.sections||[]).find(x=>x.id===cb.value); if(!s)return;
         const markupEl=document.querySelector('.sec-markup-'+sub+'[data-sec="'+cb.value+'"]');
         const markupPct=markupEl?markupEl.value.trim():'';
-        const t=sectionTotal(s,req.buildingArea,markupPct);
-        sections.push({sectionId:s.id,name:s.name,rate:s[tier],markupPct,base:t.base,withMarkup:t.withMarkup});
+        const executor=(document.querySelector('.sec-exec-'+sub+'[data-sec="'+cb.value+'"]')||{}).value||'';
+        const customEl=document.querySelector('.sec-custom-'+sub+'[data-sec="'+cb.value+'"]');
+        const isCustom=customEl&&customEl.checked;
+        const customPrice=isCustom?(document.querySelector('.sec-customprice-'+sub+'[data-sec="'+cb.value+'"]')||{}).value||'':'';
+        const days=(document.querySelector('.sec-days-'+sub+'[data-sec="'+cb.value+'"]')||{}).value||'';
+        const dayRate=(document.querySelector('.sec-dayrate-'+sub+'[data-sec="'+cb.value+'"]')||{}).value||'';
+        const t=sectionTotal(s,req.buildingArea,markupPct,{customPrice,days,dayRate});
+        sections.push({sectionId:s.id,name:s.name,rate:s[tier],markupPct,executor:executor.trim(),customPrice,days,dayRate,base:t.base,withMarkup:t.withMarkup});
       });
     }
     req.subs[sub]={status:'done',resources,sections,updatedAt:nowIso(),updatedBy:currentUser.name};
@@ -1291,7 +1341,14 @@ function openDetail(id){
         if(st.sections&&st.sections.length){
           const subTotal=st.sections.reduce((sum,sec)=>sum+sec.withMarkup,0);
           sectionsGrandTotal+=subTotal;
-          html+='<div class="sub-detail" style="margin-top:4px">Разделы: '+st.sections.map(sec=>escape(sec.name)+' (наценка '+escape(sec.markupPct||0)+'%) — '+fmtMoney(sec.withMarkup)).join('; ')+' · <b>Итого: '+fmtMoney(subTotal)+'</b></div>';
+          html+='<div class="sub-detail" style="margin-top:4px">Разделы: '+st.sections.map(sec=>{
+            let extra=[];
+            if(sec.customPrice)extra.push('подрядчик, своя цена');
+            if(sec.days)extra.push(sec.days+' дн.'+(sec.dayRate?' × '+fmtMoney(sec.dayRate)+'/дн':''));
+            if(sec.executor)extra.push('исп.: '+escape(sec.executor));
+            extra.push((sec.markupPct||0)+'%');
+            return escape(sec.name)+' ('+extra.join(', ')+') — '+fmtMoney(sec.withMarkup);
+          }).join('; ')+' · <b>Итого: '+fmtMoney(subTotal)+'</b></div>';
         }
       }else if(st.status==='insufficient'){
         html+='<div class="sub-detail" style="color:#b91c1c">Не хватает данных: '+escape(st.note||'')+'</div>';
@@ -1300,7 +1357,7 @@ function openDetail(id){
     });
     if(sectionsGrandTotal>0){
       html+='<div class="hint-box" style="margin-top:8px"><b>Итого по разделам (все исполнители):</b> '+fmtMoney(sectionsGrandTotal)+
-        ((role==='production'||role==='commercial'||role==='admin')?' <button type="button" class="btn btn-sm" style="margin-left:8px" onclick="applySectionsTotal(\''+id+'\','+sectionsGrandTotal+')">Подставить в сумму</button>':'')+'</div>';
+        ((role==='production'||role==='commercial'||role==='admin')?' <button type="button" class="btn btn-sm" style="margin-left:8px" onclick="applySectionsTotal(\''+id+'\','+sectionsGrandTotal+')">Подставить в себестоимость</button>':'')+'</div>';
     }
   }
 
@@ -1329,7 +1386,7 @@ function openDetail(id){
       +'<div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">Необязательно — помогает посчитать итоговую сумму, можно просто вписать её ниже вручную</div>'
       +'<div class="form-grid">'
         +'<div class="field"><label>Себестоимость, ₽</label><input id="kp-cost" type="number" min="0" step="1" value="'+escape(tonum(req.kpCost)||'')+'" oninput="updateKpCalc()"></div>'
-        +'<div class="field"><label>Наценка, %</label><input id="kp-margin" type="number" min="0" step="1" value="'+escape(tonum(req.kpMarginPct)||'')+'" oninput="updateKpCalc()"></div>'
+        +'<div class="field"><label>Наценка/скидка, %</label><input id="kp-margin" type="number" min="-100" step="1" value="'+escape(tonum(req.kpMarginPct)||'')+'" oninput="updateKpCalc()" title="Отрицательное значение — скидка"></div>'
         +'<div class="field"><label>НДС, %</label><input id="kp-vat" type="number" min="0" step="1" value="'+escape(tonum(req.kpVatPct)||'')+'" oninput="updateKpCalc()"></div>'
       +'</div>'
       +'<div id="kp-calc-result" style="font-size:12.5px;margin-top:10px;color:var(--ink)"></div>'
@@ -1468,20 +1525,29 @@ function openDetail(id){
         const list=(DB.sections||[]).filter(s=>!s._del);
         const mySectionsMap={};
         (req.subs[role].sections||[]).forEach(function(sec){mySectionsMap[sec.sectionId]=sec;});
-        html+='<div style="font-size:11px;color:var(--muted);margin-top:6px">Наценка задаётся отдельно по каждому разделу — удобно согласовывать скидку на конкретный раздел, не трогая остальные</div>';
+        html+='<div style="font-size:11px;color:var(--muted);margin-top:6px">Наценка/скидка, дни и исполнитель задаются отдельно по каждому разделу — удобно согласовывать скидку или менять подрядчика на конкретном разделе, не трогая остальные</div>';
         html+='<div style="margin-top:8px">'+list.map(s=>{
           const isMine=mySections.includes(s.id);
           const isClaimedByOther=claimed.includes(s.id);
           const disabled=isClaimedByOther&&!isMine;
           const rate=s[tier];
-          const savedMarkup=mySectionsMap[s.id]?mySectionsMap[s.id].markupPct:'';
-          return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12.5px;'+(disabled?'opacity:.5':'')+'">'
-            +'<label style="display:flex;align-items:center;gap:7px;flex:1;min-width:0">'
-              +'<input type="checkbox" class="sec-pick-'+role+'" value="'+s.id+'" '+(isMine?'checked':'')+' '+(disabled||rate==null?'disabled':'')+' onchange="updateSectionsCalc(\''+role+'\')">'
+          const saved=mySectionsMap[s.id]||{};
+          const isCustom=!!saved.customPrice;
+          const fieldsDisabled=disabled||rate==null;
+          return '<div style="padding:7px 0;border-bottom:1px solid var(--border);font-size:12.5px;'+(disabled?'opacity:.5':'')+'">'
+            +'<label style="display:flex;align-items:center;gap:7px;min-width:0">'
+              +'<input type="checkbox" class="sec-pick-'+role+'" value="'+s.id+'" '+(isMine?'checked':'')+' '+(fieldsDisabled?'disabled':'')+' onchange="updateSectionsCalc(\''+role+'\')">'
               +'<span>'+escape(s.name)+(rate==null?' <span style="color:var(--danger)">(нет ставки)</span>':' — '+rateCell(rate))
               +(isClaimedByOther?' <span style="color:var(--muted)">— уже выбрано другим исполнителем</span>':'')+'</span>'
             +'</label>'
-            +'<input type="number" min="0" step="1" placeholder="0%" class="sec-markup-'+role+'" data-sec="'+s.id+'" style="width:60px;flex:none" value="'+escape(savedMarkup)+'" '+(disabled||rate==null?'disabled':'')+' oninput="updateSectionsCalc(\''+role+'\')" title="Наценка на этот раздел, %">'
+            +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px;padding-left:24px">'
+              +'<input type="text" class="sec-exec-'+role+'" data-sec="'+s.id+'" placeholder="Исполнитель (ФИО/подрядчик)" style="flex:1;min-width:150px" value="'+escape(saved.executor||'')+'" '+(fieldsDisabled?'disabled':'')+'>'
+              +'<label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap"><input type="checkbox" class="sec-custom-'+role+'" data-sec="'+s.id+'" '+(isCustom?'checked':'')+' '+(fieldsDisabled?'disabled':'')+' onchange="toggleSectionCustom(\''+role+'\',\''+s.id+'\')"> Подрядчик / своя цена</label>'
+              +'<input type="number" min="0" step="1" class="sec-customprice-'+role+'" data-sec="'+s.id+'" placeholder="Своя цена, ₽" style="width:110px;'+(isCustom?'':'display:none')+'" value="'+escape(saved.customPrice||'')+'" '+(fieldsDisabled?'disabled':'')+' oninput="updateSectionsCalc(\''+role+'\')">'
+              +'<input type="number" min="0" step="1" class="sec-days-'+role+'" data-sec="'+s.id+'" placeholder="Дней" title="Кол-во дней на раздел" style="width:56px;'+(isCustom?'display:none':'')+'" value="'+escape(saved.days||'')+'" '+(fieldsDisabled?'disabled':'')+' oninput="updateSectionsCalc(\''+role+'\')">'
+              +'<input type="number" min="0" step="1" class="sec-dayrate-'+role+'" data-sec="'+s.id+'" placeholder="₽/день" title="Ставка за день" style="width:70px;'+(isCustom?'display:none':'')+'" value="'+escape(saved.dayRate||'')+'" '+(fieldsDisabled?'disabled':'')+' oninput="updateSectionsCalc(\''+role+'\')">'
+              +'<input type="number" min="-100" step="1" placeholder="±%" class="sec-markup-'+role+'" data-sec="'+s.id+'" style="width:56px" title="Наценка или скидка на этот раздел, % (отрицательное — скидка)" value="'+escape(saved.markupPct||'')+'" '+(fieldsDisabled?'disabled':'')+' oninput="updateSectionsCalc(\''+role+'\')">'
+            +'</div>'
           +'</div>';
         }).join('')+'</div>';
         html+='<div id="sub-sec-total-'+role+'" style="font-size:13px;margin-top:6px;font-weight:600"></div>';
@@ -1517,7 +1583,16 @@ function updateSectionsCalc(role){
     const s=(DB.sections||[]).find(x=>x.id===cb.value); if(!s)return;
     const markupEl=document.querySelector('.sec-markup-'+role+'[data-sec="'+cb.value+'"]');
     const markup=tonum(markupEl?markupEl.value:0);
-    const t=sectionTotal(s,req.buildingArea,markup);
+    const customEl=document.querySelector('.sec-custom-'+role+'[data-sec="'+cb.value+'"]');
+    const isCustom=customEl&&customEl.checked;
+    const priceEl=document.querySelector('.sec-customprice-'+role+'[data-sec="'+cb.value+'"]');
+    const daysEl=document.querySelector('.sec-days-'+role+'[data-sec="'+cb.value+'"]');
+    const dayRateEl=document.querySelector('.sec-dayrate-'+role+'[data-sec="'+cb.value+'"]');
+    const t=sectionTotal(s,req.buildingArea,markup,{
+      customPrice:isCustom?(priceEl?priceEl.value:''):'',
+      days:daysEl?daysEl.value:0,
+      dayRate:dayRateEl?dayRateEl.value:0
+    });
     base+=t.base; withMarkup+=t.withMarkup;
   });
   totalEl.textContent='Разделов: '+checked.length+' · Сумма: '+fmtMoney(withMarkup)+' (без наценки: '+fmtMoney(base)+')';
@@ -1541,12 +1616,23 @@ function applyKpCalc(){
   byId('kp-final-amount').value=Math.round(total);
 }
 function applySectionsTotal(id,total){
-  const amountEl=byId('kp-final-amount');
-  if(amountEl){
-    amountEl.value=Math.round(total);
+  const costEl=byId('kp-cost');
+  if(costEl){
+    costEl.value=Math.round(total);
+    updateKpCalc();
   }else{
-    alert('Итого по разделам: '+fmtMoney(total)+'. Эта сумма будет доступна для подстановки на этапе формирования КП в коммерческом отделе.');
+    alert('Итого по разделам (себестоимость): '+fmtMoney(total)+'. Эта сумма будет доступна для подстановки на этапе формирования КП в коммерческом отделе.');
   }
+}
+function toggleSectionCustom(role,secId){
+  const isCustom=document.querySelector('.sec-custom-'+role+'[data-sec="'+secId+'"]').checked;
+  const priceEl=document.querySelector('.sec-customprice-'+role+'[data-sec="'+secId+'"]');
+  const daysEl=document.querySelector('.sec-days-'+role+'[data-sec="'+secId+'"]');
+  const rateEl=document.querySelector('.sec-dayrate-'+role+'[data-sec="'+secId+'"]');
+  priceEl.style.display=isCustom?'':'none';
+  daysEl.style.display=isCustom?'none':'';
+  rateEl.style.display=isCustom?'none':'';
+  updateSectionsCalc(role);
 }
 function toggleSubForm(role){
   const insuf=byId('sub-insufficient-'+role).checked;
@@ -1673,10 +1759,16 @@ function claimedSectionIds(req,excludeRole){
   });
   return ids;
 }
-function sectionTotal(sec,area,markupPct){
-  const tier=areaTier(area);
-  const rate=tier?tonum(sec[tier]):0;
-  const base=rate*tonum(area);
+function sectionTotal(sec,area,markupPct,opts){
+  opts=opts||{};
+  let base;
+  if(opts.customPrice!==undefined&&opts.customPrice!==null&&opts.customPrice!==''){
+    base=tonum(opts.customPrice);
+  }else{
+    const tier=areaTier(area);
+    const rate=tier?tonum(sec[tier]):0;
+    base=rate*tonum(area)+tonum(opts.days)*tonum(opts.dayRate);
+  }
   const withMarkup=base*(1+tonum(markupPct)/100);
   return {base,withMarkup};
 }
