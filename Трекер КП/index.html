@@ -188,7 +188,7 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     <div class="role" id="user-box-role"></div>
     <button class="logout-btn" onclick="logout()">Выйти</button>
   </div>
-  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-10.2</div>
+  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-10.3</div>
 </div>
 
 <div id="main" style="display:none">
@@ -323,18 +323,57 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     <div class="card-block">
       <div class="form-grid">
         <div class="field span2"><label>Название раздела</label><input id="scf-name" placeholder="напр. П. Раздел 13. ..."></div>
+        <div class="field"><label>Стадия</label><select id="scf-stage"><option value="pd">Проектная документация (ПД)</option><option value="rd">Рабочая документация (РД)</option></select></div>
+        <div class="field"><label>Группа (только для РД, необязательно)</label><input id="scf-group" placeholder="напр. Инженерные системы и сети (ИОС)"></div>
         <div class="field"><label>Ставка, ₽/м² (50–500 м²)</label><input id="scf-rate1" type="number" min="0" step="0.01"></div>
         <div class="field"><label>Ставка, ₽/м² (500–1500 м²)</label><input id="scf-rate2" type="number" min="0" step="0.01"></div>
         <div class="field"><label>Ставка, ₽/м² (свыше 1500 м²)</label><input id="scf-rate3" type="number" min="0" step="0.01" placeholder="не заполнено"></div>
       </div>
+      <div class="page-sub" style="margin-top:6px">Ставку можно не заполнять вообще — тогда исполнитель будет указывать цену раздела вручную («своя цена»).</div>
       <div class="form-actions" style="justify-content:flex-start">
         <button class="btn btn-primary" onclick="createSection()">Добавить раздел</button>
       </div>
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Раздел</th><th>50–500 м²</th><th>500–1500 м²</th><th>&gt;1500 м²</th><th></th></tr></thead>
+        <thead><tr><th>Раздел</th><th>Стадия</th><th>50–500 м²</th><th>500–1500 м²</th><th>&gt;1500 м²</th><th></th></tr></thead>
         <tbody id="sections-table-body"></tbody>
+      </table>
+    </div>
+
+    <div class="page-title" style="font-size:17px;margin-top:28px">Коэффициенты стадий (% от Стадии П)</div>
+    <div class="page-sub">Доп. стадии проектирования (РД, авторский надзор, экспертиза и т.п.) — их стоимость считается как % от себестоимости, посчитанной по разделам Стадии П, а не по своим ставкам за м².</div>
+    <div class="card-block">
+      <div class="form-grid">
+        <div class="field span2"><label>Название стадии</label><input id="stc-name" placeholder="напр. Экспертиза проектной документации"></div>
+        <div class="field"><label>% от Стадии П</label><input id="stc-pct" type="number" min="0" step="0.01"></div>
+      </div>
+      <div class="form-actions" style="justify-content:flex-start">
+        <button class="btn btn-primary" onclick="createStageCoef()">Добавить стадию</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Стадия</th><th>% от Стадии П</th><th></th></tr></thead>
+        <tbody id="stagecoef-table-body"></tbody>
+      </table>
+    </div>
+
+    <div class="page-title" style="font-size:17px;margin-top:28px">Тип объекта (коэффициент сложности)</div>
+    <div class="page-sub">Множитель на себестоимость в зависимости от типа объекта (для жилых домов — ещё и от этажности).</div>
+    <div class="card-block">
+      <div class="form-grid">
+        <div class="field span2"><label>Название типа объекта</label><input id="otf-name" placeholder="напр. Жилой дом пятиэтажный"></div>
+        <div class="field"><label>Коэффициент</label><input id="otf-coef" type="number" min="0" step="0.01" placeholder="напр. 1.10"></div>
+      </div>
+      <div class="form-actions" style="justify-content:flex-start">
+        <button class="btn btn-primary" onclick="createObjectType()">Добавить тип объекта</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Тип объекта</th><th>Коэффициент</th><th></th></tr></thead>
+        <tbody id="objecttype-table-body"></tbody>
       </table>
     </div>
   </div>
@@ -377,19 +416,77 @@ function divisionKeys(){return (DB.divisions||[]).filter(d=>!d._del).map(d=>d.ke
 function assessorKeys(){return ['production'].concat(divisionKeys());}
 
 const SECTIONS_KEY='kptracker_sections';
+const STAGE_NAME_BY_KEY={pd:'Проектная документация (ПД)',rd:'Рабочая документация (РД)'};
 const SEED_SECTIONS=[
-  {id:'sec-1',name:'П. Раздел 1. Пояснительная записка',rate1:582.52,rate2:459.46,rate3:null},
-  {id:'sec-2',name:'П. Раздел 2. Схема планировочной организации земельного участка',rate1:906.15,rate2:710.07,rate3:null},
-  {id:'sec-3',name:'П. Раздел 3. Объемно-планировочные и архитектурные решения',rate1:2330.91,rate2:1909.19,rate3:null},
-  {id:'sec-4',name:'П. Раздел 4. Конструктивные решения',rate1:3407.77,rate2:2841.96,rate3:null},
-  {id:'sec-5',name:'П. Раздел 5. Сведения об инженерном оборудовании, о сетях и системах инженерно-технического обеспечения',rate1:6354.39,rate2:5789.19,rate3:null},
-  {id:'sec-6',name:'П. Раздел 6. Технологические решения (при наличии требования)',rate1:1925.57,rate2:1633.17,rate3:null},
-  {id:'sec-7',name:'П. Раздел 7. Проект организации строительства',rate1:647.24,rate2:542.99,rate3:null},
-  {id:'sec-8',name:'П. Раздел 8. Мероприятия по охране окружающей среды',rate1:582.52,rate2:459.46,rate3:null},
-  {id:'sec-9',name:'П. Раздел 9. Мероприятия по обеспечению пожарной безопасности',rate1:647.24,rate2:542.99,rate3:null},
-  {id:'sec-10',name:'П. Раздел 10. Требования к обеспечению безопасной эксплуатации объекта',rate1:388.36,rate2:334.16,rate3:null},
-  {id:'sec-11',name:'П. Раздел 11. Мероприятия по обеспечению доступа инвалидов',rate1:388.36,rate2:334.16,rate3:null},
-  {id:'sec-12',name:'П. Раздел 12. Смета на строительство / иная документация в предусмотренных случаях',rate1:517.79,rate2:417.71,rate3:null}
+  {id:'sec-1',name:'П. Раздел 1. Пояснительная записка',rate1:582.52,rate2:459.46,rate3:null,stage:'pd'},
+  {id:'sec-2',name:'П. Раздел 2. Схема планировочной организации земельного участка',rate1:906.15,rate2:710.07,rate3:null,stage:'pd'},
+  {id:'sec-3',name:'П. Раздел 3. Объемно-планировочные и архитектурные решения',rate1:2330.91,rate2:1909.19,rate3:null,stage:'pd'},
+  {id:'sec-4',name:'П. Раздел 4. Конструктивные решения',rate1:3407.77,rate2:2841.96,rate3:null,stage:'pd'},
+  {id:'sec-5',name:'П. Раздел 5. Сведения об инженерном оборудовании, о сетях и системах инженерно-технического обеспечения',rate1:6354.39,rate2:5789.19,rate3:null,stage:'pd'},
+  {id:'sec-6',name:'П. Раздел 6. Технологические решения (при наличии требования)',rate1:1925.57,rate2:1633.17,rate3:null,stage:'pd'},
+  {id:'sec-7',name:'П. Раздел 7. Проект организации строительства',rate1:647.24,rate2:542.99,rate3:null,stage:'pd'},
+  {id:'sec-8',name:'П. Раздел 8. Мероприятия по охране окружающей среды',rate1:582.52,rate2:459.46,rate3:null,stage:'pd'},
+  {id:'sec-9',name:'П. Раздел 9. Мероприятия по обеспечению пожарной безопасности',rate1:647.24,rate2:542.99,rate3:null,stage:'pd'},
+  {id:'sec-10',name:'П. Раздел 10. Требования к обеспечению безопасной эксплуатации объекта',rate1:388.36,rate2:334.16,rate3:null,stage:'pd'},
+  {id:'sec-11',name:'П. Раздел 11. Мероприятия по обеспечению доступа инвалидов',rate1:388.36,rate2:334.16,rate3:null,stage:'pd'},
+  {id:'sec-12',name:'П. Раздел 12. Смета на строительство / иная документация в предусмотренных случаях',rate1:517.79,rate2:417.71,rate3:null,stage:'pd'},
+  {id:'sec-13',name:'Проект организации работ по сносу или демонтажу объектов капитального строительства',rate1:null,rate2:null,rate3:null,stage:'pd'},
+  {id:'sec-14',name:'Мероприятия по энергоэффективности и оснащённости приборами учёта энергоресурсов',rate1:null,rate2:null,rate3:null,stage:'pd'},
+  {id:'rd-srd',name:'РД. СРД — Состав рабочей документации',rate1:null,rate2:null,rate3:null,stage:'rd',group:'Общие данные'},
+  {id:'rd-gp',name:'РД. ГП — Генеральный план',rate1:null,rate2:null,rate3:null,stage:'rd',group:'Общие данные'},
+  {id:'rd-ar',name:'РД. АР — Архитектурные решения',rate1:null,rate2:null,rate3:null,stage:'rd',group:'Архитектура и конструкции'},
+  {id:'rd-as',name:'РД. АС — Архитектурно-строительные решения, ограждения',rate1:null,rate2:null,rate3:null,stage:'rd',group:'Архитектура и конструкции'},
+  {id:'rd-kr',name:'РД. КР — Конструктивные решения (КЖ, КМ, КД)',rate1:null,rate2:null,rate3:null,stage:'rd',group:'Архитектура и конструкции'},
+  {id:'rd-eom',name:'РД. ЭОМ — Силовое электрооборудование и электроосвещение',rate1:null,rate2:null,rate3:null,stage:'rd',group:'Инженерные системы и сети (ИОС)'},
+  {id:'rd-es',name:'РД. ЭС — Электроснабжение (наружные сети)',rate1:null,rate2:null,rate3:null,stage:'rd',group:'Инженерные системы и сети (ИОС)'},
+  {id:'rd-en',name:'РД. ЭН — Наружное освещение',rate1:null,rate2:null,rate3:null,stage:'rd',group:'Инженерные системы и сети (ИОС)'},
+  {id:'rd-vk',name:'РД. ВК — Водопровод и канализация (внутренние)',rate1:null,rate2:null,rate3:null,stage:'rd',group:'Инженерные системы и сети (ИОС)'},
+  {id:'rd-nvk',name:'РД. НВК — Наружные сети водоснабжения и канализации',rate1:null,rate2:null,rate3:null,stage:'rd',group:'Инженерные системы и сети (ИОС)'},
+  {id:'rd-ov',name:'РД. ОВ — Отопление и вентиляция',rate1:null,rate2:null,rate3:null,stage:'rd',group:'Инженерные системы и сети (ИОС)'},
+  {id:'rd-ts',name:'РД. ТС — Тепловые сети',rate1:null,rate2:null,rate3:null,stage:'rd',group:'Инженерные системы и сети (ИОС)'},
+  {id:'rd-tm',name:'РД. ТМ — Тепломеханические решения',rate1:null,rate2:null,rate3:null,stage:'rd',group:'Инженерные системы и сети (ИОС)'},
+  {id:'rd-ss',name:'РД. СС — Сети связи',rate1:null,rate2:null,rate3:null,stage:'rd',group:'Инженерные системы и сети (ИОС)'},
+  {id:'rd-ps',name:'РД. ПС — Пожарная сигнализация и пожаротушение',rate1:null,rate2:null,rate3:null,stage:'rd',group:'Инженерные системы и сети (ИОС)'},
+  {id:'rd-gsv',name:'РД. ГСВ — Газоснабжение внутреннее',rate1:null,rate2:null,rate3:null,stage:'rd',group:'Инженерные системы и сети (ИОС)'},
+  {id:'rd-gsn',name:'РД. ГСН — Газоснабжение наружное',rate1:null,rate2:null,rate3:null,stage:'rd',group:'Инженерные системы и сети (ИОС)'},
+  {id:'rd-tx',name:'РД. ТХ — Технологические решения',rate1:null,rate2:null,rate3:null,stage:'rd',group:'Инженерные системы и сети (ИОС)'},
+  {id:'rd-pos',name:'РД. ПОС — Проект организации строительства',rate1:null,rate2:null,rate3:null,stage:'rd',group:'Организация, экология, безопасность'},
+  {id:'rd-oos',name:'РД. ООС — Охрана окружающей среды',rate1:null,rate2:null,rate3:null,stage:'rd',group:'Организация, экология, безопасность'},
+  {id:'rd-pb',name:'РД. ПБ — Пожарная безопасность',rate1:null,rate2:null,rate3:null,stage:'rd',group:'Организация, экология, безопасность'},
+  {id:'rd-sm',name:'РД. СМ — Сметная документация',rate1:null,rate2:null,rate3:null,stage:'rd',group:'Сметная документация'}
+];
+const STAGE_COEF_KEY='kptracker_stage_coefficients';
+const SEED_STAGE_COEFFICIENTS=[
+  {id:'stage-rd',key:'rd',name:'РД (Рабочая документация)',pct:100},
+  {id:'stage-supervision',key:'author_supervision',name:'Авторский надзор',pct:2.65},
+  {id:'stage-expertise',key:'expertise',name:'Экспертиза проектной документации',pct:null}
+];
+// СБЦП 81-2001-25, п.2.1.5, табл. №6 (обмерные работы) и №7 (обследования) — официальные критерии категорий,
+// без числовых расценок (в открытом доступе их нет) — используется только как подсказка для выбора категории.
+const COMPLEXITY_CATEGORIES=[
+  {key:'I',type:'простая',obmer:'Обмерные работы: обмеры для визуального обследования, паспорта зданий, схемы',obsled:'Обследования: дефектные ведомости, визуальное обследование, паспорт здания с Заключением'},
+  {key:'II',type:'средняя',obmer:'Обмерные работы: выявление состава однотипных конструкций, узлы примыканий, армирование ж/б, замер швов, чертежи',obsled:'Обследования: детальный осмотр с замерами дефектов, фотофиксация, поверочные расчёты, Заключение о состоянии'},
+  {key:'III',type:'высокая',obmer:'Обмерные работы: то же, что и II категория, но с разнотипными конструкциями',obsled:'Обследования: детальный осмотр с описанием аварийности, противоаварийные мероприятия, Заключение по дальнейшей эксплуатации'}
+];
+const OBJECT_TYPE_KEY='kptracker_object_types';
+const SEED_OBJECT_TYPES=[
+  {id:'ot-zhd-1',name:'Жилой дом одноэтажный',coef:1.00},
+  {id:'ot-zhd-2',name:'Жилой дом двухэтажный',coef:1.00},
+  {id:'ot-zhd-3',name:'Жилой дом трёхэтажный',coef:1.05},
+  {id:'ot-zhd-4',name:'Жилой дом четырёхэтажный',coef:1.05},
+  {id:'ot-zhd-5',name:'Жилой дом пятиэтажный',coef:1.10},
+  {id:'ot-zhd-6-10',name:'Жилой дом шести-десятиэтажный',coef:1.15},
+  {id:'ot-zhd-11-13',name:'Жилой дом одиннадцати-тринадцатиэтажный',coef:1.20},
+  {id:'ot-zhd-14-16',name:'Жилой дом четырнадцати-шестнадцатиэтажный',coef:1.25},
+  {id:'ot-zhd-17-20',name:'Жилой дом семнадцати-двадцатиэтажный',coef:1.30},
+  {id:'ot-zhd-20plus',name:'Жилые дома свыше 20 этажей',coef:1.40},
+  {id:'ot-office',name:'Административное/офисное здание',coef:1.00},
+  {id:'ot-public',name:'Общественное здание (соцкультбыт)',coef:1.05},
+  {id:'ot-retail',name:'Торговый объект',coef:1.05},
+  {id:'ot-industrial',name:'Промышленное здание/сооружение',coef:1.15},
+  {id:'ot-utility',name:'Инженерные сети / линейный объект',coef:1.10},
+  {id:'ot-energy',name:'Объект энергетики (ТЭС, подстанция, ЛЭП, котельная)',coef:1.30},
+  {id:'ot-unique',name:'Уникальный/технически сложный объект',coef:1.50}
 ];
 function areaTier(area){
   const a=tonum(area);
@@ -397,6 +494,10 @@ function areaTier(area){
   if(a<=500)return 'rate1';
   if(a<=1500)return 'rate2';
   return 'rate3';
+}
+function sectionHasRate(sec,area){
+  const tier=areaTier(area);
+  return !!(tier&&sec&&sec[tier]!=null);
 }
 function areaTierLabel(area){
   const t=areaTier(area);
@@ -446,7 +547,7 @@ const SEED_USERS=[
 ];
 
 /* ========================= STATE ========================= */
-let DB={users:[...SEED_USERS],requests:{},managers:[],divisions:[...SEED_DIVISIONS],sections:[...SEED_SECTIONS]};
+let DB={users:[...SEED_USERS],requests:{},managers:[],divisions:[...SEED_DIVISIONS],sections:[...SEED_SECTIONS],stageCoefficients:[...SEED_STAGE_COEFFICIENTS],objectTypes:[...SEED_OBJECT_TYPES]};
 let currentUser=null;
 let activePage='dashboard';
 let reqFilter='all';
@@ -491,9 +592,11 @@ function fetchRemote(initial){
     fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=like.'+REQ_PREFIX+'*',{headers:sbHeaders()}).then(r=>r.json()).catch(()=>[]),
     fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.'+MANAGERS_KEY,{headers:sbHeaders()}).then(r=>r.json()).catch(()=>[]),
     fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.'+DIVISIONS_KEY,{headers:sbHeaders()}).then(r=>r.json()).catch(()=>[]),
-    fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.'+SECTIONS_KEY,{headers:sbHeaders()}).then(r=>r.json()).catch(()=>[])
+    fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.'+SECTIONS_KEY,{headers:sbHeaders()}).then(r=>r.json()).catch(()=>[]),
+    fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.'+STAGE_COEF_KEY,{headers:sbHeaders()}).then(r=>r.json()).catch(()=>[]),
+    fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.'+OBJECT_TYPE_KEY,{headers:sbHeaders()}).then(r=>r.json()).catch(()=>[])
   ]).then(function(res){
-    const usersRows=res[0]||[], reqRows=res[1]||[], managersRows=res[2]||[], divisionsRows=res[3]||[], sectionsRows=res[4]||[];
+    const usersRows=res[0]||[], reqRows=res[1]||[], managersRows=res[2]||[], divisionsRows=res[3]||[], sectionsRows=res[4]||[], stageCoefRows=res[5]||[], objectTypeRows=res[6]||[];
     if(usersRows.length&&usersRows[0].value){
       try{const u=JSON.parse(usersRows[0].value);if(u&&u.length)DB.users=u;}catch(e){}
     }else if(initial){
@@ -511,6 +614,16 @@ function fetchRemote(initial){
       try{const s=JSON.parse(sectionsRows[0].value);if(s&&s.length)DB.sections=s;}catch(e){}
     }else if(initial){
       pushSections();
+    }
+    if(stageCoefRows.length&&stageCoefRows[0].value){
+      try{const sc=JSON.parse(stageCoefRows[0].value);if(sc&&sc.length)DB.stageCoefficients=sc;}catch(e){}
+    }else if(initial){
+      pushStageCoefficients();
+    }
+    if(objectTypeRows.length&&objectTypeRows[0].value){
+      try{const ot=JSON.parse(objectTypeRows[0].value);if(ot&&ot.length)DB.objectTypes=ot;}catch(e){}
+    }else if(initial){
+      pushObjectTypes();
     }
     if(reqRows.length){
       const merged={};
@@ -551,6 +664,20 @@ function pushSections(){
     method:'POST',
     headers:sbHeaders({'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'}),
     body:JSON.stringify({key:SECTIONS_KEY,value:JSON.stringify(DB.sections)})
+  }).then(r=>setSyncStatus(r.ok,r.ok?'Сохранено':'Ошибка сохранения')).catch(()=>setSyncStatus(false,'Нет соединения'));
+}
+function pushStageCoefficients(){
+  fetch(SUPABASE_URL+'/rest/v1/storage',{
+    method:'POST',
+    headers:sbHeaders({'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'}),
+    body:JSON.stringify({key:STAGE_COEF_KEY,value:JSON.stringify(DB.stageCoefficients)})
+  }).then(r=>setSyncStatus(r.ok,r.ok?'Сохранено':'Ошибка сохранения')).catch(()=>setSyncStatus(false,'Нет соединения'));
+}
+function pushObjectTypes(){
+  fetch(SUPABASE_URL+'/rest/v1/storage',{
+    method:'POST',
+    headers:sbHeaders({'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'}),
+    body:JSON.stringify({key:OBJECT_TYPE_KEY,value:JSON.stringify(DB.objectTypes)})
   }).then(r=>setSyncStatus(r.ok,r.ok?'Сохранено':'Ошибка сохранения')).catch(()=>setSyncStatus(false,'Нет соединения'));
 }
 
@@ -1009,7 +1136,7 @@ function wTable(rows,numCols){
     +'<w:insideH w:val="single" w:sz="4" w:color="999999"/><w:insideV w:val="single" w:sz="4" w:color="999999"/>'
     +'</w:tblBorders></w:tblPr>'+grid+rows.join('')+'</w:tbl>';
 }
-function buildKpBodyXml(req,amount,addressee,outNum,outDate,vatPct){
+function buildKpBodyXml(req,amount,addressee,outNum,outDate,vatPct,kpStages){
   const number=kpNumber(req);
   const dateStr=new Date().toLocaleDateString('ru-RU');
   const outDateStr=outDate?new Date(outDate+'T00:00:00').toLocaleDateString('ru-RU'):dateStr;
@@ -1045,11 +1172,14 @@ function buildKpBodyXml(req,amount,addressee,outNum,outDate,vatPct){
     const st=req.subs[role];
     if(st&&st.sections&&st.sections.length)st.sections.forEach(function(sec){claimedSections.push(sec);});
   });
-  if(claimedSections.length){
+  if(claimedSections.length||(kpStages&&kpStages.length)){
     xml+=wPara('Состав работ:',{bold:true,spaceBefore:200});
     const worksRows=[wRow([wCell('Раздел',{shade:'F5F5F5',bold:true}),wCell('Стоимость',{shade:'F5F5F5',bold:true})])];
     claimedSections.forEach(function(sec){
       worksRows.push(wRow([wCell(sec.name),wCell(fmtMoney(sec.withMarkup))]));
+    });
+    (kpStages||[]).forEach(function(st){
+      worksRows.push(wRow([wCell(st.name),wCell(fmtMoney(st.amount))]));
     });
     xml+=wTable(worksRows,2);
   }
@@ -1074,7 +1204,7 @@ async function generateKp(id){
     const zip=await JSZip.loadAsync(KP_TEMPLATE_DOCX_B64,{base64:true});
     const docPath='word/document.xml';
     let xml=await zip.file(docPath).async('string');
-    const injected=buildKpBodyXml(req,amount,addressee,outNum,outDate,vatPct);
+    const injected=buildKpBodyXml(req,amount,addressee,outNum,outDate,vatPct,appliedKpStages);
     const marker='Генеральный директор';
     const markerIdx=xml.indexOf(marker);
     if(markerIdx===-1)throw new Error('не найден якорь подписи в шаблоне');
@@ -1097,6 +1227,8 @@ async function generateKp(id){
     if(cost)req.kpCost=cost;
     if(marginPct)req.kpMarginPct=marginPct;
     if(vatPct)req.kpVatPct=vatPct;
+    if(appliedKpStages.length)req.kpStages=appliedKpStages;
+    if(appliedObjectType)req.kpObjectType=appliedObjectType;
     req.kpGenerated={amount,by:currentUser.name,at:nowIso()};
     if(!req.customerLog){req.customerLog=[];req.customerStatus='waiting';}
     pushHistory(req,'Сформировано коммерческое предложение №'+(outNum||kpNumber(req))+' (сумма: '+fmtMoney(amount)+')');
@@ -1270,24 +1402,23 @@ function actionSubSubmit(id,sub){
     };
     let sections=[];
     const tier=areaTier(req.buildingArea);
-    if(tier){
-      const claimed=claimedSectionIds(req,sub);
-      document.querySelectorAll('.sec-pick-'+sub+':checked').forEach(function(cb){
-        if(claimed.includes(cb.value))return;
-        const s=(DB.sections||[]).find(x=>x.id===cb.value); if(!s)return;
-        const markupEl=document.querySelector('.sec-markup-'+sub+'[data-sec="'+cb.value+'"]');
-        const markupPct=markupEl?markupEl.value.trim():'';
-        const executor=(document.querySelector('.sec-exec-'+sub+'[data-sec="'+cb.value+'"]')||{}).value||'';
-        const customEl=document.querySelector('.sec-custom-'+sub+'[data-sec="'+cb.value+'"]');
-        const isCustom=customEl&&customEl.checked;
-        const customPrice=isCustom?(document.querySelector('.sec-customprice-'+sub+'[data-sec="'+cb.value+'"]')||{}).value||'':'';
-        const days=(document.querySelector('.sec-days-'+sub+'[data-sec="'+cb.value+'"]')||{}).value||'';
-        const dayRate=(document.querySelector('.sec-dayrate-'+sub+'[data-sec="'+cb.value+'"]')||{}).value||'';
-        const t=sectionTotal(s,req.buildingArea,markupPct,{customPrice,days,dayRate});
-        sections.push({sectionId:s.id,name:s.name,rate:s[tier],markupPct,executor:executor.trim(),customPrice,days,dayRate,base:t.base,withMarkup:t.withMarkup});
-      });
-    }
-    req.subs[sub]={status:'done',resources,sections,updatedAt:nowIso(),updatedBy:currentUser.name};
+    const claimed=claimedSectionIds(req,sub);
+    document.querySelectorAll('.sec-pick-'+sub+':checked').forEach(function(cb){
+      if(claimed.includes(cb.value))return;
+      const s=(DB.sections||[]).find(x=>x.id===cb.value); if(!s)return;
+      const markupEl=document.querySelector('.sec-markup-'+sub+'[data-sec="'+cb.value+'"]');
+      const markupPct=markupEl?markupEl.value.trim():'';
+      const executor=(document.querySelector('.sec-exec-'+sub+'[data-sec="'+cb.value+'"]')||{}).value||'';
+      const customEl=document.querySelector('.sec-custom-'+sub+'[data-sec="'+cb.value+'"]');
+      const isCustom=!sectionHasRate(s,req.buildingArea)||(customEl&&customEl.checked);
+      const customPrice=isCustom?(document.querySelector('.sec-customprice-'+sub+'[data-sec="'+cb.value+'"]')||{}).value||'':'';
+      const days=(document.querySelector('.sec-days-'+sub+'[data-sec="'+cb.value+'"]')||{}).value||'';
+      const dayRate=(document.querySelector('.sec-dayrate-'+sub+'[data-sec="'+cb.value+'"]')||{}).value||'';
+      const t=sectionTotal(s,req.buildingArea,markupPct,{customPrice,days,dayRate});
+      sections.push({sectionId:s.id,name:s.name,rate:tier?s[tier]:null,markupPct,executor:executor.trim(),customPrice,days,dayRate,base:t.base,withMarkup:t.withMarkup});
+    });
+    const complexityCategory=sub==='obsledovanie'?(byId('sub-complexity-'+sub).value||''):(req.subs[sub]&&req.subs[sub].complexityCategory)||'';
+    req.subs[sub]={status:'done',resources,sections,complexityCategory,updatedAt:nowIso(),updatedBy:currentUser.name};
     pushHistory(req,'«'+subLabel(sub)+'»: форма «Объём необходимых ресурсов» заполнена'+(sections.length?' · разделов выбрано: '+sections.length:''));
   }
   checkAutoDecision(req);
@@ -1299,9 +1430,13 @@ function openModal(id){byId(id).classList.add('open');}
 function closeModal(id){byId(id).classList.remove('open');}
 
 let currentDetailId=null;
+let appliedKpStages=[];
+let appliedObjectType=null;
 function openDetail(id){
   const req=DB.requests[id]; if(!req)return;
   currentDetailId=id;
+  appliedKpStages=[];
+  appliedObjectType=null;
   const role=currentUser.role;
   let html='';
   html+='<h2>'+escape(req.customer)+'</h2>';
@@ -1337,7 +1472,7 @@ function openDetail(id){
       const st=req.subs[s];
       html+='<div class="sub-row'+(st.status==='not_involved'?' sub-row-muted':'')+'"><div><div class="sn">'+subLabel(s)+'</div>';
       if(st.status==='done'&&st.resources){
-        html+='<div class="sub-detail">Специалисты: '+escape(st.resources.specialists||'—')+' · Трудозатраты: '+escape(st.resources.laborDays||'—')+' чел-дн · Срок: '+escape(st.resources.term||'—')+'<br>Материалы/подрядчики: '+escape(st.resources.materials||'—')+(st.resources.comment?'<br>Комментарий: '+escape(st.resources.comment):'')+'</div>';
+        html+='<div class="sub-detail">Специалисты: '+escape(st.resources.specialists||'—')+' · Трудозатраты: '+escape(st.resources.laborDays||'—')+' чел-дн · Срок: '+escape(st.resources.term||'—')+'<br>Материалы/подрядчики: '+escape(st.resources.materials||'—')+(st.resources.comment?'<br>Комментарий: '+escape(st.resources.comment):'')+(st.complexityCategory?'<br>Категория сложности (СБЦП 81-2001-25): '+escape(st.complexityCategory):'')+'</div>';
         if(st.sections&&st.sections.length){
           const subTotal=st.sections.reduce((sum,sec)=>sum+sec.withMarkup,0);
           sectionsGrandTotal+=subTotal;
@@ -1393,6 +1528,39 @@ function openDetail(id){
       +'<div class="form-actions" style="justify-content:flex-start;margin-top:10px">'
         +'<button type="button" class="btn btn-sm" onclick="applyKpCalc()">Подставить в итоговую сумму</button></div>'
     +'</div>';
+    const stageCoefList=(DB.stageCoefficients||[]).filter(s=>!s._del);
+    if(stageCoefList.length){
+      html+='<div class="card-block" style="padding:14px;margin-top:14px;background:var(--surface-2)">'
+        +'<div style="font-weight:700;font-size:13px;margin-bottom:2px">Доп. стадии проектирования (% от себестоимости Стадии П)</div>'
+        +'<div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">Отметьте нужные стадии — их стоимость добавится к себестоимости выше и попадёт отдельными строками в «Состав работ» документа</div>'
+        +(req.kpStages&&req.kpStages.length?'<div class="hint-box" style="margin-bottom:10px">В последней сформированной КП были включены: '+req.kpStages.map(function(a){return escape(a.name)+' — '+fmtMoney(a.amount);}).join(', ')+'</div>':'')
+        +stageCoefList.map(function(s){
+          return '<label style="display:flex;align-items:center;gap:7px;padding:4px 0;font-size:12.5px">'
+            +'<input type="checkbox" class="kp-stage-pick" data-stage="'+s.key+'" data-name="'+escape(s.name)+'" onchange="updateStagesCalc()">'
+            +escape(s.name)+' — <input type="number" class="kp-stage-pct" data-stage="'+s.key+'" min="0" step="0.01" value="'+(s.pct==null?'':s.pct)+'" style="width:60px" oninput="updateStagesCalc()">% = <span class="kp-stage-amount" data-stage="'+s.key+'">—</span>'
+          +'</label>';
+        }).join('')
+        +'<div id="kp-stages-total" style="font-size:12.5px;margin-top:8px;font-weight:600"></div>'
+        +'<div class="form-actions" style="justify-content:flex-start;margin-top:10px">'
+          +'<button type="button" class="btn btn-sm" onclick="applyKpStages(\''+id+'\')">Добавить в себестоимость</button></div>'
+        +'<div id="kp-stages-applied"></div>'
+      +'</div>';
+    }
+    const objectTypeList=(DB.objectTypes||[]).filter(s=>!s._del);
+    if(objectTypeList.length){
+      html+='<div class="card-block" style="padding:14px;margin-top:14px;background:var(--surface-2)">'
+        +'<div style="font-weight:700;font-size:13px;margin-bottom:2px">Тип объекта (коэффициент сложности)</div>'
+        +'<div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">Коэффициент умножается на себестоимость выше — применяйте один раз, после того как собрали базовую сумму</div>'
+        +(req.kpObjectType?'<div class="hint-box" style="margin-bottom:10px">В последней сформированной КП применён тип объекта: '+escape(req.kpObjectType.name)+' (×'+req.kpObjectType.coef+')</div>':'')
+        +'<div class="form-grid"><div class="field span2"><label>Тип объекта</label><select id="kp-objtype" onchange="updateObjectTypeCalc()">'
+          +'<option value="">— не выбран —</option>'
+          +objectTypeList.map(function(s){return '<option value="'+s.id+'" data-coef="'+s.coef+'">'+escape(s.name)+' (×'+s.coef+')</option>';}).join('')
+        +'</select></div></div>'
+        +'<div id="kp-objtype-result" style="font-size:12.5px;margin-top:8px"></div>'
+        +'<div class="form-actions" style="justify-content:flex-start;margin-top:10px">'
+          +'<button type="button" class="btn btn-sm" onclick="applyObjectTypeCoef(\''+id+'\',this)">Применить к себестоимости</button></div>'
+      +'</div>';
+    }
     html+='<div class="field" style="margin-top:14px"><label>Итоговая сумма КП, ₽</label><input id="kp-final-amount" type="number" min="0" step="1" value="'+escape(tonum(req.finalAmount||req.amount)||'')+'"></div>';
     html+='<div class="form-actions" style="justify-content:flex-start;margin-top:10px">'
       +'<button class="btn btn-primary" id="kp-generate-btn" onclick="generateKp(\''+id+'\')">'+(req.kpGenerated?'Сформировать заново (Word)':'Сформировать КП (Word)')+'</button></div>';
@@ -1506,6 +1674,16 @@ function openDetail(id){
       html+='<label style="display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;margin-bottom:12px">'
         +'<input type="checkbox" id="sub-insufficient-'+role+'" onchange="toggleSubForm(\''+role+'\')"> Данных недостаточно для оценки</label>';
     }
+    if(role==='obsledovanie'){
+      const savedCat=req.subs[role].complexityCategory||'';
+      html+='<div class="field" style="margin-bottom:12px"><label>Категория сложности работ (СБЦП 81-2001-25, п. 2.1.5)</label>'
+        +'<select id="sub-complexity-'+role+'">'
+        +'<option value="">— не выбрана —</option>'
+        +COMPLEXITY_CATEGORIES.map(function(c){return '<option value="'+c.key+'"'+(savedCat===c.key?' selected':'')+'>'+escape(c.key)+' категория — '+escape(c.type)+'</option>';}).join('')
+        +'</select>'
+        +'<div style="font-size:11px;color:var(--muted);margin-top:4px">'+COMPLEXITY_CATEGORIES.map(function(c){return '<b>'+c.key+'</b> ('+escape(c.type)+'): '+escape(c.obmer)+' / '+escape(c.obsled);}).join('<br>')+'</div>'
+      +'</div>';
+    }
     html+='<div id="sub-form-full-'+role+'" class="form-grid">'
       +'<div class="field"><label>Кол-во специалистов</label><input id="sub-specialists-'+role+'"></div>'
       +'<div class="field"><label>Трудозатраты, чел-дней</label><input id="sub-labordays-'+role+'"></div>'
@@ -1514,44 +1692,53 @@ function openDetail(id){
       +'<div class="field span2"><label>Комментарий</label><textarea id="sub-comment-'+role+'"></textarea></div>'
       +'</div>';
     html+='<div id="sub-form-note-'+role+'" class="field" style="display:none"><label>Каких данных не хватает?</label><textarea id="sub-note-'+role+'"></textarea></div>';
-    if(req.buildingArea){
+    if((DB.sections||[]).some(s=>!s._del)){
       const tier=areaTier(req.buildingArea);
       const claimed=claimedSectionIds(req,role);
       const mySections=((req.subs[role].sections)||[]).map(s=>s.sectionId);
-      html+='<div class="card-block" style="margin-top:14px"><b>Разделы работ</b> <span style="color:var(--muted);font-size:12px">— площадь '+escape(req.buildingArea)+' м² ('+areaTierLabel(req.buildingArea)+')</span>';
-      if(!tier){
-        html+='<div class="hint-box" style="margin-top:8px">Для площади свыше 1500 м² ставки по разделам ещё не заполнены — опишите объём в комментарии.</div>';
-      }else{
-        const list=(DB.sections||[]).filter(s=>!s._del);
-        const mySectionsMap={};
-        (req.subs[role].sections||[]).forEach(function(sec){mySectionsMap[sec.sectionId]=sec;});
-        html+='<div style="font-size:11px;color:var(--muted);margin-top:6px">Наценка/скидка, дни и исполнитель задаются отдельно по каждому разделу — удобно согласовывать скидку или менять подрядчика на конкретном разделе, не трогая остальные</div>';
-        html+='<div style="margin-top:8px">'+list.map(s=>{
-          const isMine=mySections.includes(s.id);
-          const isClaimedByOther=claimed.includes(s.id);
-          const disabled=isClaimedByOther&&!isMine;
-          const rate=s[tier];
-          const saved=mySectionsMap[s.id]||{};
-          const isCustom=!!saved.customPrice;
-          const fieldsDisabled=disabled||rate==null;
-          return '<div style="padding:7px 0;border-bottom:1px solid var(--border);font-size:12.5px;'+(disabled?'opacity:.5':'')+'">'
-            +'<label style="display:flex;align-items:center;gap:7px;min-width:0">'
-              +'<input type="checkbox" class="sec-pick-'+role+'" value="'+s.id+'" '+(isMine?'checked':'')+' '+(fieldsDisabled?'disabled':'')+' onchange="updateSectionsCalc(\''+role+'\')">'
-              +'<span>'+escape(s.name)+(rate==null?' <span style="color:var(--danger)">(нет ставки)</span>':' — '+rateCell(rate))
-              +(isClaimedByOther?' <span style="color:var(--muted)">— уже выбрано другим исполнителем</span>':'')+'</span>'
-            +'</label>'
-            +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px;padding-left:24px">'
-              +'<input type="text" class="sec-exec-'+role+'" data-sec="'+s.id+'" placeholder="Исполнитель (ФИО/подрядчик)" style="flex:1;min-width:150px" value="'+escape(saved.executor||'')+'" '+(fieldsDisabled?'disabled':'')+'>'
-              +'<label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap"><input type="checkbox" class="sec-custom-'+role+'" data-sec="'+s.id+'" '+(isCustom?'checked':'')+' '+(fieldsDisabled?'disabled':'')+' onchange="toggleSectionCustom(\''+role+'\',\''+s.id+'\')"> Подрядчик / своя цена</label>'
-              +'<input type="number" min="0" step="1" class="sec-customprice-'+role+'" data-sec="'+s.id+'" placeholder="Своя цена, ₽" style="width:110px;'+(isCustom?'':'display:none')+'" value="'+escape(saved.customPrice||'')+'" '+(fieldsDisabled?'disabled':'')+' oninput="updateSectionsCalc(\''+role+'\')">'
-              +'<input type="number" min="0" step="1" class="sec-days-'+role+'" data-sec="'+s.id+'" placeholder="Дней" title="Кол-во дней на раздел" style="width:56px;'+(isCustom?'display:none':'')+'" value="'+escape(saved.days||'')+'" '+(fieldsDisabled?'disabled':'')+' oninput="updateSectionsCalc(\''+role+'\')">'
-              +'<input type="number" min="0" step="1" class="sec-dayrate-'+role+'" data-sec="'+s.id+'" placeholder="₽/день" title="Ставка за день" style="width:70px;'+(isCustom?'display:none':'')+'" value="'+escape(saved.dayRate||'')+'" '+(fieldsDisabled?'disabled':'')+' oninput="updateSectionsCalc(\''+role+'\')">'
-              +'<input type="number" min="-100" step="1" placeholder="±%" class="sec-markup-'+role+'" data-sec="'+s.id+'" style="width:56px" title="Наценка или скидка на этот раздел, % (отрицательное — скидка)" value="'+escape(saved.markupPct||'')+'" '+(fieldsDisabled?'disabled':'')+' oninput="updateSectionsCalc(\''+role+'\')">'
-            +'</div>'
-          +'</div>';
-        }).join('')+'</div>';
-        html+='<div id="sub-sec-total-'+role+'" style="font-size:13px;margin-top:6px;font-weight:600"></div>';
-      }
+      const mySectionsMap={};
+      (req.subs[role].sections||[]).forEach(function(sec){mySectionsMap[sec.sectionId]=sec;});
+      html+='<div class="card-block" style="margin-top:14px"><b>Разделы работ</b>'
+        +(req.buildingArea?' <span style="color:var(--muted);font-size:12px">— площадь '+escape(req.buildingArea)+' м² ('+areaTierLabel(req.buildingArea)+')</span>':' <span style="color:var(--muted);font-size:12px">— площадь не указана, цена по ставке недоступна, только своя цена</span>');
+      html+='<div style="font-size:11px;color:var(--muted);margin-top:6px">Выберите стадию — под ней появятся её разделы. Наценка/скидка, дни и исполнитель задаются отдельно по каждому разделу — удобно согласовывать скидку или менять подрядчика на конкретном разделе, не трогая остальные. Для разделов без ставки цену указывает исполнитель вручную.</div>';
+      const renderRow=function(s){
+        const isMine=mySections.includes(s.id);
+        const isClaimedByOther=claimed.includes(s.id);
+        const disabled=isClaimedByOther&&!isMine;
+        const rate=tier?s[tier]:null;
+        const hasRate=rate!=null;
+        const saved=mySectionsMap[s.id]||{};
+        const isCustom=!hasRate||!!saved.customPrice;
+        return '<div style="padding:7px 0;border-bottom:1px solid var(--border);font-size:12.5px;'+(disabled?'opacity:.5':'')+'">'
+          +'<label style="display:flex;align-items:center;gap:7px;min-width:0">'
+            +'<input type="checkbox" class="sec-pick-'+role+'" value="'+s.id+'" '+(isMine?'checked':'')+' '+(disabled?'disabled':'')+' onchange="updateSectionsCalc(\''+role+'\')">'
+            +'<span>'+escape(s.name)+(hasRate?' — '+rateCell(rate):' <span style="color:var(--muted)">(своя цена)</span>')
+            +(isClaimedByOther?' <span style="color:var(--muted)">— уже выбрано другим исполнителем</span>':'')+'</span>'
+          +'</label>'
+          +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px;padding-left:24px">'
+            +'<input type="text" class="sec-exec-'+role+'" data-sec="'+s.id+'" placeholder="Исполнитель (ФИО/подрядчик)" style="flex:1;min-width:150px" value="'+escape(saved.executor||'')+'" '+(disabled?'disabled':'')+'>'
+            +(hasRate?'<label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap"><input type="checkbox" class="sec-custom-'+role+'" data-sec="'+s.id+'" '+(isCustom?'checked':'')+' '+(disabled?'disabled':'')+' onchange="toggleSectionCustom(\''+role+'\',\''+s.id+'\')"> Подрядчик / своя цена</label>':'')
+            +'<input type="number" min="0" step="1" class="sec-customprice-'+role+'" data-sec="'+s.id+'" placeholder="Своя цена, ₽" style="width:110px;'+(isCustom?'':'display:none')+'" value="'+escape(saved.customPrice||'')+'" '+(disabled?'disabled':'')+' oninput="updateSectionsCalc(\''+role+'\')">'
+            +'<input type="number" min="0" step="1" class="sec-days-'+role+'" data-sec="'+s.id+'" placeholder="Дней" title="Кол-во дней на раздел" style="width:56px;'+(isCustom?'display:none':'')+'" value="'+escape(saved.days||'')+'" '+(disabled?'disabled':'')+' oninput="updateSectionsCalc(\''+role+'\')">'
+            +'<input type="number" min="0" step="1" class="sec-dayrate-'+role+'" data-sec="'+s.id+'" placeholder="₽/день" title="Ставка за день" style="width:70px;'+(isCustom?'display:none':'')+'" value="'+escape(saved.dayRate||'')+'" '+(disabled?'disabled':'')+' oninput="updateSectionsCalc(\''+role+'\')">'
+            +'<input type="number" min="-100" step="1" placeholder="±%" class="sec-markup-'+role+'" data-sec="'+s.id+'" style="width:56px" title="Наценка или скидка на этот раздел, % (отрицательное — скидка)" value="'+escape(saved.markupPct||'')+'" '+(disabled?'disabled':'')+' oninput="updateSectionsCalc(\''+role+'\')">'
+          +'</div>'
+        +'</div>';
+      };
+      const list=(DB.sections||[]).filter(s=>!s._del);
+      const stageKeys=[];
+      list.forEach(function(s){const k=s.stage||'pd'; if(!stageKeys.includes(k))stageKeys.push(k);});
+      stageKeys.forEach(function(stageKey){
+        const stageItems=list.filter(s=>(s.stage||'pd')===stageKey);
+        html+='<div style="margin-top:12px;font-weight:700;font-size:12.5px">'+escape(STAGE_NAME_BY_KEY[stageKey]||stageKey)+'</div>';
+        const groups=[];
+        stageItems.forEach(function(s){const g=s.group||''; if(!groups.includes(g))groups.push(g);});
+        groups.forEach(function(g){
+          if(g)html+='<div style="margin-top:6px;margin-left:8px;font-size:11.5px;color:var(--muted);font-weight:600">'+escape(g)+'</div>';
+          html+='<div>'+stageItems.filter(s=>(s.group||'')===g).map(renderRow).join('')+'</div>';
+        });
+      });
+      html+='<div id="sub-sec-total-'+role+'" style="font-size:13px;margin-top:6px;font-weight:600"></div>';
       html+='</div>';
     }
     html+='<div class="form-actions"><button class="btn btn-primary" onclick="actionSubSubmit(\''+id+'\',\''+role+'\')">Отправить</button></div>';
@@ -1572,6 +1759,74 @@ function openDetail(id){
   openModal('modal-detail');
   if(byId('kp-calc-result'))updateKpCalc();
   if(byId('sub-sec-total-'+role))updateSectionsCalc(role);
+  if(byId('kp-stages-total'))updateStagesCalc();
+  if(byId('kp-objtype-result'))updateObjectTypeCalc();
+}
+function updateStagesCalc(){
+  const totalEl=byId('kp-stages-total');
+  if(!totalEl)return;
+  const base=tonum(byId('kp-cost').value);
+  let sum=0;
+  document.querySelectorAll('.kp-stage-pick').forEach(function(cb){
+    const key=cb.dataset.stage;
+    const pctEl=document.querySelector('.kp-stage-pct[data-stage="'+key+'"]');
+    const amtEl=document.querySelector('.kp-stage-amount[data-stage="'+key+'"]');
+    const pct=tonum(pctEl?pctEl.value:0);
+    const amt=base*pct/100;
+    if(amtEl)amtEl.textContent=cb.checked?fmtMoney(amt):'—';
+    if(cb.checked)sum+=amt;
+  });
+  totalEl.textContent=sum?('Итого по выбранным стадиям: '+fmtMoney(sum)):'';
+}
+function applyKpStages(id){
+  const req=DB.requests[id]; if(!req)return;
+  const base=tonum(byId('kp-cost').value);
+  const added=[];
+  document.querySelectorAll('.kp-stage-pick:checked').forEach(function(cb){
+    const key=cb.dataset.stage;
+    const pctEl=document.querySelector('.kp-stage-pct[data-stage="'+key+'"]');
+    const pct=tonum(pctEl?pctEl.value:0);
+    const amount=base*pct/100;
+    added.push({key,name:cb.dataset.name,pct,amount});
+    cb.checked=false;
+    cb.disabled=true;
+    if(pctEl)pctEl.disabled=true;
+  });
+  if(!added.length){alert('Выберите хотя бы одну стадию');return;}
+  const sum=added.reduce((s,a)=>s+a.amount,0);
+  byId('kp-cost').value=Math.round(base+sum);
+  updateKpCalc();
+  appliedKpStages=appliedKpStages.concat(added);
+  renderAppliedKpStages();
+  updateStagesCalc();
+}
+function renderAppliedKpStages(){
+  const el=byId('kp-stages-applied');
+  if(!el)return;
+  el.innerHTML=appliedKpStages.length?('<div style="margin-top:8px;font-size:12px;color:var(--muted)">Добавлено сейчас: '+appliedKpStages.map(function(a){return escape(a.name)+' ('+a.pct+'%) — '+fmtMoney(a.amount);}).join('; ')+'</div>'):'';
+}
+function updateObjectTypeCalc(){
+  const resEl=byId('kp-objtype-result');
+  if(!resEl)return;
+  const sel=byId('kp-objtype');
+  const opt=sel.options[sel.selectedIndex];
+  const coef=opt?tonum(opt.dataset.coef):0;
+  const base=tonum(byId('kp-cost').value);
+  resEl.textContent=(sel.value&&base)?('Себестоимость с коэффициентом: '+fmtMoney(base*coef)+' (было '+fmtMoney(base)+')'):'';
+}
+function applyObjectTypeCoef(id,btn){
+  const req=DB.requests[id]; if(!req)return;
+  const sel=byId('kp-objtype');
+  const opt=sel.options[sel.selectedIndex];
+  if(!sel.value){alert('Выберите тип объекта');return;}
+  const coef=tonum(opt.dataset.coef);
+  const base=tonum(byId('kp-cost').value);
+  byId('kp-cost').value=Math.round(base*coef);
+  updateKpCalc();
+  appliedObjectType={id:sel.value,name:opt.textContent.replace(/\s*\(×[\d.]+\)$/,''),coef};
+  sel.disabled=true;
+  if(btn)btn.disabled=true;
+  updateObjectTypeCalc();
 }
 function updateSectionsCalc(role){
   const totalEl=byId('sub-sec-total-'+role);
@@ -1584,7 +1839,7 @@ function updateSectionsCalc(role){
     const markupEl=document.querySelector('.sec-markup-'+role+'[data-sec="'+cb.value+'"]');
     const markup=tonum(markupEl?markupEl.value:0);
     const customEl=document.querySelector('.sec-custom-'+role+'[data-sec="'+cb.value+'"]');
-    const isCustom=customEl&&customEl.checked;
+    const isCustom=!sectionHasRate(s,req.buildingArea)||(customEl&&customEl.checked);
     const priceEl=document.querySelector('.sec-customprice-'+role+'[data-sec="'+cb.value+'"]');
     const daysEl=document.querySelector('.sec-days-'+role+'[data-sec="'+cb.value+'"]');
     const dayRateEl=document.querySelector('.sec-dayrate-'+role+'[data-sec="'+cb.value+'"]');
@@ -1654,6 +1909,8 @@ function renderUsers(){
   renderManagers();
   renderDivisions();
   renderSections();
+  renderStageCoef();
+  renderObjectTypes();
 }
 function renderManagers(){
   const list=(DB.managers||[]).filter(m=>!m._del);
@@ -1731,6 +1988,8 @@ function renderSections(){
     if(s.id===editingSectionId){
       return '<tr>'
         +'<td><input id="sce-name-'+s.id+'" value="'+escape(s.name)+'" style="width:100%"></td>'
+        +'<td><select id="sce-stage-'+s.id+'"><option value="pd"'+((s.stage||'pd')==='pd'?' selected':'')+'>ПД</option><option value="rd"'+(s.stage==='rd'?' selected':'')+'>РД</option></select>'
+          +'<input id="sce-group-'+s.id+'" placeholder="группа (РД)" value="'+escape(s.group||'')+'" style="width:100%;margin-top:4px"></td>'
         +'<td><input id="sce-rate1-'+s.id+'" type="number" min="0" step="0.01" value="'+(s.rate1==null?'':s.rate1)+'" style="width:90px"></td>'
         +'<td><input id="sce-rate2-'+s.id+'" type="number" min="0" step="0.01" value="'+(s.rate2==null?'':s.rate2)+'" style="width:90px"></td>'
         +'<td><input id="sce-rate3-'+s.id+'" type="number" min="0" step="0.01" value="'+(s.rate3==null?'':s.rate3)+'" style="width:90px"></td>'
@@ -1739,21 +1998,24 @@ function renderSections(){
           +'<button class="btn btn-sm" onclick="cancelEditSection()">Отмена</button>'
         +'</td></tr>';
     }
-    return '<tr><td>'+escape(s.name)+'</td><td>'+rateCell(s.rate1)+'</td><td>'+rateCell(s.rate2)+'</td><td>'+rateCell(s.rate3)+'</td>'
+    return '<tr><td>'+escape(s.name)+'</td><td>'+escape(STAGE_NAME_BY_KEY[s.stage||'pd']||s.stage)+(s.group?'<br><span style="color:var(--muted);font-size:11px">'+escape(s.group)+'</span>':'')+'</td><td>'+rateCell(s.rate1)+'</td><td>'+rateCell(s.rate2)+'</td><td>'+rateCell(s.rate3)+'</td>'
     +'<td style="white-space:nowrap"><button class="btn btn-sm" onclick="editSection(\''+s.id+'\')">Изменить</button> '
     +'<button class="btn btn-sm btn-danger" onclick="deleteSection(\''+s.id+'\')">Удалить</button></td></tr>';
-  }).join(''):'<tr><td colspan="5" style="color:var(--muted)">Список пуст</td></tr>';
+  }).join(''):'<tr><td colspan="6" style="color:var(--muted)">Список пуст</td></tr>';
 }
 function editSection(id){editingSectionId=id;renderSections();}
 function cancelEditSection(){editingSectionId=null;renderSections();}
 function saveSection(id){
   const s=(DB.sections||[]).find(x=>x.id===id); if(!s)return;
   const name=(byId('sce-name-'+id).value||'').trim();
+  const stage=byId('sce-stage-'+id).value;
+  const group=(byId('sce-group-'+id).value||'').trim();
   const rate1=byId('sce-rate1-'+id).value.trim(), rate2=byId('sce-rate2-'+id).value.trim(), rate3=byId('sce-rate3-'+id).value.trim();
   if(!name){alert('Укажите название раздела');return;}
-  if(!rate1&&!rate2){alert('Укажите хотя бы одну ставку (50–500 или 500–1500 м²)');return;}
   if(DB.sections.some(x=>x.id!==id&&!x._del&&x.name.toLowerCase()===name.toLowerCase())){alert('Такой раздел уже есть');return;}
   s.name=name;
+  s.stage=stage;
+  s.group=group;
   s.rate1=rate1?tonum(rate1):null;
   s.rate2=rate2?tonum(rate2):null;
   s.rate3=rate3?tonum(rate3):null;
@@ -1763,14 +2025,15 @@ function saveSection(id){
 }
 function createSection(){
   const name=(byId('scf-name').value||'').trim();
+  const stage=byId('scf-stage').value;
+  const group=(byId('scf-group').value||'').trim();
   const rate1=byId('scf-rate1').value.trim(), rate2=byId('scf-rate2').value.trim(), rate3=byId('scf-rate3').value.trim();
   if(!name){alert('Укажите название раздела');return;}
-  if(!rate1&&!rate2){alert('Укажите хотя бы одну ставку (50–500 или 500–1500 м²)');return;}
   DB.sections=DB.sections||[];
   if(DB.sections.some(s=>!s._del&&s.name.toLowerCase()===name.toLowerCase())){alert('Такой раздел уже есть');return;}
-  DB.sections.push({id:uid('sec'),name,rate1:rate1?tonum(rate1):null,rate2:rate2?tonum(rate2):null,rate3:rate3?tonum(rate3):null});
+  DB.sections.push({id:uid('sec'),name,stage,group,rate1:rate1?tonum(rate1):null,rate2:rate2?tonum(rate2):null,rate3:rate3?tonum(rate3):null});
   pushSections();
-  byId('scf-name').value='';byId('scf-rate1').value='';byId('scf-rate2').value='';byId('scf-rate3').value='';
+  byId('scf-name').value='';byId('scf-group').value='';byId('scf-rate1').value='';byId('scf-rate2').value='';byId('scf-rate3').value='';
   renderSections();
 }
 function deleteSection(id){
@@ -1779,6 +2042,120 @@ function deleteSection(id){
   s._del=true;
   pushSections();
   renderSections();
+}
+
+/* ---- Stage coefficients (РД, авторский надзор, экспертиза и т.п. — % от себестоимости Стадии П) ---- */
+let editingStageCoefId=null;
+function pctCell(v){return v==null||v===''?'—':tonum(v).toLocaleString('ru-RU')+'%';}
+function renderStageCoef(){
+  const list=(DB.stageCoefficients||[]).filter(s=>!s._del);
+  byId('stagecoef-table-body').innerHTML=list.length?list.map(s=>{
+    if(s.id===editingStageCoefId){
+      return '<tr>'
+        +'<td><input id="stce-name-'+s.id+'" value="'+escape(s.name)+'" style="width:100%"></td>'
+        +'<td><input id="stce-pct-'+s.id+'" type="number" min="0" step="0.01" value="'+(s.pct==null?'':s.pct)+'" style="width:90px"></td>'
+        +'<td style="white-space:nowrap">'
+          +'<button class="btn btn-sm btn-primary" onclick="saveStageCoef(\''+s.id+'\')">Сохранить</button> '
+          +'<button class="btn btn-sm" onclick="cancelEditStageCoef()">Отмена</button>'
+        +'</td></tr>';
+    }
+    return '<tr><td>'+escape(s.name)+'</td><td>'+pctCell(s.pct)+'</td>'
+      +'<td style="white-space:nowrap"><button class="btn btn-sm" onclick="editStageCoef(\''+s.id+'\')">Изменить</button> '
+      +'<button class="btn btn-sm btn-danger" onclick="deleteStageCoef(\''+s.id+'\')">Удалить</button></td></tr>';
+  }).join(''):'<tr><td colspan="3" style="color:var(--muted)">Список пуст</td></tr>';
+}
+function uniqueStageKey(base){
+  const taken=new Set((DB.stageCoefficients||[]).map(s=>s.key));
+  let key=base,i=2;
+  while(taken.has(key)){key=base+'_'+i;i++;}
+  return key;
+}
+function createStageCoef(){
+  const name=(byId('stc-name').value||'').trim();
+  const pct=byId('stc-pct').value.trim();
+  if(!name){alert('Укажите название стадии');return;}
+  DB.stageCoefficients=DB.stageCoefficients||[];
+  if(DB.stageCoefficients.some(s=>!s._del&&s.name.toLowerCase()===name.toLowerCase())){alert('Такая стадия уже есть');return;}
+  DB.stageCoefficients.push({id:uid('stage'),key:uniqueStageKey(translitKey(name)),name,pct:pct?tonum(pct):null});
+  pushStageCoefficients();
+  byId('stc-name').value='';byId('stc-pct').value='';
+  renderStageCoef();
+}
+function editStageCoef(id){editingStageCoefId=id;renderStageCoef();}
+function cancelEditStageCoef(){editingStageCoefId=null;renderStageCoef();}
+function saveStageCoef(id){
+  const s=(DB.stageCoefficients||[]).find(x=>x.id===id); if(!s)return;
+  const name=(byId('stce-name-'+id).value||'').trim();
+  const pct=byId('stce-pct-'+id).value.trim();
+  if(!name){alert('Укажите название стадии');return;}
+  if(DB.stageCoefficients.some(x=>x.id!==id&&!x._del&&x.name.toLowerCase()===name.toLowerCase())){alert('Такая стадия уже есть');return;}
+  s.name=name;
+  s.pct=pct?tonum(pct):null;
+  pushStageCoefficients();
+  editingStageCoefId=null;
+  renderStageCoef();
+}
+function deleteStageCoef(id){
+  const s=(DB.stageCoefficients||[]).find(x=>x.id===id); if(!s)return;
+  if(!confirm('Удалить стадию «'+s.name+'»? Уже посчитанные КП с этой стадией не изменятся.'))return;
+  s._del=true;
+  pushStageCoefficients();
+  renderStageCoef();
+}
+
+/* ---- Object types (коэффициент сложности по типу объекта, включая этажность) ---- */
+let editingObjectTypeId=null;
+function coefCell(v){return v==null||v===''?'—':tonum(v).toLocaleString('ru-RU');}
+function renderObjectTypes(){
+  const list=(DB.objectTypes||[]).filter(s=>!s._del);
+  byId('objecttype-table-body').innerHTML=list.length?list.map(s=>{
+    if(s.id===editingObjectTypeId){
+      return '<tr>'
+        +'<td><input id="ote-name-'+s.id+'" value="'+escape(s.name)+'" style="width:100%"></td>'
+        +'<td><input id="ote-coef-'+s.id+'" type="number" min="0" step="0.01" value="'+(s.coef==null?'':s.coef)+'" style="width:90px"></td>'
+        +'<td style="white-space:nowrap">'
+          +'<button class="btn btn-sm btn-primary" onclick="saveObjectType(\''+s.id+'\')">Сохранить</button> '
+          +'<button class="btn btn-sm" onclick="cancelEditObjectType()">Отмена</button>'
+        +'</td></tr>';
+    }
+    return '<tr><td>'+escape(s.name)+'</td><td>'+coefCell(s.coef)+'</td>'
+      +'<td style="white-space:nowrap"><button class="btn btn-sm" onclick="editObjectType(\''+s.id+'\')">Изменить</button> '
+      +'<button class="btn btn-sm btn-danger" onclick="deleteObjectType(\''+s.id+'\')">Удалить</button></td></tr>';
+  }).join(''):'<tr><td colspan="3" style="color:var(--muted)">Список пуст</td></tr>';
+}
+function createObjectType(){
+  const name=(byId('otf-name').value||'').trim();
+  const coef=byId('otf-coef').value.trim();
+  if(!name){alert('Укажите название типа объекта');return;}
+  if(!coef){alert('Укажите коэффициент');return;}
+  DB.objectTypes=DB.objectTypes||[];
+  if(DB.objectTypes.some(s=>!s._del&&s.name.toLowerCase()===name.toLowerCase())){alert('Такой тип объекта уже есть');return;}
+  DB.objectTypes.push({id:uid('ot'),name,coef:tonum(coef)});
+  pushObjectTypes();
+  byId('otf-name').value='';byId('otf-coef').value='';
+  renderObjectTypes();
+}
+function editObjectType(id){editingObjectTypeId=id;renderObjectTypes();}
+function cancelEditObjectType(){editingObjectTypeId=null;renderObjectTypes();}
+function saveObjectType(id){
+  const s=(DB.objectTypes||[]).find(x=>x.id===id); if(!s)return;
+  const name=(byId('ote-name-'+id).value||'').trim();
+  const coef=byId('ote-coef-'+id).value.trim();
+  if(!name){alert('Укажите название типа объекта');return;}
+  if(!coef){alert('Укажите коэффициент');return;}
+  if(DB.objectTypes.some(x=>x.id!==id&&!x._del&&x.name.toLowerCase()===name.toLowerCase())){alert('Такой тип объекта уже есть');return;}
+  s.name=name;
+  s.coef=tonum(coef);
+  pushObjectTypes();
+  editingObjectTypeId=null;
+  renderObjectTypes();
+}
+function deleteObjectType(id){
+  const s=(DB.objectTypes||[]).find(x=>x.id===id); if(!s)return;
+  if(!confirm('Удалить тип объекта «'+s.name+'»? Уже посчитанные КП не изменятся.'))return;
+  s._del=true;
+  pushObjectTypes();
+  renderObjectTypes();
 }
 function claimedSectionIds(req,excludeRole){
   const ids=[];
