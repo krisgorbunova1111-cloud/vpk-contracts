@@ -192,7 +192,7 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     <div class="role" id="user-box-role"></div>
     <button class="logout-btn" onclick="logout()">Выйти</button>
   </div>
-  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-10.8</div>
+  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-11.1</div>
 </div>
 
 <div id="main" style="display:none">
@@ -252,6 +252,9 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
           <label>Клиентский менеджер (наш специалист)</label>
           <select id="nf-manager2" onchange="onManagerSelectChange()"><option value="">— Не выбран —</option></select>
           <div id="nf-manager2-custom-wrap" style="display:none;margin-top:6px"><input id="nf-manager2-custom" placeholder="Введите ФИО нового менеджера"></div>
+        </div>
+        <div class="field"><label>Юридическое лицо</label>
+          <select id="nf-legalentity"><option value="">— Не выбрано —</option></select>
         </div>
         <div class="field span2"><label>Предмет договора *</label><input id="nf-subject"></div>
         <div class="field span2"><label>Адрес *</label><input id="nf-address"></div>
@@ -338,24 +341,48 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     </div>
 
     <div class="page-title" style="font-size:17px;margin-top:28px">Разделы работ (каталог ставок)</div>
-    <div class="page-sub">Ставки за м² по разделам, которые исполнители выбирают при оценке заявки. Наценка (%) задаётся отдельно по каждой заявке и заказчику не показывается.</div>
+    <div class="page-sub">Ставки по разделам, которые исполнители выбирают при оценке заявки — отдельно для России и Москвы. Себестоимость и коммерческую стоимость по каждой заявке сотрудники вносят вручную.</div>
     <div class="card-block">
       <div class="form-grid">
         <div class="field span2"><label>Название раздела</label><input id="scf-name" placeholder="напр. П. Раздел 13. ..."></div>
         <div class="field"><label>Стадия</label><select id="scf-stage"><option value="pd">Проектная документация (ПД)</option><option value="rd">Рабочая документация (РД)</option></select></div>
         <div class="field"><label>Группа (только для РД, необязательно)</label><input id="scf-group" placeholder="напр. Инженерные системы и сети (ИОС)"></div>
-        <div class="field"><label>Ставка, ₽/м² (50–500 м²)</label><input id="scf-rate1" type="number" min="0" step="0.01"></div>
-        <div class="field"><label>Ставка, ₽/м² (500–1500 м²)</label><input id="scf-rate2" type="number" min="0" step="0.01"></div>
-        <div class="field"><label>Ставка, ₽/м² (свыше 1500 м²)</label><input id="scf-rate3" type="number" min="0" step="0.01" placeholder="не заполнено"></div>
       </div>
-      <div class="page-sub" style="margin-top:6px">Ставку можно не заполнять вообще — тогда исполнитель будет указывать цену раздела вручную («своя цена»).</div>
+      <div class="field" style="margin-top:8px">
+        <label>Тип цены</label>
+        <div style="display:flex;gap:16px;margin-top:4px">
+          <label style="display:flex;align-items:center;gap:5px;font-weight:400"><input type="radio" name="scf-pricetype" value="area" checked onchange="toggleSectionPriceTypeUI('scf')"> За м² (по площади)</label>
+          <label style="display:flex;align-items:center;gap:5px;font-weight:400"><input type="radio" name="scf-pricetype" value="fixed" onchange="toggleSectionPriceTypeUI('scf')"> Фиксированная цена</label>
+        </div>
+      </div>
+      <div id="scf-areawrap" style="margin-top:8px">
+        <div class="page-sub" style="margin:0 0 4px">Россия</div>
+        <div class="form-grid">
+          <div class="field"><label>₽/м² (50–500 м²)</label><input id="scf-rate1" type="number" min="0" step="0.01"></div>
+          <div class="field"><label>₽/м² (500–1500 м²)</label><input id="scf-rate2" type="number" min="0" step="0.01"></div>
+          <div class="field"><label>₽/м² (свыше 1500 м²)</label><input id="scf-rate3" type="number" min="0" step="0.01" placeholder="не заполнено"></div>
+        </div>
+        <div class="page-sub" style="margin:8px 0 4px">Москва</div>
+        <div class="form-grid">
+          <div class="field"><label>₽/м² (50–500 м²)</label><input id="scf-rate1msk" type="number" min="0" step="0.01"></div>
+          <div class="field"><label>₽/м² (500–1500 м²)</label><input id="scf-rate2msk" type="number" min="0" step="0.01"></div>
+          <div class="field"><label>₽/м² (свыше 1500 м²)</label><input id="scf-rate3msk" type="number" min="0" step="0.01" placeholder="не заполнено"></div>
+        </div>
+      </div>
+      <div id="scf-fixedwrap" style="display:none;margin-top:8px">
+        <div class="form-grid">
+          <div class="field"><label>Фикс. цена, ₽ (Россия)</label><input id="scf-fixed" type="number" min="0" step="1"></div>
+          <div class="field"><label>Фикс. цена, ₽ (Москва)</label><input id="scf-fixedmsk" type="number" min="0" step="1"></div>
+        </div>
+      </div>
+      <div class="page-sub" style="margin-top:6px">Ставку/цену можно не заполнять — тогда исполнитель будет указывать цену раздела вручную.</div>
       <div class="form-actions" style="justify-content:flex-start">
         <button class="btn btn-primary" onclick="createSection()">Добавить раздел</button>
       </div>
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Раздел</th><th>Стадия</th><th>50–500 м²</th><th>500–1500 м²</th><th>&gt;1500 м²</th><th></th></tr></thead>
+        <thead><tr><th>Раздел</th><th>Стадия</th><th>Тип цены</th><th>Россия</th><th>Москва</th><th></th></tr></thead>
         <tbody id="sections-table-body"></tbody>
       </table>
     </div>
@@ -393,6 +420,40 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
       <table>
         <thead><tr><th>Тип объекта</th><th>Коэффициент</th><th></th></tr></thead>
         <tbody id="objecttype-table-body"></tbody>
+      </table>
+    </div>
+
+    <div class="page-title" style="font-size:17px;margin-top:28px">Юниты (сотрудники)</div>
+    <div class="page-sub">Список ФИО для выбора исполнителя конкретного раздела — вместо ввода вручную (для подрядчика ввод вручную остаётся).</div>
+    <div class="card-block">
+      <div class="form-grid single">
+        <div class="field"><label>ФИО</label><input id="unf-name" placeholder="напр. Петров П.П."></div>
+      </div>
+      <div class="form-actions" style="justify-content:flex-start">
+        <button class="btn btn-primary" onclick="createUnit()">Добавить юнит</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ФИО</th><th></th></tr></thead>
+        <tbody id="units-table-body"></tbody>
+      </table>
+    </div>
+
+    <div class="page-title" style="font-size:17px;margin-top:28px">Юридические лица</div>
+    <div class="page-sub">Список юр. лиц компании — выбирается при создании заявки.</div>
+    <div class="card-block">
+      <div class="form-grid single">
+        <div class="field"><label>Название</label><input id="lef-name" placeholder="напр. ООО «ВПК «Прогресс Энерго»"></div>
+      </div>
+      <div class="form-actions" style="justify-content:flex-start">
+        <button class="btn btn-primary" onclick="createLegalEntity()">Добавить юр. лицо</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Название</th><th></th></tr></thead>
+        <tbody id="legalentities-table-body"></tbody>
       </table>
     </div>
   </div>
@@ -507,16 +568,15 @@ const SEED_OBJECT_TYPES=[
   {id:'ot-energy',name:'Объект энергетики (ТЭС, подстанция, ЛЭП, котельная)',coef:1.30},
   {id:'ot-unique',name:'Уникальный/технически сложный объект',coef:1.50}
 ];
+const UNITS_KEY='kptracker_units';
+const LEGAL_ENTITIES_KEY='kptracker_legal_entities';
+const REGION_NAME={ru:'Россия',msk:'Москва'};
 function areaTier(area){
   const a=tonum(area);
   if(!a)return null;
   if(a<=500)return 'rate1';
   if(a<=1500)return 'rate2';
   return 'rate3';
-}
-function sectionHasRate(sec,area){
-  const tier=areaTier(area);
-  return !!(tier&&sec&&sec[tier]!=null);
 }
 function areaTierLabel(area){
   const t=areaTier(area);
@@ -566,7 +626,7 @@ const SEED_USERS=[
 ];
 
 /* ========================= STATE ========================= */
-let DB={users:[...SEED_USERS],requests:{},managers:[],divisions:[...SEED_DIVISIONS],sections:[...SEED_SECTIONS],stageCoefficients:[...SEED_STAGE_COEFFICIENTS],objectTypes:[...SEED_OBJECT_TYPES]};
+let DB={users:[...SEED_USERS],requests:{},managers:[],divisions:[...SEED_DIVISIONS],sections:[...SEED_SECTIONS],stageCoefficients:[...SEED_STAGE_COEFFICIENTS],objectTypes:[...SEED_OBJECT_TYPES],units:[],legalEntities:[]};
 let currentUser=null;
 let activePage='dashboard';
 let reqFilter='all';
@@ -613,9 +673,11 @@ function fetchRemote(initial){
     fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.'+DIVISIONS_KEY,{headers:sbHeaders()}).then(r=>r.json()).catch(()=>[]),
     fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.'+SECTIONS_KEY,{headers:sbHeaders()}).then(r=>r.json()).catch(()=>[]),
     fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.'+STAGE_COEF_KEY,{headers:sbHeaders()}).then(r=>r.json()).catch(()=>[]),
-    fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.'+OBJECT_TYPE_KEY,{headers:sbHeaders()}).then(r=>r.json()).catch(()=>[])
+    fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.'+OBJECT_TYPE_KEY,{headers:sbHeaders()}).then(r=>r.json()).catch(()=>[]),
+    fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.'+UNITS_KEY,{headers:sbHeaders()}).then(r=>r.json()).catch(()=>[]),
+    fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.'+LEGAL_ENTITIES_KEY,{headers:sbHeaders()}).then(r=>r.json()).catch(()=>[])
   ]).then(function(res){
-    const usersRows=res[0]||[], reqRows=res[1]||[], managersRows=res[2]||[], divisionsRows=res[3]||[], sectionsRows=res[4]||[], stageCoefRows=res[5]||[], objectTypeRows=res[6]||[];
+    const usersRows=res[0]||[], reqRows=res[1]||[], managersRows=res[2]||[], divisionsRows=res[3]||[], sectionsRows=res[4]||[], stageCoefRows=res[5]||[], objectTypeRows=res[6]||[], unitsRows=res[7]||[], legalRows=res[8]||[];
     if(usersRows.length&&usersRows[0].value){
       try{const u=JSON.parse(usersRows[0].value);if(u&&u.length)DB.users=u;}catch(e){}
     }else if(initial){
@@ -643,6 +705,12 @@ function fetchRemote(initial){
       try{const ot=JSON.parse(objectTypeRows[0].value);if(ot&&ot.length)DB.objectTypes=ot;}catch(e){}
     }else if(initial){
       pushObjectTypes();
+    }
+    if(unitsRows.length&&unitsRows[0].value){
+      try{const un=JSON.parse(unitsRows[0].value);if(un)DB.units=un;}catch(e){}
+    }
+    if(legalRows.length&&legalRows[0].value){
+      try{const le=JSON.parse(legalRows[0].value);if(le)DB.legalEntities=le;}catch(e){}
     }
     if(reqRows.length){
       const merged={};
@@ -697,6 +765,20 @@ function pushObjectTypes(){
     method:'POST',
     headers:sbHeaders({'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'}),
     body:JSON.stringify({key:OBJECT_TYPE_KEY,value:JSON.stringify(DB.objectTypes)})
+  }).then(r=>setSyncStatus(r.ok,r.ok?'Сохранено':'Ошибка сохранения')).catch(()=>setSyncStatus(false,'Нет соединения'));
+}
+function pushUnits(){
+  fetch(SUPABASE_URL+'/rest/v1/storage',{
+    method:'POST',
+    headers:sbHeaders({'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'}),
+    body:JSON.stringify({key:UNITS_KEY,value:JSON.stringify(DB.units)})
+  }).then(r=>setSyncStatus(r.ok,r.ok?'Сохранено':'Ошибка сохранения')).catch(()=>setSyncStatus(false,'Нет соединения'));
+}
+function pushLegalEntities(){
+  fetch(SUPABASE_URL+'/rest/v1/storage',{
+    method:'POST',
+    headers:sbHeaders({'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'}),
+    body:JSON.stringify({key:LEGAL_ENTITIES_KEY,value:JSON.stringify(DB.legalEntities)})
   }).then(r=>setSyncStatus(r.ok,r.ok?'Сохранено':'Ошибка сохранения')).catch(()=>setSyncStatus(false,'Нет соединения'));
 }
 
@@ -794,7 +876,7 @@ function renderAll(){
   if(activePage==='requests')renderRequests();
   if(activePage==='analytics')renderAnalytics();
   if(activePage==='users')renderUsers();
-  if(activePage==='new')renderManagerSelect();
+  if(activePage==='new'){renderManagerSelect();renderLegalEntitySelect();}
 }
 function renderManagerSelect(){
   const sel=byId('nf-manager2');
@@ -805,6 +887,15 @@ function renderManagerSelect(){
     +list.map(m=>'<option value="'+escape(m.name)+'">'+escape(m.name)+'</option>').join('')
     +'<option value="__new__">➕ Добавить нового...</option>';
   if(list.some(m=>m.name===current))sel.value=current;
+}
+function renderLegalEntitySelect(){
+  const sel=byId('nf-legalentity');
+  if(!sel)return;
+  const list=(DB.legalEntities||[]).filter(l=>!l._del);
+  const current=sel.value;
+  sel.innerHTML='<option value="">— Не выбрано —</option>'
+    +list.map(l=>'<option value="'+escape(l.name)+'">'+escape(l.name)+'</option>').join('');
+  if(list.some(l=>l.name===current))sel.value=current;
 }
 function onManagerSelectChange(){
   const sel=byId('nf-manager2');
@@ -1118,6 +1209,7 @@ async function createRequest(){
     buildingArea:byId('nf-area').value.trim(),
     manager:byId('nf-manager').value.trim(),
     clientManager:clientManager||'',
+    legalEntity:byId('nf-legalentity').value||'',
     amount:byId('nf-amount').value.trim(),
     workType:byId('nf-worktype').value.trim(),
     govOrder:byId('nf-gov').value,
@@ -1141,6 +1233,7 @@ async function createRequest(){
   byId('nf-manager2').value='';
   byId('nf-manager2-custom').value='';
   byId('nf-manager2-custom-wrap').style.display='none';
+  byId('nf-legalentity').value='';
   pendingAttachments=[];
   byId('nf-files-list').innerHTML='';
   btn.disabled=false; btn.textContent='Создать заявку';
@@ -1239,8 +1332,9 @@ function buildKpBodyXml(req,amount,addressee,outNum,outDate,vatPct,kpStages){
   if(claimedSections.length||(kpStages&&kpStages.length)){
     xml+=wPara('Состав работ:',{bold:true,spaceBefore:200});
     const worksRows=[wRow([wCell('Раздел',{shade:'F5F5F5',bold:true}),wCell('Стоимость',{shade:'F5F5F5',bold:true})])];
+    const objCoefKp=req.objectType?tonum(req.objectType.coef):1;
     claimedSections.forEach(function(sec){
-      worksRows.push(wRow([wCell(sec.name),wCell(fmtMoney(sec.withMarkup))]));
+      worksRows.push(wRow([wCell(sec.name),wCell(fmtMoney(tonum(sec.commercial)*objCoefKp))]));
     });
     (kpStages||[]).forEach(function(st){
       worksRows.push(wRow([wCell(st.name),wCell(fmtMoney(st.amount))]));
@@ -1463,25 +1557,25 @@ function actionSubSubmit(id,sub){
       comment:byId('sub-comment-'+sub).value.trim()
     };
     let sections=[];
-    const tier=areaTier(req.buildingArea);
+    const region=(byId('sub-region-'+sub)&&byId('sub-region-'+sub).value==='msk')?'msk':(req.region==='msk'?'msk':'ru');
     const claimed=claimedSectionIds(req,sub);
     document.querySelectorAll('.sec-pick-'+sub+':checked').forEach(function(cb){
       if(claimed.includes(cb.value))return;
       const s=(DB.sections||[]).find(x=>x.id===cb.value); if(!s)return;
-      const markupEl=document.querySelector('.sec-markup-'+sub+'[data-sec="'+cb.value+'"]');
-      const markupPct=markupEl?markupEl.value.trim():'';
-      const executor=(document.querySelector('.sec-exec-'+sub+'[data-sec="'+cb.value+'"]')||{}).value||'';
-      const customEl=document.querySelector('.sec-custom-'+sub+'[data-sec="'+cb.value+'"]');
-      const isCustom=!sectionHasRate(s,req.buildingArea)||(customEl&&customEl.checked);
-      const customPrice=isCustom?(document.querySelector('.sec-customprice-'+sub+'[data-sec="'+cb.value+'"]')||{}).value||'':'';
+      const execSel=document.querySelector('.sec-execsel-'+sub+'[data-sec="'+cb.value+'"]');
+      const isContractor=execSel&&execSel.value==='__contractor__';
+      const executor=isContractor?((document.querySelector('.sec-exec-'+sub+'[data-sec="'+cb.value+'"]')||{}).value||'').trim():(execSel?execSel.value:'');
+      const executorType=isContractor?'contractor':(executor?'unit':'');
+      const cost=(document.querySelector('.sec-cost-'+sub+'[data-sec="'+cb.value+'"]')||{}).value||'';
+      const commercial=(document.querySelector('.sec-commercial-'+sub+'[data-sec="'+cb.value+'"]')||{}).value||'';
       const days=(document.querySelector('.sec-days-'+sub+'[data-sec="'+cb.value+'"]')||{}).value||'';
-      const t=sectionTotal(s,req.buildingArea,markupPct,{customPrice});
-      sections.push({sectionId:s.id,name:s.name,rate:tier?s[tier]:null,markupPct,executor:executor.trim(),customPrice,days,base:t.base,withMarkup:t.withMarkup});
+      sections.push({sectionId:s.id,name:s.name,priceType:sectionPriceType(s),region,executor,executorType,cost,commercial,days});
     });
     const complexityCategory=sub==='obsledovanie'?(byId('sub-complexity-'+sub).value||''):(req.subs[sub]&&req.subs[sub].complexityCategory)||'';
     req.subs[sub]={status:'done',resources,sections,complexityCategory,updatedAt:nowIso(),updatedBy:currentUser.name};
     let objTypeNote='',stagesNote='';
     if(sub==='production'){
+      req.region=region;
       const objSel=byId('sub-objtype-production');
       if(objSel&&objSel.value){
         const opt=objSel.options[objSel.selectedIndex];
@@ -1495,7 +1589,7 @@ function actionSubSubmit(id,sub){
         let allSectionsTotal=0;
         Object.keys(req.subs||{}).forEach(function(role){
           const st=req.subs[role];
-          if(st&&st.sections)st.sections.forEach(function(sec){allSectionsTotal+=sec.withMarkup;});
+          if(st&&st.sections)st.sections.forEach(function(sec){allSectionsTotal+=tonum(sec.commercial);});
         });
         const objCoef=req.objectType?tonum(req.objectType.coef):1;
         const stageBase=allSectionsTotal*objCoef;
@@ -1535,8 +1629,9 @@ function openDetail(id){
   html+='<!--TAB:overview-->';
   html+='<div class="detail-grid" style="margin-top:16px">';
   const rows=[
-    ['Менеджер клиента',req.manager],['Клиентский менеджер',req.clientManager],['Адрес',req.address],
+    ['Менеджер клиента',req.manager],['Клиентский менеджер',req.clientManager],['Юр. лицо',req.legalEntity],['Адрес',req.address],
     ['Площадь объекта',req.buildingArea?req.buildingArea+' м²':''],
+    ['Регион (для расчёта разделов)',req.region?REGION_NAME[req.region]:''],
     ['Сумма',req.amount?fmtMoney(req.amount):''],['Вид работ',req.workType],
     ['Гос. заказ',req.govOrder],['Валюта',req.currency],
     ['Срок исполнения',req.deadline],['Размер аванса',req.advance?String(req.advance).replace(/%+\s*$/,'')+'%':''],
@@ -1558,38 +1653,43 @@ function openDetail(id){
   // Subdivisions block
   if(req.stage==='subdivisions'||req.stage==='decision'||req.stage==='accepted'||req.stage==='rejected'){
     html+='<div class="divider"></div><h3 style="font-size:14px;font-weight:800;margin-bottom:6px">Исполнители</h3>';
-    let sectionsGrandTotal=0;
+    let sectionsCostGrand=0, sectionsCommGrand=0;
     Object.keys(req.subs||{}).forEach(s=>{
       const st=req.subs[s];
       html+='<div class="sub-row'+(st.status==='not_involved'?' sub-row-muted':'')+'"><div><div class="sn">'+subLabel(s)+'</div>';
       if(st.status==='done'&&st.resources){
         html+='<div class="sub-detail">Специалисты: '+escape(st.resources.specialists||'—')+' · Трудозатраты: '+escape(st.resources.laborDays||'—')+' чел-дн · Срок: '+escape(st.resources.term||'—')+'<br>Материалы/подрядчики: '+escape(st.resources.materials||'—')+(st.resources.comment?'<br>Комментарий: '+escape(st.resources.comment):'')+(st.complexityCategory?'<br>Категория сложности (СБЦП 81-2001-25): '+escape(st.complexityCategory):'')+'</div>';
         if(st.sections&&st.sections.length){
-          const subTotal=st.sections.reduce((sum,sec)=>sum+sec.withMarkup,0);
-          sectionsGrandTotal+=subTotal;
+          const subCost=st.sections.reduce((sum,sec)=>sum+tonum(sec.cost),0);
+          const subComm=st.sections.reduce((sum,sec)=>sum+tonum(sec.commercial),0);
+          sectionsCostGrand+=subCost; sectionsCommGrand+=subComm;
           html+='<div class="sub-detail" style="margin-top:4px">Разделы: '+st.sections.map(sec=>{
             let extra=[];
-            if(sec.customPrice)extra.push('подрядчик, своя цена');
+            if(sec.priceType==='fixed')extra.push('фикс. цена');
+            if(sec.region)extra.push(REGION_NAME[sec.region]||sec.region);
             if(sec.days)extra.push(sec.days+' дн.');
-            if(sec.executor)extra.push('исп.: '+escape(sec.executor));
-            extra.push((sec.markupPct||0)+'%');
-            return escape(sec.name)+' ('+extra.join(', ')+') — '+fmtMoney(sec.withMarkup);
-          }).join('; ')+' · <b>Итого: '+fmtMoney(subTotal)+'</b></div>';
+            if(sec.executor)extra.push((sec.executorType==='contractor'?'подрядчик: ':'исп.: ')+escape(sec.executor));
+            return escape(sec.name)+' ('+extra.join(', ')+') — себест. '+fmtMoney(sec.cost)+' · комм. '+fmtMoney(sec.commercial);
+          }).join('; ')+' · <b>Итого: себест. '+fmtMoney(subCost)+' · комм. '+fmtMoney(subComm)+'</b></div>';
         }
       }else if(st.status==='insufficient'){
         html+='<div class="sub-detail" style="color:#b91c1c">Не хватает данных: '+escape(st.note||'')+'</div>';
       }
       html+='</div><span class="badge badge-'+st.status+'">'+SUB_STATUS_NAME[st.status]+'</span></div>';
     });
-    if(sectionsGrandTotal>0){
+    if(sectionsCostGrand>0||sectionsCommGrand>0){
       const objCoef=req.objectType?tonum(req.objectType.coef):1;
       const stagesTotal=(req.stages||[]).reduce(function(sum,s){return sum+s.amount;},0);
-      const sectionsFinalTotal=sectionsGrandTotal*objCoef+stagesTotal;
-      html+='<div class="hint-box" style="margin-top:8px"><b>Итого по разделам (все исполнители):</b> '+fmtMoney(sectionsGrandTotal)
-        +(req.objectType?' × '+objCoef+' ('+escape(req.objectType.name)+')':'')
-        +(stagesTotal?' + доп. стадии '+fmtMoney(stagesTotal)+' ('+req.stages.map(function(s){return escape(s.name)+' '+s.pct+'%';}).join(', ')+')':'')
-        +(req.objectType||stagesTotal?' = <b>'+fmtMoney(sectionsFinalTotal)+'</b>':'')
-        +((role==='production'||role==='commercial'||role==='admin')?' <button type="button" class="btn btn-sm" style="margin-left:8px" onclick="applySectionsTotal(\''+id+'\','+sectionsFinalTotal+')">Подставить в себестоимость</button>':'')+'</div>';
+      const costFinal=sectionsCostGrand*objCoef;
+      const commFinal=sectionsCommGrand*objCoef+stagesTotal;
+      html+='<div class="hint-box" style="margin-top:8px">'
+        +'<div><b>Итого себестоимость:</b> '+fmtMoney(sectionsCostGrand)+(req.objectType?' × '+objCoef:'')+(req.objectType?' = <b>'+fmtMoney(costFinal)+'</b>':'')
+          +((role==='production'||role==='commercial'||role==='admin')?' <button type="button" class="btn btn-sm" style="margin-left:8px" onclick="applySectionsTotal(\''+id+'\','+costFinal+',\'cost\')">Подставить в себестоимость КП</button>':'')+'</div>'
+        +'<div style="margin-top:6px"><b>Итого коммерческая:</b> '+fmtMoney(sectionsCommGrand)+(req.objectType?' × '+objCoef:'')
+          +(stagesTotal?' + доп. стадии '+fmtMoney(stagesTotal)+' ('+req.stages.map(function(s){return escape(s.name)+' '+s.pct+'%';}).join(', ')+')':'')
+          +' = <b>'+fmtMoney(commFinal)+'</b>'
+          +((role==='production'||role==='commercial'||role==='admin')?' <button type="button" class="btn btn-sm" style="margin-left:8px" onclick="applySectionsTotal(\''+id+'\','+commFinal+',\'final\')">Подставить в итоговую сумму КП</button>':'')+'</div>'
+      +'</div>';
     }
   }
 
@@ -1755,6 +1855,13 @@ function openDetail(id){
         +'<input type="checkbox" id="sub-insufficient-'+role+'" onchange="toggleSubForm(\''+role+'\')"> Данных недостаточно для оценки</label>';
     }
     if(role==='production'){
+      const savedRegion=req.region||'ru';
+      html+='<div class="field" style="margin-bottom:12px"><label>Регион (для ставок по разделам)</label>'
+        +'<select id="sub-region-production" onchange="refreshSectionsPicker(\'production\')">'
+        +Object.keys(REGION_NAME).map(function(k){return '<option value="'+k+'"'+(savedRegion===k?' selected':'')+'>'+REGION_NAME[k]+'</option>';}).join('')
+        +'</select>'
+        +'<div style="font-size:11px;color:var(--muted);margin-top:4px">Задаётся один раз на всю заявку — определяет, какую цену раздела подставлять (Россия/Москва задаются в каталоге разделов)</div>'
+      +'</div>';
       const objectTypeList=(DB.objectTypes||[]).filter(s=>!s._del);
       if(objectTypeList.length){
         const savedType=req.objectType?req.objectType.id:'';
@@ -1800,76 +1907,7 @@ function openDetail(id){
       +'<div class="field span2"><label>Комментарий</label><textarea id="sub-comment-'+role+'"></textarea></div>'
       +'</div>';
     html+='<div id="sub-form-note-'+role+'" class="field" style="display:none"><label>Каких данных не хватает?</label><textarea id="sub-note-'+role+'"></textarea></div>';
-    if((DB.sections||[]).some(s=>!s._del)){
-      const tier=areaTier(req.buildingArea);
-      const claimed=claimedSectionIds(req,role);
-      const mySections=((req.subs[role].sections)||[]).map(s=>s.sectionId);
-      const mySectionsMap={};
-      (req.subs[role].sections||[]).forEach(function(sec){mySectionsMap[sec.sectionId]=sec;});
-      html+='<div class="card-block" style="margin-top:14px"><b>Разделы работ</b>'
-        +(req.buildingArea?' <span style="color:var(--muted);font-size:12px">— площадь '+escape(req.buildingArea)+' м² ('+areaTierLabel(req.buildingArea)+')</span>':' <span style="color:var(--muted);font-size:12px">— площадь не указана, цена по ставке недоступна, только своя цена</span>');
-      html+='<div style="font-size:11px;color:var(--muted);margin-top:6px">Выберите стадию — под ней появятся её разделы. Наценка/скидка, дни и исполнитель задаются отдельно по каждому разделу — удобно согласовывать скидку или менять подрядчика на конкретном разделе, не трогая остальные. Для разделов без ставки цену указывает исполнитель вручную.</div>';
-      const renderRow=function(s){
-        const isMine=mySections.includes(s.id);
-        const isClaimedByOther=claimed.includes(s.id);
-        const disabled=isClaimedByOther&&!isMine;
-        const rate=tier?s[tier]:null;
-        const hasRate=rate!=null;
-        const saved=mySectionsMap[s.id]||{};
-        const isCustom=!hasRate||!!saved.customPrice;
-        const detailsId='sec-details-'+role+'-'+s.id;
-        return '<div style="padding:4px 0;border-bottom:1px solid var(--border);font-size:12.5px;'+(disabled?'opacity:.5':'')+'">'
-          +'<label style="display:flex;align-items:center;gap:7px;min-width:0">'
-            +'<input type="checkbox" class="sec-pick-'+role+'" value="'+s.id+'" '+(isMine?'checked':'')+' '+(disabled?'disabled':'')+' onchange="updateSectionsCalc(\''+role+'\');toggleSectionDetails(\''+role+'\',\''+s.id+'\')">'
-            +'<span>'+escape(s.name)+(hasRate?' — '+rateCell(rate):' <span style="color:var(--muted)">(своя цена)</span>')
-            +(isClaimedByOther?' <span style="color:var(--muted)">— уже выбрано другим исполнителем</span>':'')+'</span>'
-          +'</label>'
-          +'<div id="'+detailsId+'" style="display:'+(isMine?'flex':'none')+';gap:6px;flex-wrap:wrap;margin-top:5px;padding-left:24px">'
-            +'<input type="text" class="sec-exec-'+role+'" data-sec="'+s.id+'" placeholder="Исполнитель (ФИО/подрядчик)" style="flex:1;min-width:150px" value="'+escape(saved.executor||'')+'" '+(disabled?'disabled':'')+'>'
-            +(hasRate?'<label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap"><input type="checkbox" class="sec-custom-'+role+'" data-sec="'+s.id+'" '+(isCustom?'checked':'')+' '+(disabled?'disabled':'')+' onchange="toggleSectionCustom(\''+role+'\',\''+s.id+'\')"> Подрядчик / своя цена</label>':'')
-            +'<input type="number" min="0" step="1" class="sec-customprice-'+role+'" data-sec="'+s.id+'" placeholder="Своя цена, ₽" style="width:110px;'+(isCustom?'':'display:none')+'" value="'+escape(saved.customPrice||'')+'" '+(disabled?'disabled':'')+' oninput="updateSectionsCalc(\''+role+'\')">'
-            +'<input type="number" min="0" step="1" class="sec-days-'+role+'" data-sec="'+s.id+'" placeholder="Дней" title="Кол-во дней на раздел (справочно, на стоимость не влияет)" style="width:64px" value="'+escape(saved.days||'')+'" '+(disabled?'disabled':'')+'>'
-            +'<input type="number" min="-100" step="1" placeholder="±%" class="sec-markup-'+role+'" data-sec="'+s.id+'" style="width:66px" title="Наценка или скидка на этот раздел, % (отрицательное — скидка)" value="'+escape(saved.markupPct||'')+'" '+(disabled?'disabled':'')+' oninput="updateSectionsCalc(\''+role+'\')">'
-          +'</div>'
-        +'</div>';
-      };
-      const list=(DB.sections||[]).filter(s=>!s._del);
-      const stageKeys=[];
-      list.forEach(function(s){const k=s.stage||'pd'; if(!stageKeys.includes(k))stageKeys.push(k);});
-      const stageTabPrefix='sec-stagetab-'+role+'-';
-      html+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">'
-        +stageKeys.map(function(stageKey,stageIdx){
-          const stageItems=list.filter(s=>(s.stage||'pd')===stageKey);
-          const pickedCount=stageItems.filter(s=>mySections.includes(s.id)).length;
-          return '<button type="button" class="filter-chip'+(stageIdx===0?' active':'')+'" id="'+stageTabPrefix+stageIdx+'-btn" onclick="switchSectionStageTab(\''+role+'\','+stageIdx+')">'
-            +escape(STAGE_NAME_BY_KEY[stageKey]||stageKey)+(pickedCount?' ('+pickedCount+')':'')
-          +'</button>';
-        }).join('')
-      +'</div>';
-      stageKeys.forEach(function(stageKey,stageIdx){
-        const stageItems=list.filter(s=>(s.stage||'pd')===stageKey);
-        html+='<div id="'+stageTabPrefix+stageIdx+'" style="display:'+(stageIdx===0?'':'none')+';margin-top:10px">';
-        const groups=[];
-        stageItems.forEach(function(s){const g=s.group||''; if(!groups.includes(g))groups.push(g);});
-        groups.forEach(function(g,groupIdx){
-          if(g){
-            const groupItems=stageItems.filter(s=>(s.group||'')===g);
-            const groupHasMine=groupItems.some(s=>mySections.includes(s.id));
-            const groupBlockId='sec-groupblock-'+role+'-'+stageIdx+'-'+groupIdx;
-            html+='<div style="margin-top:6px;font-size:11.5px;color:var(--muted);font-weight:600;cursor:pointer;user-select:none;display:flex;align-items:center;gap:5px" onclick="toggleCollapse(\''+groupBlockId+'\',this)">'
-              +'<span class="collapse-chevron">'+(groupHasMine?'▾':'▸')+'</span>'+escape(g)
-              +' ('+groupItems.filter(s=>mySections.includes(s.id)).length+'/'+groupItems.length+')'
-            +'</div>';
-            html+='<div id="'+groupBlockId+'" style="display:'+(groupHasMine?'':'none')+';margin-left:8px">'+groupItems.map(renderRow).join('')+'</div>';
-          }else{
-            html+='<div>'+stageItems.filter(s=>(s.group||'')===g).map(renderRow).join('')+'</div>';
-          }
-        });
-        html+='</div>';
-      });
-      html+='<div id="sub-sec-total-'+role+'" style="font-size:13px;margin-top:6px;font-weight:600"></div>';
-      html+='</div>';
-    }
+    html+='<div id="sec-picker-wrap-'+role+'">'+buildSectionsPickerHtml(req,role,(req.region==='msk'?'msk':'ru'))+'</div>';
     html+='<div class="form-actions"><button class="btn btn-primary" onclick="actionSubSubmit(\''+id+'\',\''+role+'\')">Отправить</button></div>';
   }
 
@@ -1928,34 +1966,33 @@ function switchDetailTab(key){
 }
 function computeSectionsPickedTotal(role,req){
   const checked=document.querySelectorAll('.sec-pick-'+role+':checked');
-  let base=0,withMarkup=0;
+  let cost=0,commercial=0;
+  const rows=[];
   checked.forEach(function(cb){
     const s=(DB.sections||[]).find(x=>x.id===cb.value); if(!s)return;
-    const markupEl=document.querySelector('.sec-markup-'+role+'[data-sec="'+cb.value+'"]');
-    const markup=tonum(markupEl?markupEl.value:0);
-    const customEl=document.querySelector('.sec-custom-'+role+'[data-sec="'+cb.value+'"]');
-    const isCustom=!sectionHasRate(s,req.buildingArea)||(customEl&&customEl.checked);
-    const priceEl=document.querySelector('.sec-customprice-'+role+'[data-sec="'+cb.value+'"]');
-    const t=sectionTotal(s,req.buildingArea,markup,{
-      customPrice:isCustom?(priceEl?priceEl.value:''):''
-    });
-    base+=t.base; withMarkup+=t.withMarkup;
+    const costEl=document.querySelector('.sec-cost-'+role+'[data-sec="'+cb.value+'"]');
+    const commEl=document.querySelector('.sec-commercial-'+role+'[data-sec="'+cb.value+'"]');
+    const c=tonum(costEl?costEl.value:0), m=tonum(commEl?commEl.value:0);
+    cost+=c; commercial+=m;
+    rows.push({name:s.name,cost:c,commercial:m});
   });
-  return {count:checked.length,base,withMarkup};
+  return {count:checked.length,cost,commercial,rows};
 }
 function updateSectionsCalc(role){
   const totalEl=byId('sub-sec-total-'+role);
   if(!totalEl||!currentDetailId)return;
   const req=DB.requests[currentDetailId]; if(!req)return;
   const t=computeSectionsPickedTotal(role,req);
-  totalEl.textContent='Разделов: '+t.count+' · Сумма: '+fmtMoney(t.withMarkup)+' (без наценки: '+fmtMoney(t.base)+')';
+  const breakdown=t.rows.map(function(r){return escape(r.name)+': себест. '+fmtMoney(r.cost)+' · комм. '+fmtMoney(r.commercial);}).join('<br>');
+  totalEl.innerHTML='<b>Разделов: '+t.count+' · Себестоимость: '+fmtMoney(t.cost)+' · Коммерческая: '+fmtMoney(t.commercial)+'</b>'
+    +(breakdown?'<div style="font-weight:400;margin-top:4px;color:var(--muted)">'+breakdown+'</div>':'');
   if(role==='production')updateProdStagesCalc();
 }
 function updateProdStagesCalc(){
   const totalEl=byId('sub-stages-total-production');
   if(!totalEl||!currentDetailId)return;
   const req=DB.requests[currentDetailId]; if(!req)return;
-  const sectionsTotal=computeSectionsPickedTotal('production',req).withMarkup;
+  const sectionsTotal=computeSectionsPickedTotal('production',req).commercial;
   const objSel=byId('sub-objtype-production');
   const objOpt=objSel?objSel.options[objSel.selectedIndex]:null;
   const objCoef=(objSel&&objSel.value&&objOpt)?tonum(objOpt.dataset.coef):1;
@@ -1990,25 +2027,126 @@ function applyKpCalc(){
   const total=cost*(1+margin/100)*(1+vat/100);
   byId('kp-final-amount').value=Math.round(total);
 }
-function applySectionsTotal(id,total){
-  const costEl=byId('kp-cost');
-  if(costEl){
-    costEl.value=Math.round(total);
+function applySectionsTotal(id,total,target){
+  const elId=target==='final'?'kp-final-amount':'kp-cost';
+  const el=byId(elId);
+  if(el){
+    el.value=Math.round(total);
     updateKpCalc();
   }else{
-    alert('Итого по разделам (себестоимость): '+fmtMoney(total)+'. Эта сумма будет доступна для подстановки на этапе формирования КП в коммерческом отделе.');
+    alert('Итого по разделам: '+fmtMoney(total)+'. Эта сумма будет доступна для подстановки на этапе формирования КП в коммерческом отделе.');
   }
-}
-function toggleSectionCustom(role,secId){
-  const isCustom=document.querySelector('.sec-custom-'+role+'[data-sec="'+secId+'"]').checked;
-  const priceEl=document.querySelector('.sec-customprice-'+role+'[data-sec="'+secId+'"]');
-  priceEl.style.display=isCustom?'':'none';
-  updateSectionsCalc(role);
 }
 function toggleSectionDetails(role,secId){
   const cb=document.querySelector('.sec-pick-'+role+'[value="'+secId+'"]');
   const details=byId('sec-details-'+role+'-'+secId);
   if(details)details.style.display=cb.checked?'flex':'none';
+}
+function buildSectionsPickerHtml(req,role,region){
+  if(!(DB.sections||[]).some(s=>!s._del))return '';
+  const tier=areaTier(req.buildingArea);
+  const claimed=claimedSectionIds(req,role);
+  const mySections=((req.subs[role].sections)||[]).map(s=>s.sectionId);
+  const mySectionsMap={};
+  (req.subs[role].sections||[]).forEach(function(sec){mySectionsMap[sec.sectionId]=sec;});
+  const unitsList=(DB.units||[]).filter(u=>!u._del);
+  let html='';
+  html+='<div class="card-block" style="margin-top:14px"><b>Разделы работ</b>'
+    +(req.buildingArea?' <span style="color:var(--muted);font-size:12px">— площадь '+escape(req.buildingArea)+' м² ('+areaTierLabel(req.buildingArea)+'), регион: '+REGION_NAME[region]+'</span>':' <span style="color:var(--muted);font-size:12px">— площадь не указана, цена по ставке недоступна, только своя цена</span>');
+  html+='<div style="font-size:11px;color:var(--muted);margin-top:6px">Выберите стадию — под ней появятся её разделы. Себестоимость подставляется по каталогу (можно менять), коммерческую стоимость впишите вручную. Дни и исполнитель — отдельно по каждому разделу.</div>';
+  const renderRow=function(s){
+    const isMine=mySections.includes(s.id);
+    const isClaimedByOther=claimed.includes(s.id);
+    const disabled=isClaimedByOther&&!isMine;
+    const priceType=sectionPriceType(s);
+    const suf=region==='msk'?'Msk':'';
+    const rateField=tier?(tier+suf):null;
+    const rate=(priceType==='area'&&rateField)?s[rateField]:null;
+    const hasRate=priceType==='area'&&rate!=null;
+    const fixedVal=priceType==='fixed'?s['fixedPrice'+suf]:null;
+    const saved=mySectionsMap[s.id]||{};
+    let suggestedCost=null;
+    if(priceType==='fixed'){suggestedCost=fixedVal!=null?tonum(fixedVal):null;}
+    else if(hasRate){suggestedCost=tonum(rate)*tonum(req.buildingArea);}
+    const costVal=(saved.cost!=null&&saved.cost!=='')?saved.cost:(suggestedCost!=null?Math.round(suggestedCost):'');
+    const commercialVal=saved.commercial!=null?saved.commercial:'';
+    const priceLabel=priceType==='fixed'
+      ?(fixedVal!=null?('фикс. '+fmtMoney(fixedVal)):'фикс. цена не задана')
+      :(hasRate?rateCell(rate):'своя цена');
+    const execIsContractor=saved.executorType==='contractor';
+    const detailsId='sec-details-'+role+'-'+s.id;
+    return '<div style="padding:4px 0;border-bottom:1px solid var(--border);font-size:12.5px;'+(disabled?'opacity:.5':'')+'">'
+      +'<label style="display:flex;align-items:center;gap:7px;min-width:0">'
+        +'<input type="checkbox" class="sec-pick-'+role+'" value="'+s.id+'" '+(isMine?'checked':'')+' '+(disabled?'disabled':'')+' onchange="updateSectionsCalc(\''+role+'\');toggleSectionDetails(\''+role+'\',\''+s.id+'\')">'
+        +'<span>'+escape(s.name)+' — '+priceLabel
+        +(isClaimedByOther?' <span style="color:var(--muted)">— уже выбрано другим исполнителем</span>':'')+'</span>'
+      +'</label>'
+      +'<div id="'+detailsId+'" style="display:'+(isMine?'flex':'none')+';gap:6px;flex-wrap:wrap;margin-top:5px;padding-left:24px;align-items:center">'
+        +'<select class="sec-execsel-'+role+'" data-sec="'+s.id+'" style="max-width:170px" '+(disabled?'disabled':'')+' onchange="toggleExecutorType(\''+role+'\',\''+s.id+'\')">'
+          +'<option value="">— исполнитель —</option>'
+          +unitsList.map(function(u){return '<option value="'+escape(u.name)+'"'+(!execIsContractor&&saved.executor===u.name?' selected':'')+'>'+escape(u.name)+'</option>';}).join('')
+          +'<option value="__contractor__"'+(execIsContractor?' selected':'')+'>Подрядчик (ввести вручную)</option>'
+        +'</select>'
+        +'<input type="text" class="sec-exec-'+role+'" data-sec="'+s.id+'" placeholder="Название подрядчика" style="flex:1;min-width:120px;'+(execIsContractor?'':'display:none')+'" value="'+(execIsContractor?escape(saved.executor||''):'')+'" '+(disabled?'disabled':'')+'>'
+        +'<input type="number" min="0" step="1" class="sec-cost-'+role+'" data-sec="'+s.id+'" placeholder="Себестоимость" style="width:110px" title="Себестоимость раздела, ₽ — подставлена по каталогу, можно менять" value="'+escape(costVal)+'" '+(disabled?'disabled':'')+' oninput="updateSectionsCalc(\''+role+'\')">'
+        +'<input type="number" min="0" step="1" class="sec-commercial-'+role+'" data-sec="'+s.id+'" placeholder="Коммерческая" style="width:110px" title="Коммерческая стоимость раздела, ₽ — вводится вручную" value="'+escape(commercialVal)+'" '+(disabled?'disabled':'')+' oninput="updateSectionsCalc(\''+role+'\')">'
+        +'<input type="number" min="0" step="1" class="sec-days-'+role+'" data-sec="'+s.id+'" placeholder="Дней" title="Кол-во дней на раздел (справочно)" style="width:60px" value="'+escape(saved.days||'')+'" '+(disabled?'disabled':'')+'>'
+      +'</div>'
+    +'</div>';
+  };
+  const list=(DB.sections||[]).filter(s=>!s._del);
+  const stageKeys=[];
+  list.forEach(function(s){const k=s.stage||'pd'; if(!stageKeys.includes(k))stageKeys.push(k);});
+  const stageTabPrefix='sec-stagetab-'+role+'-';
+  html+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">'
+    +stageKeys.map(function(stageKey,stageIdx){
+      const stageItems=list.filter(s=>(s.stage||'pd')===stageKey);
+      const pickedCount=stageItems.filter(s=>mySections.includes(s.id)).length;
+      return '<button type="button" class="filter-chip'+(stageIdx===0?' active':'')+'" id="'+stageTabPrefix+stageIdx+'-btn" onclick="switchSectionStageTab(\''+role+'\','+stageIdx+')">'
+        +escape(STAGE_NAME_BY_KEY[stageKey]||stageKey)+(pickedCount?' ('+pickedCount+')':'')
+      +'</button>';
+    }).join('')
+  +'</div>';
+  stageKeys.forEach(function(stageKey,stageIdx){
+    const stageItems=list.filter(s=>(s.stage||'pd')===stageKey);
+    html+='<div id="'+stageTabPrefix+stageIdx+'" style="display:'+(stageIdx===0?'':'none')+';margin-top:10px">';
+    const groups=[];
+    stageItems.forEach(function(s){const g=s.group||''; if(!groups.includes(g))groups.push(g);});
+    groups.forEach(function(g,groupIdx){
+      if(g){
+        const groupItems=stageItems.filter(s=>(s.group||'')===g);
+        const groupHasMine=groupItems.some(s=>mySections.includes(s.id));
+        const groupBlockId='sec-groupblock-'+role+'-'+stageIdx+'-'+groupIdx;
+        html+='<div style="margin-top:6px;font-size:11.5px;color:var(--muted);font-weight:600;cursor:pointer;user-select:none;display:flex;align-items:center;gap:5px" onclick="toggleCollapse(\''+groupBlockId+'\',this)">'
+          +'<span class="collapse-chevron">'+(groupHasMine?'▾':'▸')+'</span>'+escape(g)
+          +' ('+groupItems.filter(s=>mySections.includes(s.id)).length+'/'+groupItems.length+')'
+        +'</div>';
+        html+='<div id="'+groupBlockId+'" style="display:'+(groupHasMine?'':'none')+';margin-left:8px">'+groupItems.map(renderRow).join('')+'</div>';
+      }else{
+        html+='<div>'+stageItems.filter(s=>(s.group||'')===g).map(renderRow).join('')+'</div>';
+      }
+    });
+    html+='</div>';
+  });
+  html+='<div id="sub-sec-total-'+role+'" style="font-size:13px;margin-top:6px;font-weight:600"></div>';
+  html+='</div>';
+  return html;
+}
+function refreshSectionsPicker(role){
+  const wrap=byId('sec-picker-wrap-'+role);
+  if(!wrap||!currentDetailId)return;
+  const req=DB.requests[currentDetailId]; if(!req)return;
+  const regionSel=byId('sub-region-'+role);
+  const region=(regionSel&&regionSel.value==='msk')?'msk':'ru';
+  wrap.innerHTML=buildSectionsPickerHtml(req,role,region);
+  updateSectionsCalc(role);
+}
+function toggleExecutorType(role,secId){
+  const sel=document.querySelector('.sec-execsel-'+role+'[data-sec="'+secId+'"]');
+  const txt=document.querySelector('.sec-exec-'+role+'[data-sec="'+secId+'"]');
+  const isContractor=sel.value==='__contractor__';
+  txt.style.display=isContractor?'':'none';
+  if(!isContractor)txt.value='';
 }
 function switchSectionStageTab(role,stageIdx){
   const prefix='sec-stagetab-'+role+'-';
@@ -2051,6 +2189,8 @@ function renderUsers(){
   renderSections();
   renderStageCoef();
   renderObjectTypes();
+  renderUnits();
+  renderLegalEntities();
 }
 function renderManagers(){
   const list=(DB.managers||[]).filter(m=>!m._del);
@@ -2075,6 +2215,54 @@ function deleteManager(id){
   m._del=true;
   pushManagers();
   renderManagers();
+}
+function renderUnits(){
+  const list=(DB.units||[]).filter(u=>!u._del);
+  byId('units-table-body').innerHTML=list.length?list.map(u=>
+    '<tr><td>'+escape(u.name)+'</td>'
+    +'<td><button class="btn btn-sm btn-danger" onclick="deleteUnit(\''+u.id+'\')">Удалить</button></td></tr>'
+  ).join(''):'<tr><td colspan="2" style="color:var(--muted)">Список пуст</td></tr>';
+}
+function createUnit(){
+  const name=(byId('unf-name').value||'').trim();
+  if(!name){alert('Укажите ФИО');return;}
+  DB.units=DB.units||[];
+  if(DB.units.some(u=>!u._del&&u.name.toLowerCase()===name.toLowerCase())){alert('Такой юнит уже есть в списке');return;}
+  DB.units.push({id:uid('unit'),name});
+  pushUnits();
+  byId('unf-name').value='';
+  renderUnits();
+}
+function deleteUnit(id){
+  const u=(DB.units||[]).find(x=>x.id===id); if(!u)return;
+  if(!confirm('Удалить юнит «'+u.name+'» из списка?'))return;
+  u._del=true;
+  pushUnits();
+  renderUnits();
+}
+function renderLegalEntities(){
+  const list=(DB.legalEntities||[]).filter(l=>!l._del);
+  byId('legalentities-table-body').innerHTML=list.length?list.map(l=>
+    '<tr><td>'+escape(l.name)+'</td>'
+    +'<td><button class="btn btn-sm btn-danger" onclick="deleteLegalEntity(\''+l.id+'\')">Удалить</button></td></tr>'
+  ).join(''):'<tr><td colspan="2" style="color:var(--muted)">Список пуст</td></tr>';
+}
+function createLegalEntity(){
+  const name=(byId('lef-name').value||'').trim();
+  if(!name){alert('Укажите название');return;}
+  DB.legalEntities=DB.legalEntities||[];
+  if(DB.legalEntities.some(l=>!l._del&&l.name.toLowerCase()===name.toLowerCase())){alert('Такое юр. лицо уже есть в списке');return;}
+  DB.legalEntities.push({id:uid('le'),name});
+  pushLegalEntities();
+  byId('lef-name').value='';
+  renderLegalEntities();
+}
+function deleteLegalEntity(id){
+  const l=(DB.legalEntities||[]).find(x=>x.id===id); if(!l)return;
+  if(!confirm('Удалить юр. лицо «'+l.name+'» из списка?'))return;
+  l._del=true;
+  pushLegalEntities();
+  renderLegalEntities();
 }
 
 /* ---- Divisions (dynamic roles that can be involved in assessing a КП) ---- */
@@ -2119,26 +2307,69 @@ function deleteDivision(id){
   renderUsers();
 }
 
-/* ---- Sections catalog (rate per m² for Стадия П, claimed exclusively by an assessor) ---- */
+/* ---- Sections catalog (rate per m² or fixed price, per region — claimed exclusively by an assessor) ---- */
 function rateCell(v){return v==null||v===''?'—':tonum(v).toLocaleString('ru-RU')+' ₽/м²';}
+function moneyCell(v){return v==null||v===''?'—':fmtMoney(v);}
+function sectionPriceType(sec){return sec.priceType==='fixed'?'fixed':'area';}
+function sectionRegionSummary(sec,region){
+  const suf=region==='msk'?'Msk':'';
+  if(sectionPriceType(sec)==='fixed'){
+    const v=sec['fixedPrice'+suf];
+    return v==null?'—':'фикс. '+fmtMoney(v);
+  }
+  return rateCell(sec['rate1'+suf])+' / '+rateCell(sec['rate2'+suf])+' / '+rateCell(sec['rate3'+suf]);
+}
+function toggleSectionPriceTypeUI(prefix){
+  const checked=document.querySelector('input[name="'+prefix+'-pricetype"]:checked');
+  const val=checked?checked.value:'area';
+  const areaWrap=byId(prefix+'-areawrap');
+  const fixedWrap=byId(prefix+'-fixedwrap');
+  if(areaWrap)areaWrap.style.display=val==='fixed'?'none':'';
+  if(fixedWrap)fixedWrap.style.display=val==='fixed'?'':'none';
+}
 let editingSectionId=null;
 function renderSections(){
   const list=(DB.sections||[]).filter(s=>!s._del);
   byId('sections-table-body').innerHTML=list.length?list.map(s=>{
     if(s.id===editingSectionId){
+      const pt=sectionPriceType(s);
       return '<tr>'
         +'<td><input id="sce-name-'+s.id+'" value="'+escape(s.name)+'" style="width:100%"></td>'
         +'<td><select id="sce-stage-'+s.id+'"><option value="pd"'+((s.stage||'pd')==='pd'?' selected':'')+'>ПД</option><option value="rd"'+(s.stage==='rd'?' selected':'')+'>РД</option></select>'
           +'<input id="sce-group-'+s.id+'" placeholder="группа (РД)" value="'+escape(s.group||'')+'" style="width:100%;margin-top:4px"></td>'
-        +'<td><input id="sce-rate1-'+s.id+'" type="number" min="0" step="0.01" value="'+(s.rate1==null?'':s.rate1)+'" style="width:90px"></td>'
-        +'<td><input id="sce-rate2-'+s.id+'" type="number" min="0" step="0.01" value="'+(s.rate2==null?'':s.rate2)+'" style="width:90px"></td>'
-        +'<td><input id="sce-rate3-'+s.id+'" type="number" min="0" step="0.01" value="'+(s.rate3==null?'':s.rate3)+'" style="width:90px"></td>'
+        +'<td colspan="2">'
+          +'<div style="display:flex;gap:10px;margin-bottom:6px">'
+            +'<label style="display:flex;gap:4px;align-items:center;font-weight:400"><input type="radio" name="sce-pricetype-'+s.id+'" value="area"'+(pt==='area'?' checked':'')+' onchange="toggleSectionPriceTypeUI(\'sce-'+s.id+'\')"> За м²</label>'
+            +'<label style="display:flex;gap:4px;align-items:center;font-weight:400"><input type="radio" name="sce-pricetype-'+s.id+'" value="fixed"'+(pt==='fixed'?' checked':'')+' onchange="toggleSectionPriceTypeUI(\'sce-'+s.id+'\')"> Фикс.</label>'
+          +'</div>'
+          +'<div id="sce-'+s.id+'-areawrap" style="display:'+(pt==='fixed'?'none':'')+'">'
+            +'<div style="font-size:10.5px;color:var(--muted)">Россия: 50-500 / 500-1500 / &gt;1500 м²</div>'
+            +'<div style="display:flex;gap:4px;margin-bottom:4px">'
+              +'<input id="sce-rate1-'+s.id+'" type="number" min="0" step="0.01" value="'+(s.rate1==null?'':s.rate1)+'" style="width:70px">'
+              +'<input id="sce-rate2-'+s.id+'" type="number" min="0" step="0.01" value="'+(s.rate2==null?'':s.rate2)+'" style="width:70px">'
+              +'<input id="sce-rate3-'+s.id+'" type="number" min="0" step="0.01" value="'+(s.rate3==null?'':s.rate3)+'" style="width:70px">'
+            +'</div>'
+            +'<div style="font-size:10.5px;color:var(--muted)">Москва: 50-500 / 500-1500 / &gt;1500 м²</div>'
+            +'<div style="display:flex;gap:4px">'
+              +'<input id="sce-rate1msk-'+s.id+'" type="number" min="0" step="0.01" value="'+(s.rate1Msk==null?'':s.rate1Msk)+'" style="width:70px">'
+              +'<input id="sce-rate2msk-'+s.id+'" type="number" min="0" step="0.01" value="'+(s.rate2Msk==null?'':s.rate2Msk)+'" style="width:70px">'
+              +'<input id="sce-rate3msk-'+s.id+'" type="number" min="0" step="0.01" value="'+(s.rate3Msk==null?'':s.rate3Msk)+'" style="width:70px">'
+            +'</div>'
+          +'</div>'
+          +'<div id="sce-'+s.id+'-fixedwrap" style="display:'+(pt==='fixed'?'':'none')+'">'
+            +'<div style="display:flex;gap:4px;align-items:center">Россия <input id="sce-fixed-'+s.id+'" type="number" min="0" step="1" value="'+(s.fixedPrice==null?'':s.fixedPrice)+'" style="width:90px"></div>'
+            +'<div style="display:flex;gap:4px;align-items:center;margin-top:4px">Москва <input id="sce-fixedmsk-'+s.id+'" type="number" min="0" step="1" value="'+(s.fixedPriceMsk==null?'':s.fixedPriceMsk)+'" style="width:90px"></div>'
+          +'</div>'
+        +'</td>'
         +'<td style="white-space:nowrap">'
           +'<button class="btn btn-sm btn-primary" onclick="saveSection(\''+s.id+'\')">Сохранить</button> '
           +'<button class="btn btn-sm" onclick="cancelEditSection()">Отмена</button>'
         +'</td></tr>';
     }
-    return '<tr><td>'+escape(s.name)+'</td><td>'+escape(STAGE_NAME_BY_KEY[s.stage||'pd']||s.stage)+(s.group?'<br><span style="color:var(--muted);font-size:11px">'+escape(s.group)+'</span>':'')+'</td><td>'+rateCell(s.rate1)+'</td><td>'+rateCell(s.rate2)+'</td><td>'+rateCell(s.rate3)+'</td>'
+    return '<tr><td>'+escape(s.name)+'</td><td>'+escape(STAGE_NAME_BY_KEY[s.stage||'pd']||s.stage)+(s.group?'<br><span style="color:var(--muted);font-size:11px">'+escape(s.group)+'</span>':'')+'</td>'
+    +'<td>'+(sectionPriceType(s)==='fixed'?'Фиксированная':'За м²')+'</td>'
+    +'<td style="font-size:11.5px">'+sectionRegionSummary(s,'ru')+'</td>'
+    +'<td style="font-size:11.5px">'+sectionRegionSummary(s,'msk')+'</td>'
     +'<td style="white-space:nowrap"><button class="btn btn-sm" onclick="editSection(\''+s.id+'\')">Изменить</button> '
     +'<button class="btn btn-sm btn-danger" onclick="deleteSection(\''+s.id+'\')">Удалить</button></td></tr>';
   }).join(''):'<tr><td colspan="6" style="color:var(--muted)">Список пуст</td></tr>';
@@ -2150,15 +2381,17 @@ function saveSection(id){
   const name=(byId('sce-name-'+id).value||'').trim();
   const stage=byId('sce-stage-'+id).value;
   const group=(byId('sce-group-'+id).value||'').trim();
-  const rate1=byId('sce-rate1-'+id).value.trim(), rate2=byId('sce-rate2-'+id).value.trim(), rate3=byId('sce-rate3-'+id).value.trim();
+  const priceType=(document.querySelector('input[name="sce-pricetype-'+id+'"]:checked')||{}).value||'area';
   if(!name){alert('Укажите название раздела');return;}
   if(DB.sections.some(x=>x.id!==id&&!x._del&&x.name.toLowerCase()===name.toLowerCase())){alert('Такой раздел уже есть');return;}
   s.name=name;
   s.stage=stage;
   s.group=group;
-  s.rate1=rate1?tonum(rate1):null;
-  s.rate2=rate2?tonum(rate2):null;
-  s.rate3=rate3?tonum(rate3):null;
+  s.priceType=priceType;
+  const num=function(elId){const v=byId(elId).value.trim();return v?tonum(v):null;};
+  s.rate1=num('sce-rate1-'+id); s.rate2=num('sce-rate2-'+id); s.rate3=num('sce-rate3-'+id);
+  s.rate1Msk=num('sce-rate1msk-'+id); s.rate2Msk=num('sce-rate2msk-'+id); s.rate3Msk=num('sce-rate3msk-'+id);
+  s.fixedPrice=num('sce-fixed-'+id); s.fixedPriceMsk=num('sce-fixedmsk-'+id);
   pushSections();
   editingSectionId=null;
   renderSections();
@@ -2167,13 +2400,19 @@ function createSection(){
   const name=(byId('scf-name').value||'').trim();
   const stage=byId('scf-stage').value;
   const group=(byId('scf-group').value||'').trim();
-  const rate1=byId('scf-rate1').value.trim(), rate2=byId('scf-rate2').value.trim(), rate3=byId('scf-rate3').value.trim();
+  const priceType=(document.querySelector('input[name="scf-pricetype"]:checked')||{}).value||'area';
   if(!name){alert('Укажите название раздела');return;}
   DB.sections=DB.sections||[];
   if(DB.sections.some(s=>!s._del&&s.name.toLowerCase()===name.toLowerCase())){alert('Такой раздел уже есть');return;}
-  DB.sections.push({id:uid('sec'),name,stage,group,rate1:rate1?tonum(rate1):null,rate2:rate2?tonum(rate2):null,rate3:rate3?tonum(rate3):null});
+  const num=function(elId){const v=byId(elId).value.trim();return v?tonum(v):null;};
+  DB.sections.push({
+    id:uid('sec'),name,stage,group,priceType,
+    rate1:num('scf-rate1'),rate2:num('scf-rate2'),rate3:num('scf-rate3'),
+    rate1Msk:num('scf-rate1msk'),rate2Msk:num('scf-rate2msk'),rate3Msk:num('scf-rate3msk'),
+    fixedPrice:num('scf-fixed'),fixedPriceMsk:num('scf-fixedmsk')
+  });
   pushSections();
-  byId('scf-name').value='';byId('scf-group').value='';byId('scf-rate1').value='';byId('scf-rate2').value='';byId('scf-rate3').value='';
+  ['scf-name','scf-group','scf-rate1','scf-rate2','scf-rate3','scf-rate1msk','scf-rate2msk','scf-rate3msk','scf-fixed','scf-fixedmsk'].forEach(function(elId){byId(elId).value='';});
   renderSections();
 }
 function deleteSection(id){
@@ -2305,19 +2544,6 @@ function claimedSectionIds(req,excludeRole){
     if(sub&&sub.sections)sub.sections.forEach(function(sec){ids.push(sec.sectionId);});
   });
   return ids;
-}
-function sectionTotal(sec,area,markupPct,opts){
-  opts=opts||{};
-  let base;
-  if(opts.customPrice!==undefined&&opts.customPrice!==null&&opts.customPrice!==''){
-    base=tonum(opts.customPrice);
-  }else{
-    const tier=areaTier(area);
-    const rate=tier?tonum(sec[tier]):0;
-    base=rate*tonum(area);
-  }
-  const withMarkup=base*(1+tonum(markupPct)/100);
-  return {base,withMarkup};
 }
 function createUser(){
   const name=byId('uf-name').value.trim(), login=byId('uf-login').value.trim(), pass=byId('uf-pass').value.trim();
