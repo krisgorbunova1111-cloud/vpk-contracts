@@ -197,7 +197,7 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     <div class="role" id="user-box-role"></div>
     <button class="logout-btn" onclick="logout()">Выйти</button>
   </div>
-  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-11.6</div>
+  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-11.7</div>
 </div>
 
 <div id="main" style="display:none">
@@ -1724,34 +1724,22 @@ function openDetail(id){
               if(sec.region)extra.push(REGION_NAME[sec.region]||sec.region);
               if(sec.days)extra.push(sec.days+' дн.');
               if(sec.executor)extra.push((sec.executorType==='contractor'?'подрядчик: ':'исп.: ')+escape(sec.executor));
+              const secProfit=computeProfit(sec.cost,sec.commercial);
+              extra.push('надбавка '+secProfit.pct.toFixed(1)+'%');
               return '<div style="padding:7px 10px;font-size:12px;'+(i>0?'border-top:1px solid var(--border);':'')+'background:'+(i%2?'var(--surface-2,#f8fafc)':'transparent')+'">'
                 +'<div style="font-weight:600">'+escape(sec.name)+'</div>'
                 +'<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:3px;flex-wrap:wrap">'
-                  +'<div style="color:var(--muted);font-size:10.5px">'+(extra.length?escape(extra.join(' · ')):'—')+'</div>'
-                  +'<div style="white-space:nowrap;font-size:11px"><b>себест.</b> '+fmtMoney(sec.cost)+' · <b>комм.</b> '+fmtMoney(sec.commercial)+'</div>'
+                  +'<div style="color:var(--muted);font-size:10.5px">'+escape(extra.join(' · '))+'</div>'
+                  +'<div style="white-space:nowrap;font-size:11px"><b>себест.</b> '+fmtMoney(sec.cost)+' · <b>комм.</b> '+fmtMoney(sec.commercial)+' · <span class="'+(secProfit.profit<0?'pv neg':'pv')+'">'+fmtMoney(secProfit.profit)+'</span></div>'
                 +'</div>'
               +'</div>';
             }).join('')
             +'</div>'
             +'<div style="margin-top:6px;font-size:12.5px;text-align:right"><b>Итого по '+subLabel(s)+': себест. '+fmtMoney(subCost)+' · комм. '+fmtMoney(subComm)+'</b></div>';
-          const subPctSaved=st.markupPct!=null&&st.markupPct!==''?tonum(st.markupPct):null;
-          const subRecommendedComm=subPctSaved!=null?subCost*(1+subPctSaved/100):subComm;
-          const subProfit=computeProfit(subCost,subRecommendedComm);
-          const subBaseProfit=computeProfit(subCost,subComm);
-          const canEditSubMarkup=(role===s||role==='admin');
+          const subProfit=computeProfit(subCost,subComm);
           if(subCost>0||subComm>0){
             html+='<div class="profit-box" style="margin-top:8px;padding:10px 14px">'
               +'<div style="font-size:15px"><span class="'+(subProfit.profit<0?'pv neg':'pv')+'">'+fmtMoney(subProfit.profit)+' ('+subProfit.pct.toFixed(1)+'%)</span> <span style="font-weight:600;font-size:11px;color:var(--muted)">прибыль по «'+subLabel(s)+'»</span></div>'
-              +(subPctSaved!=null?'<div style="font-size:11px;color:var(--muted);margin-top:2px">Надбавка задана вручную — рекомендованная коммерческая: <b>'+fmtMoney(subRecommendedComm)+'</b> (вместо '+fmtMoney(subComm)+' по разделам)</div>':'')
-              +(canEditSubMarkup
-                ?'<div style="display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap">'
-                  +'<label style="font-size:11.5px;font-weight:700;color:var(--muted)">Надбавка, %</label>'
-                  +'<input type="number" step="0.1" id="markup-pct-'+s+'" data-cost="'+subCost+'" value="'+(subPctSaved!=null?subPctSaved:subBaseProfit.pct.toFixed(1))+'" style="width:90px" oninput="updateSubMarkupPreview(\''+s+'\')">'
-                  +'<button type="button" class="btn btn-sm btn-primary" onclick="saveSubMarkup(\''+id+'\',\''+s+'\')">Сохранить</button>'
-                  +(subPctSaved!=null?'<button type="button" class="btn btn-sm" onclick="clearSubMarkup(\''+id+'\',\''+s+'\')">Сбросить</button>':'')
-                +'</div>'
-                +'<div id="markup-preview-'+s+'" style="font-size:11.5px;color:var(--muted);margin-top:6px"></div>'
-                :'')
             +'</div>';
           }
           html+='</div>';
@@ -1769,13 +1757,9 @@ function openDetail(id){
           +(agg.stagesTotal?' + доп. стадии '+fmtMoney(agg.stagesTotal)+' ('+req.stages.map(function(s){return escape(s.name)+' '+s.pct+'%';}).join(', ')+')':'')
           +' = <b>'+fmtMoney(agg.commFinal)+'</b></div>'
       +'</div>';
-      const rec=recommendedCommFor(req,agg);
-      const recProfit=computeProfit(agg.costFinal,rec.comm);
+      const recProfit=computeProfit(agg.costFinal,agg.commFinal);
       html+='<div class="profit-box">'
         +'<div style="font-size:19px"><span class="'+(recProfit.profit<0?'pv neg':'pv')+'">'+fmtMoney(recProfit.profit)+' ('+recProfit.pct.toFixed(1)+'%)</span> <span style="font-weight:600;font-size:12px;color:var(--muted)">прибыль по всей заявке</span></div>'
-        +'<div style="font-size:11.5px;color:var(--muted);margin-top:3px">'+(rec.pctSaved
-            ?'С учётом индивидуальных надбавок исполнителей (см. выше) — рекомендованная коммерческая для КП: <b>'+fmtMoney(rec.comm)+'</b> (вместо '+fmtMoney(agg.commFinal)+' по разделам)'
-            :'Надбавка ни у кого не задавалась — рекомендуется коммерческому отделу сумма из «Итого коммерческая» выше')+'</div>'
       +'</div>';
     }
   }
@@ -1810,8 +1794,7 @@ function openDetail(id){
     +'</div>';
     const kpAgg=computeAggregateTotals(req);
     if(kpAgg.costFinal>0){
-      const kpRec=recommendedCommFor(req,kpAgg);
-      const kpRecProfit=computeProfit(kpAgg.costFinal,kpRec.comm);
+      const kpRecProfit=computeProfit(kpAgg.costFinal,kpAgg.commFinal);
       const comPctSaved=req.kpMarginPct!=null&&req.kpMarginPct!==''?tonum(req.kpMarginPct):null;
       const activePct=comPctSaved!=null?comPctSaved:kpRecProfit.pct;
       const netAmount=kpAgg.costFinal*(1+activePct/100);
@@ -1823,7 +1806,7 @@ function openDetail(id){
         +'<div style="font-weight:700;font-size:13px;margin-bottom:12px">Расчёт стоимости (внутренний, в КП заказчику не попадает)</div>'
         +'<div class="form-grid">'
           +'<div><div class="kp-stat-label">Себестоимость</div><div class="kp-stat-val">'+fmtMoney(kpAgg.costFinal)+'</div></div>'
-          +'<div><div class="kp-stat-label">Рекомендованная коммерческая</div><div class="kp-stat-val">'+fmtMoney(kpRec.comm)+'</div></div>'
+          +'<div><div class="kp-stat-label">Рекомендованная коммерческая</div><div class="kp-stat-val">'+fmtMoney(kpAgg.commFinal)+'</div></div>'
           +'<div><div class="kp-stat-label">Запланированная прибыль</div><div class="kp-stat-val"><span class="'+(kpRecProfit.profit<0?'pv neg':'pv')+'">'+fmtMoney(kpRecProfit.profit)+' ('+kpRecProfit.pct.toFixed(1)+'%)</span></div></div>'
         +'</div>'
         +'<div style="margin-top:12px">'
@@ -2181,46 +2164,6 @@ function computeProfit(cost,comm){
   const pct=c>0?(profit/c*100):0;
   return {profit,pct};
 }
-function recommendedCommFor(req,agg){
-  let sectionsCommRecommended=0, anyMarkupSet=false;
-  Object.keys(req.subs||{}).forEach(function(s){
-    const st=req.subs[s];
-    if(st&&st.sections&&st.sections.length){
-      const subCost=st.sections.reduce((sum,sec)=>sum+tonum(sec.cost),0);
-      const subComm=st.sections.reduce((sum,sec)=>sum+tonum(sec.commercial),0);
-      const pct=st.markupPct!=null&&st.markupPct!==''?tonum(st.markupPct):null;
-      if(pct!=null){anyMarkupSet=true; sectionsCommRecommended+=subCost*(1+pct/100);}
-      else{sectionsCommRecommended+=subComm;}
-    }
-  });
-  const comm=sectionsCommRecommended*agg.objCoef+agg.stagesTotal;
-  return {pctSaved:anyMarkupSet?true:null, comm};
-}
-function updateSubMarkupPreview(s){
-  const pctEl=byId('markup-pct-'+s); if(!pctEl)return;
-  const cost=tonum(pctEl.dataset.cost);
-  const pct=tonum(pctEl.value);
-  const comm=cost*(1+pct/100);
-  const profit=comm-cost;
-  const prev=byId('markup-preview-'+s);
-  if(prev)prev.innerHTML='При '+pct.toFixed(1)+'% рекомендованная коммерческая — <b>'+fmtMoney(comm)+'</b>, прибыль — <b class="'+(profit<0?'pv neg':'pv')+'">'+fmtMoney(profit)+'</b>';
-}
-function saveSubMarkup(id,s){
-  const req=DB.requests[id]; if(!req)return;
-  const pctEl=byId('markup-pct-'+s); if(!pctEl)return;
-  const v=pctEl.value.trim();
-  if(v===''){alert('Укажите процент надбавки');return;}
-  req.subs[s]=req.subs[s]||{};
-  req.subs[s].markupPct=tonum(v);
-  pushHistory(req,'«'+subLabel(s)+'»: задана надбавка к себестоимости '+req.subs[s].markupPct+'%');
-  pushRequest(id); openDetail(id);
-}
-function clearSubMarkup(id,s){
-  const req=DB.requests[id]; if(!req)return;
-  if(req.subs[s])req.subs[s].markupPct=null;
-  pushHistory(req,'«'+subLabel(s)+'»: сброшена надбавка — снова используется сумма по разделам');
-  pushRequest(id); openDetail(id);
-}
 function toggleKpProfitEditor(){
   const el=byId('kp-profit-editor'); if(!el)return;
   const opening=el.style.display==='none';
@@ -2296,6 +2239,9 @@ function buildSectionsPickerHtml(req,role,region){
     const commSuggestedR=commSuggested!=null?Math.round(commSuggested):null;
     const costVal=isCustom?((saved.cost!=null&&saved.cost!=='')?saved.cost:(costSuggestedR!=null?costSuggestedR:'')):(costSuggestedR!=null?costSuggestedR:'');
     const commercialVal=isCustom?((saved.commercial!=null&&saved.commercial!=='')?saved.commercial:(commSuggestedR!=null?commSuggestedR:'')):(commSuggestedR!=null?commSuggestedR:'');
+    const markupPctVal=(costVal&&tonum(costVal)>0)?(((tonum(commercialVal)-tonum(costVal))/tonum(costVal))*100).toFixed(1):'';
+    const rowProfit=computeProfit(costVal||0,commercialVal||0);
+    const profitLineHtml=(costVal||commercialVal)?('<span class="'+(rowProfit.profit<0?'pv neg':'pv')+'">Прибыль: '+fmtMoney(rowProfit.profit)+' ('+rowProfit.pct.toFixed(1)+'%)</span>'):'';
     let priceLabel;
     if(priceType==='fixed'){
       priceLabel=(costSuggested!=null||commSuggested!=null)?('фикс.: себест. '+(costSuggested!=null?fmtMoney(costSuggested):'—')+' / комм. '+(commSuggested!=null?fmtMoney(commSuggested):'—')):'фикс. цена не задана — своя цена';
@@ -2320,10 +2266,12 @@ function buildSectionsPickerHtml(req,role,region){
           +'<option value="__contractor__"'+(execIsContractor?' selected':'')+'>Подрядчик (ввести вручную)</option>'
         +'</select>'
         +'<input type="text" class="sec-exec-'+role+'" data-sec="'+s.id+'" placeholder="Название подрядчика" style="flex:1;min-width:120px;'+(execIsContractor?'':'display:none')+'" value="'+(execIsContractor?escape(saved.executor||''):'')+'" '+(disabled?'disabled':'')+'>'
-        +'<input type="number" min="0" step="1" class="sec-cost-'+role+'" data-sec="'+s.id+'" data-suggested="'+(costSuggestedR!=null?costSuggestedR:'')+'" placeholder="Себестоимость" style="width:110px" title="Себестоимость раздела, ₽ — считается автоматически по каталогу" value="'+escape(costVal)+'" '+((disabled||!isCustom)?'disabled':'')+' oninput="updateSectionsCalc(\''+role+'\')">'
-        +'<input type="number" min="0" step="1" class="sec-commercial-'+role+'" data-sec="'+s.id+'" data-suggested="'+(commSuggestedR!=null?commSuggestedR:'')+'" placeholder="Коммерческая" style="width:110px" title="Коммерческая стоимость раздела, ₽ — считается автоматически по каталогу" value="'+escape(commercialVal)+'" '+((disabled||!isCustom)?'disabled':'')+' oninput="updateSectionsCalc(\''+role+'\')">'
+        +'<input type="number" min="0" step="1" class="sec-cost-'+role+'" data-sec="'+s.id+'" data-suggested="'+(costSuggestedR!=null?costSuggestedR:'')+'" placeholder="Себестоимость" style="width:110px" title="Себестоимость раздела, ₽ — считается автоматически по каталогу" value="'+escape(costVal)+'" '+((disabled||!isCustom)?'disabled':'')+' oninput="syncSectionMarkup(\''+role+'\',\''+s.id+'\',\'cost\')">'
+        +'<input type="number" min="0" step="1" class="sec-commercial-'+role+'" data-sec="'+s.id+'" data-suggested="'+(commSuggestedR!=null?commSuggestedR:'')+'" placeholder="Коммерческая" style="width:110px" title="Коммерческая стоимость раздела, ₽" value="'+escape(commercialVal)+'" '+((disabled||!isCustom)?'disabled':'')+' oninput="syncSectionMarkup(\''+role+'\',\''+s.id+'\',\'comm\')">'
+        +'<input type="number" step="0.1" class="sec-markup-'+role+'" data-sec="'+s.id+'" placeholder="Надбавка %" title="Наценка/скидка к себестоимости, % — второй способ задать коммерческую цену" style="width:90px" value="'+markupPctVal+'" '+((disabled||!isCustom)?'disabled':'')+' oninput="syncSectionMarkup(\''+role+'\',\''+s.id+'\',\'pct\')">'
         +'<input type="number" min="0" step="1" class="sec-days-'+role+'" data-sec="'+s.id+'" placeholder="Дней" title="Кол-во дней на раздел (справочно)" style="width:60px" value="'+escape(saved.days||'')+'" '+(disabled?'disabled':'')+'>'
         +customToggleHtml
+        +'<div class="sec-profit-'+role+'" data-sec="'+s.id+'" style="width:100%;font-size:11px;margin-top:2px">'+profitLineHtml+'</div>'
       +'</div>'
     +'</div>';
   };
@@ -2385,15 +2333,54 @@ function toggleSectionCustomPrice(role,secId){
   const chk=document.querySelector('.sec-custom-'+role+'[data-sec="'+secId+'"]');
   const costEl=document.querySelector('.sec-cost-'+role+'[data-sec="'+secId+'"]');
   const commEl=document.querySelector('.sec-commercial-'+role+'[data-sec="'+secId+'"]');
+  const pctEl=document.querySelector('.sec-markup-'+role+'[data-sec="'+secId+'"]');
   const isCustom=chk&&chk.checked;
-  [costEl,commEl].forEach(function(el){
+  [costEl,commEl,pctEl].forEach(function(el){
     if(!el)return;
     el.disabled=!isCustom;
-    if(!isCustom){
-      const sug=el.dataset.suggested;
-      el.value=(sug!=null&&sug!=='')?sug:'';
-    }
   });
+  if(!isCustom){
+    if(costEl){const sug=costEl.dataset.suggested; costEl.value=(sug!=null&&sug!=='')?sug:'';}
+    if(commEl){const sug=commEl.dataset.suggested; commEl.value=(sug!=null&&sug!=='')?sug:'';}
+  }
+  updateSectionMarkupPct(role,secId);
+  updateSectionProfitLine(role,secId);
+  updateSectionsCalc(role);
+}
+function updateSectionMarkupPct(role,secId){
+  const costEl=document.querySelector('.sec-cost-'+role+'[data-sec="'+secId+'"]');
+  const commEl=document.querySelector('.sec-commercial-'+role+'[data-sec="'+secId+'"]');
+  const pctEl=document.querySelector('.sec-markup-'+role+'[data-sec="'+secId+'"]');
+  if(!costEl||!commEl||!pctEl)return;
+  const cost=tonum(costEl.value), comm=tonum(commEl.value);
+  pctEl.value=cost>0?(((comm-cost)/cost)*100).toFixed(1):'';
+}
+function updateSectionProfitLine(role,secId){
+  const costEl=document.querySelector('.sec-cost-'+role+'[data-sec="'+secId+'"]');
+  const commEl=document.querySelector('.sec-commercial-'+role+'[data-sec="'+secId+'"]');
+  const profitEl=document.querySelector('.sec-profit-'+role+'[data-sec="'+secId+'"]');
+  if(!costEl||!commEl||!profitEl)return;
+  const p=computeProfit(costEl.value,commEl.value);
+  profitEl.innerHTML='<span class="'+(p.profit<0?'pv neg':'pv')+'">Прибыль: '+fmtMoney(p.profit)+' ('+p.pct.toFixed(1)+'%)</span>';
+}
+function syncSectionMarkup(role,secId,source){
+  const costEl=document.querySelector('.sec-cost-'+role+'[data-sec="'+secId+'"]');
+  const commEl=document.querySelector('.sec-commercial-'+role+'[data-sec="'+secId+'"]');
+  const pctEl=document.querySelector('.sec-markup-'+role+'[data-sec="'+secId+'"]');
+  if(!costEl||!commEl||!pctEl)return;
+  const cost=tonum(costEl.value);
+  if(source==='pct'){
+    const pct=tonum(pctEl.value);
+    commEl.value=cost?Math.round(cost*(1+pct/100)):'';
+  }else if(source==='comm'){
+    updateSectionMarkupPct(role,secId);
+  }else if(source==='cost'){
+    if(pctEl.value!==''){
+      const pct=tonum(pctEl.value);
+      commEl.value=cost?Math.round(cost*(1+pct/100)):'';
+    }
+  }
+  updateSectionProfitLine(role,secId);
   updateSectionsCalc(role);
 }
 function switchSectionStageTab(role,stageIdx){
