@@ -143,6 +143,11 @@ a{color:inherit}
 .history-item .h-time{flex:0 0 auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--slate)}
 .note-box{background:#fef2f2;border:1px solid #fecaca;border-radius:9px;padding:10px 14px;font-size:12.5px;color:#b91c1c;margin-top:10px}
 .hint-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:9px;padding:10px 14px;font-size:12.5px;color:#1d4ed8;margin-top:10px}
+.profit-box{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px 16px;margin-top:10px}
+.pv{color:var(--success);font-weight:800}
+.pv.neg{color:var(--danger)}
+.kp-stat-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.02em}
+.kp-stat-val{font-size:17px;font-weight:800;margin-top:3px}
 
 /* ---------- Login ---------- */
 #login-screen{position:fixed;inset:0;background:#0f172a;display:flex;align-items:center;justify-content:center;z-index:200}
@@ -192,7 +197,7 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     <div class="role" id="user-box-role"></div>
     <button class="logout-btn" onclick="logout()">Выйти</button>
   </div>
-  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-11.2</div>
+  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-11.4</div>
 </div>
 
 <div id="main" style="display:none">
@@ -1313,15 +1318,15 @@ function wTable(rows,numCols){
     +'<w:insideH w:val="single" w:sz="4" w:color="999999"/><w:insideV w:val="single" w:sz="4" w:color="999999"/>'
     +'</w:tblBorders></w:tblPr>'+grid+rows.join('')+'</w:tbl>';
 }
-function buildKpBodyXml(req,amount,addressee,outNum,outDate,vatPct,kpStages){
+function buildKpBodyXml(req,amount,addressee,outNum,outDate,vatPct,kpStages,netAmount,scale){
   const number=kpNumber(req);
   const dateStr=new Date().toLocaleDateString('ru-RU');
   const outDateStr=outDate?new Date(outDate+'T00:00:00').toLocaleDateString('ru-RU'):dateStr;
-  const advanceVal=req.advance?String(req.advance).replace(/%+\s*$/,'')+'%':'—';
   // Only the final price (and, if given, the VAT rate baked into it) ever reaches the customer —
   // cost price and margin are internal and must never be written into this document.
   const vat=tonum(vatPct);
-  const vatAmount=vat?tonum(amount)*vat/(100+vat):0;
+  const vatAmount=netAmount!=null?(tonum(netAmount)*vat/100):(vat?tonum(amount)*vat/(100+vat):0);
+  const lineScale=(scale!=null&&scale>0)?scale:1;
 
   let xml='';
   xml+=wPara('Исх. № '+(outNum||number)+' от '+outDateStr,{});
@@ -1329,20 +1334,11 @@ function buildKpBodyXml(req,amount,addressee,outNum,outDate,vatPct,kpStages){
   xml+=wPara('КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ № '+number+' от '+dateStr,{align:'center',bold:true,size:28,spaceBefore:240});
   xml+='<w:p><w:r><w:t xml:space="preserve">Заказчику: </w:t></w:r>'+wRun(req.customer,{bold:true})+'</w:p>';
   xml+=wPara('В ответ на ваш запрос '+KP_COMPANY.name+' готово выполнить следующие работы на изложенных ниже условиях:',{spaceBefore:120});
-  const termsRows=[
-    wRow([wCell('Предмет договора',{shade:'F5F5F5'}),wCell(req.subject||'—')]),
-    wRow([wCell('Адрес объекта',{shade:'F5F5F5'}),wCell(req.address||'—')]),
-    wRow([wCell('Вид работ',{shade:'F5F5F5'}),wCell(req.workType||'—')]),
-    wRow([wCell('Гос. заказ',{shade:'F5F5F5'}),wCell(req.govOrder||'—')]),
-    wRow([wCell('Валюта расчётов',{shade:'F5F5F5'}),wCell(req.currency||'—')]),
-    wRow([wCell('Срок исполнения',{shade:'F5F5F5'}),wCell(req.deadline||'—')]),
-    wRow([wCell('Размер аванса',{shade:'F5F5F5'}),wCell(advanceVal)])
-  ];
-  if(vat){
-    termsRows.push(wRow([wCell('в т.ч. НДС ('+vat+'%)',{shade:'F5F5F5'}),wCell(Math.round(vatAmount).toLocaleString('ru-RU')+' ₽')]));
-  }
-  termsRows.push(wRow([wCell('Итоговая стоимость',{shade:'F5F5F5',bold:true}),wCell(fmtMoney(amount),{bold:true})]));
-  xml+=wTable(termsRows,2);
+  xml+=wPara('Предмет договора: '+(req.subject||'—')
+    +'\nАдрес объекта: '+(req.address||'—')
+    +'\nВид работ: '+(req.workType||'—')
+    +'\nСрок исполнения: '+(req.deadline||'—'),{spaceBefore:120});
+  xml+=wPara((vat?'В том числе НДС ('+vat+'%): '+Math.round(vatAmount).toLocaleString('ru-RU')+' ₽\n':'')+'Итоговая стоимость: '+fmtMoney(amount),{bold:true,spaceBefore:160});
   // Customer-facing composition: section name + final (markup-included) sum only — never the rate/₽/м² or the % markup.
   const claimedSections=[];
   Object.keys(req.subs||{}).forEach(function(role){
@@ -1354,10 +1350,10 @@ function buildKpBodyXml(req,amount,addressee,outNum,outDate,vatPct,kpStages){
     const worksRows=[wRow([wCell('Раздел',{shade:'F5F5F5',bold:true}),wCell('Стоимость',{shade:'F5F5F5',bold:true})])];
     const objCoefKp=req.objectType?tonum(req.objectType.coef):1;
     claimedSections.forEach(function(sec){
-      worksRows.push(wRow([wCell(sec.name),wCell(fmtMoney(tonum(sec.commercial)*objCoefKp))]));
+      worksRows.push(wRow([wCell(sec.name),wCell(fmtMoney(tonum(sec.commercial)*objCoefKp*lineScale))]));
     });
     (kpStages||[]).forEach(function(st){
-      worksRows.push(wRow([wCell(st.name),wCell(fmtMoney(st.amount))]));
+      worksRows.push(wRow([wCell(st.name),wCell(fmtMoney(st.amount*lineScale))]));
     });
     xml+=wTable(worksRows,2);
   }
@@ -1367,13 +1363,25 @@ function buildKpBodyXml(req,amount,addressee,outNum,outDate,vatPct,kpStages){
 }
 async function generateKp(id){
   const req=DB.requests[id]; if(!req)return;
-  const amount=(byId('kp-final-amount').value||'').trim();
+  const agg=computeAggregateTotals(req);
+  const usingAutoCalc=agg.costFinal>0;
   const addressee=(byId('kp-addressee').value||'').trim();
   const outNum=(byId('kp-outnum').value||'').trim();
   const outDate=(byId('kp-outdate').value||'').trim();
-  const cost=(byId('kp-cost').value||'').trim();
-  const marginPct=(byId('kp-margin').value||'').trim();
   const vatPct=(byId('kp-vat').value||'').trim();
+  let amount, netAmount, profitPctUsed, cost, marginPct;
+  if(usingAutoCalc){
+    const netEl=byId('kp-net-amount');
+    netAmount=netEl?tonum(netEl.value):agg.costFinal;
+    const pctEl=byId('kp-profit-pct');
+    profitPctUsed=pctEl?tonum(pctEl.value):0;
+    const vatAmount=netAmount*tonum(vatPct)/100;
+    amount=Math.round(netAmount+vatAmount);
+  }else{
+    amount=(byId('kp-final-amount').value||'').trim();
+    cost=(byId('kp-cost').value||'').trim();
+    marginPct=(byId('kp-margin').value||'').trim();
+  }
   if(!amount){alert('Укажите итоговую сумму КП');return;}
   if(!addressee){alert('Укажите, кому направляется КП');return;}
   const btn=byId('kp-generate-btn');
@@ -1382,7 +1390,8 @@ async function generateKp(id){
     const zip=await JSZip.loadAsync(KP_TEMPLATE_DOCX_B64,{base64:true});
     const docPath='word/document.xml';
     let xml=await zip.file(docPath).async('string');
-    const injected=buildKpBodyXml(req,amount,addressee,outNum,outDate,vatPct,req.stages);
+    const scale=usingAutoCalc&&agg.commFinal>0?(netAmount/agg.commFinal):1;
+    const injected=buildKpBodyXml(req,amount,addressee,outNum,outDate,vatPct,req.stages,usingAutoCalc?netAmount:null,scale);
     const marker='Генеральный директор';
     const markerIdx=xml.indexOf(marker);
     if(markerIdx===-1)throw new Error('не найден якорь подписи в шаблоне');
@@ -1402,8 +1411,14 @@ async function generateKp(id){
     req.kpAddressee=addressee;
     req.kpOutNum=outNum;
     req.kpOutDate=outDate;
-    if(cost)req.kpCost=cost;
-    if(marginPct)req.kpMarginPct=marginPct;
+    if(usingAutoCalc){
+      req.kpCost=agg.costFinal;
+      req.kpMarginPct=profitPctUsed;
+      req.kpNetAmount=Math.round(netAmount);
+    }else{
+      if(cost)req.kpCost=cost;
+      if(marginPct)req.kpMarginPct=marginPct;
+    }
     if(vatPct)req.kpVatPct=vatPct;
     req.kpGenerated={amount,by:currentUser.name,at:nowIso()};
     if(!req.customerLog){req.customerLog=[];req.customerStatus='waiting';}
@@ -1675,7 +1690,6 @@ function openDetail(id){
   // Subdivisions block
   if(req.stage==='subdivisions'||req.stage==='decision'||req.stage==='accepted'||req.stage==='rejected'){
     html+='<div class="divider"></div><h3 style="font-size:14px;font-weight:800;margin-bottom:6px">Исполнители</h3>';
-    let sectionsCostGrand=0, sectionsCommGrand=0;
     Object.keys(req.subs||{}).forEach(s=>{
       const st=req.subs[s];
       html+='<div class="sub-row'+(st.status==='not_involved'?' sub-row-muted':'')+'"><div><div class="sn">'+subLabel(s)+'</div>';
@@ -1684,7 +1698,6 @@ function openDetail(id){
         if(st.sections&&st.sections.length){
           const subCost=st.sections.reduce((sum,sec)=>sum+tonum(sec.cost),0);
           const subComm=st.sections.reduce((sum,sec)=>sum+tonum(sec.commercial),0);
-          sectionsCostGrand+=subCost; sectionsCommGrand+=subComm;
           html+='<div class="sub-detail" style="margin-top:4px">Разделы: '+st.sections.map(sec=>{
             let extra=[];
             if(sec.priceType==='fixed')extra.push('фикс. цена');
@@ -1700,18 +1713,32 @@ function openDetail(id){
       }
       html+='</div><span class="badge badge-'+st.status+'">'+SUB_STATUS_NAME[st.status]+'</span></div>';
     });
-    if(sectionsCostGrand>0||sectionsCommGrand>0){
-      const objCoef=req.objectType?tonum(req.objectType.coef):1;
-      const stagesTotal=(req.stages||[]).reduce(function(sum,s){return sum+s.amount;},0);
-      const costFinal=sectionsCostGrand*objCoef;
-      const commFinal=sectionsCommGrand*objCoef+stagesTotal;
+    const agg=computeAggregateTotals(req);
+    if(agg.costFinal>0||agg.commFinal>0){
       html+='<div class="hint-box" style="margin-top:8px">'
-        +'<div><b>Итого себестоимость:</b> '+fmtMoney(sectionsCostGrand)+(req.objectType?' × '+objCoef:'')+(req.objectType?' = <b>'+fmtMoney(costFinal)+'</b>':'')
-          +((role==='production'||role==='commercial'||role==='admin')?' <button type="button" class="btn btn-sm" style="margin-left:8px" onclick="applySectionsTotal(\''+id+'\','+costFinal+',\'cost\')">Подставить в себестоимость КП</button>':'')+'</div>'
-        +'<div style="margin-top:6px"><b>Итого коммерческая:</b> '+fmtMoney(sectionsCommGrand)+(req.objectType?' × '+objCoef:'')
-          +(stagesTotal?' + доп. стадии '+fmtMoney(stagesTotal)+' ('+req.stages.map(function(s){return escape(s.name)+' '+s.pct+'%';}).join(', ')+')':'')
-          +' = <b>'+fmtMoney(commFinal)+'</b>'
-          +((role==='production'||role==='commercial'||role==='admin')?' <button type="button" class="btn btn-sm" style="margin-left:8px" onclick="applySectionsTotal(\''+id+'\','+commFinal+',\'final\')">Подставить в итоговую сумму КП</button>':'')+'</div>'
+        +'<div><b>Итого себестоимость:</b> '+fmtMoney(agg.sectionsCostGrand)+(req.objectType?' × '+agg.objCoef+' = <b>'+fmtMoney(agg.costFinal)+'</b>':'')+'</div>'
+        +'<div style="margin-top:6px"><b>Итого коммерческая (по разделам):</b> '+fmtMoney(agg.sectionsCommGrand)+(req.objectType?' × '+agg.objCoef:'')
+          +(agg.stagesTotal?' + доп. стадии '+fmtMoney(agg.stagesTotal)+' ('+req.stages.map(function(s){return escape(s.name)+' '+s.pct+'%';}).join(', ')+')':'')
+          +' = <b>'+fmtMoney(agg.commFinal)+'</b></div>'
+      +'</div>';
+      const rec=recommendedCommFor(req,agg);
+      const recProfit=computeProfit(agg.costFinal,rec.comm);
+      const baseProfit=computeProfit(agg.costFinal,agg.commFinal);
+      const canEditProfit=(role==='production'||role==='admin');
+      html+='<div class="profit-box">'
+        +'<div style="font-size:19px"><span class="'+(recProfit.profit<0?'pv neg':'pv')+'">'+fmtMoney(recProfit.profit)+' ('+recProfit.pct.toFixed(1)+'%)</span> <span style="font-weight:600;font-size:12px;color:var(--muted)">прибыль</span></div>'
+        +'<div style="font-size:11.5px;color:var(--muted);margin-top:3px">'+(rec.pctSaved!=null
+            ?'Надбавка задана вручную — рекомендованная коммерческая для КП: <b>'+fmtMoney(rec.comm)+'</b> (вместо '+fmtMoney(agg.commFinal)+' по разделам)'
+            :'Надбавка не задавалась — рекомендуется коммерческому отделу сумма из «Итого коммерческая» выше')+'</div>'
+        +(canEditProfit
+          ?'<div style="display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap">'
+            +'<label style="font-size:12px;font-weight:700;color:var(--muted)">Надбавка, %</label>'
+            +'<input type="number" step="0.1" id="prod-markup-pct" data-cost="'+agg.costFinal+'" value="'+(rec.pctSaved!=null?rec.pctSaved:baseProfit.pct.toFixed(1))+'" style="width:100px" oninput="updateProdMarkupPreview()">'
+            +'<button type="button" class="btn btn-sm btn-primary" onclick="saveProdMarkup(\''+id+'\')">Сохранить</button>'
+            +(rec.pctSaved!=null?'<button type="button" class="btn btn-sm" onclick="clearProdMarkup(\''+id+'\')">Сбросить</button>':'')
+          +'</div>'
+          +'<div id="prod-markup-preview" style="font-size:12px;color:var(--muted);margin-top:8px"></div>'
+          :'')
       +'</div>';
     }
   }
@@ -1737,18 +1764,55 @@ function openDetail(id){
       +'<div class="field"><label>Исходящий №</label><input id="kp-outnum" value="'+escape(req.kpOutNum||'')+'" placeholder="'+kpNumber(req)+'"></div>'
       +'<div class="field"><label>Дата письма</label><input type="date" id="kp-outdate" value="'+escape(req.kpOutDate||todayIso)+'"></div>'
     +'</div>';
-    html+='<div class="card-block" style="padding:14px;margin-top:14px;background:var(--surface-2)">'
-      +'<div style="font-weight:700;font-size:13px;margin-bottom:2px">Расчёт стоимости (внутренний, в КП заказчику не попадает)</div>'
-      +'<div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">Необязательно — помогает посчитать итоговую сумму, можно просто вписать её ниже вручную</div>'
-      +'<div class="form-grid">'
-        +'<div class="field"><label>Себестоимость, ₽</label><input id="kp-cost" type="number" min="0" step="1" value="'+escape(tonum(req.kpCost)||'')+'" oninput="updateKpCalc()"></div>'
-        +'<div class="field"><label>Наценка/скидка, %</label><input id="kp-margin" type="number" min="-100" step="1" value="'+escape(tonum(req.kpMarginPct)||'')+'" oninput="updateKpCalc()" title="Отрицательное значение — скидка"></div>'
-        +'<div class="field"><label>НДС, %</label><input id="kp-vat" type="number" min="0" step="1" value="'+escape(tonum(req.kpVatPct)||'')+'" oninput="updateKpCalc()"></div>'
-      +'</div>'
-      +'<div id="kp-calc-result" style="font-size:12.5px;margin-top:10px;color:var(--ink)"></div>'
-      +'<div class="form-actions" style="justify-content:flex-start;margin-top:10px">'
-        +'<button type="button" class="btn btn-sm" onclick="applyKpCalc()">Подставить в итоговую сумму</button></div>'
-    +'</div>';
+    const kpAgg=computeAggregateTotals(req);
+    if(kpAgg.costFinal>0){
+      const kpRec=recommendedCommFor(req,kpAgg);
+      const kpRecProfit=computeProfit(kpAgg.costFinal,kpRec.comm);
+      const comPctSaved=req.kpMarginPct!=null&&req.kpMarginPct!==''?tonum(req.kpMarginPct):null;
+      const activePct=comPctSaved!=null?comPctSaved:kpRecProfit.pct;
+      const netAmount=kpAgg.costFinal*(1+activePct/100);
+      const netProfit=netAmount-kpAgg.costFinal;
+      const vatSaved=req.kpVatPct!=null&&req.kpVatPct!==''?tonum(req.kpVatPct):'';
+      const vatForGross=vatSaved!==''?tonum(vatSaved):0;
+      const grossAmount=netAmount+netAmount*vatForGross/100;
+      html+='<div class="card-block" style="padding:16px;margin-top:14px;background:var(--surface-2)">'
+        +'<div style="font-weight:700;font-size:13px;margin-bottom:12px">Расчёт стоимости (внутренний, в КП заказчику не попадает)</div>'
+        +'<div class="form-grid">'
+          +'<div><div class="kp-stat-label">Себестоимость</div><div class="kp-stat-val">'+fmtMoney(kpAgg.costFinal)+'</div></div>'
+          +'<div><div class="kp-stat-label">Рекомендованная коммерческая</div><div class="kp-stat-val">'+fmtMoney(kpRec.comm)+'</div></div>'
+          +'<div><div class="kp-stat-label">Запланированная прибыль</div><div class="kp-stat-val"><span class="'+(kpRecProfit.profit<0?'pv neg':'pv')+'">'+fmtMoney(kpRecProfit.profit)+' ('+kpRecProfit.pct.toFixed(1)+'%)</span></div></div>'
+        +'</div>'
+        +'<div style="margin-top:12px">'
+          +'<button type="button" class="btn btn-sm" onclick="toggleKpProfitEditor()">Изменить прибыль</button>'
+        +'</div>'
+        +'<div id="kp-profit-editor" style="display:'+(comPctSaved!=null?'block':'none')+';margin-top:12px;padding-top:12px;border-top:1px dashed var(--border)">'
+          +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+            +'<label style="font-size:12px;font-weight:700;color:var(--muted)">Прибыль, %</label>'
+            +'<input type="number" step="0.1" id="kp-profit-pct" data-cost="'+kpAgg.costFinal+'" value="'+activePct.toFixed(1)+'" style="width:100px" oninput="updateKpNetCalc()">'
+          +'</div>'
+          +'<div id="kp-profit-preview" style="font-size:13px;margin-top:8px">Прибыль: <span class="'+(netProfit<0?'pv neg':'pv')+'">'+fmtMoney(netProfit)+'</span> ('+activePct.toFixed(1)+'%)</div>'
+        +'</div>'
+        +'<div id="kp-net-line" style="font-size:14px;font-weight:700;margin-top:14px">Итого без НДС: '+fmtMoney(netAmount)+'</div>'
+        +'<div class="form-grid" style="margin-top:10px">'
+          +'<div class="field"><label>НДС, %</label><input id="kp-vat" type="number" min="0" step="1" value="'+escape(vatSaved)+'" oninput="updateKpNetCalc()"></div>'
+        +'</div>'
+        +'<div id="kp-gross-line" style="font-size:17px;font-weight:800;margin-top:12px;color:var(--accent-ink)">Итого с НДС: '+fmtMoney(grossAmount)+'</div>'
+        +'<input type="hidden" id="kp-net-amount" value="'+netAmount+'">'
+      +'</div>';
+    } else {
+      html+='<div class="card-block" style="padding:14px;margin-top:14px;background:var(--surface-2)">'
+        +'<div style="font-weight:700;font-size:13px;margin-bottom:2px">Расчёт стоимости (внутренний, в КП заказчику не попадает)</div>'
+        +'<div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">По этой заявке нет данных по разделам — заполните вручную, помогает посчитать итоговую сумму, можно просто вписать её ниже</div>'
+        +'<div class="form-grid">'
+          +'<div class="field"><label>Себестоимость, ₽</label><input id="kp-cost" type="number" min="0" step="1" value="'+escape(tonum(req.kpCost)||'')+'" oninput="updateKpCalc()"></div>'
+          +'<div class="field"><label>Наценка/скидка, %</label><input id="kp-margin" type="number" min="-100" step="1" value="'+escape(tonum(req.kpMarginPct)||'')+'" oninput="updateKpCalc()" title="Отрицательное значение — скидка"></div>'
+          +'<div class="field"><label>НДС, %</label><input id="kp-vat" type="number" min="0" step="1" value="'+escape(tonum(req.kpVatPct)||'')+'" oninput="updateKpCalc()"></div>'
+        +'</div>'
+        +'<div id="kp-calc-result" style="font-size:12.5px;margin-top:10px;color:var(--ink)"></div>'
+        +'<div class="form-actions" style="justify-content:flex-start;margin-top:10px">'
+          +'<button type="button" class="btn btn-sm" onclick="applyKpCalc()">Подставить в итоговую сумму</button></div>'
+      +'</div>';
+    }
     if(req.stages&&req.stages.length){
       html+='<div class="card-block" style="padding:14px;margin-top:14px;background:var(--surface-2)">'
         +'<div style="font-weight:700;font-size:13px;margin-bottom:2px">Доп. стадии проектирования</div>'
@@ -1763,7 +1827,9 @@ function openDetail(id){
         +'<div style="font-size:11.5px;color:var(--muted);margin-top:4px">Выбирается производственным отделом при оценке заявки и уже учтён в «Итого по разделам» выше</div>'
       +'</div>';
     }
-    html+='<div class="field" style="margin-top:14px"><label>Итоговая сумма КП, ₽</label><input id="kp-final-amount" type="number" min="0" step="1" value="'+escape(tonum(req.finalAmount||req.amount)||'')+'"></div>';
+    if(kpAgg.costFinal<=0){
+      html+='<div class="field" style="margin-top:14px"><label>Итоговая сумма КП, ₽</label><input id="kp-final-amount" type="number" min="0" step="1" value="'+escape(tonum(req.finalAmount||req.amount)||'')+'"></div>';
+    }
     html+='<div class="form-actions" style="justify-content:flex-start;margin-top:10px">'
       +'<button class="btn btn-primary" id="kp-generate-btn" onclick="generateKp(\''+id+'\')">'+(req.kpGenerated?'Сформировать заново (Word)':'Сформировать КП (Word)')+'</button></div>';
   }
@@ -2050,15 +2116,79 @@ function applyKpCalc(){
   const total=cost*(1+margin/100)*(1+vat/100);
   byId('kp-final-amount').value=Math.round(total);
 }
-function applySectionsTotal(id,total,target){
-  const elId=target==='final'?'kp-final-amount':'kp-cost';
-  const el=byId(elId);
-  if(el){
-    el.value=Math.round(total);
-    updateKpCalc();
-  }else{
-    alert('Итого по разделам: '+fmtMoney(total)+'. Эта сумма будет доступна для подстановки на этапе формирования КП в коммерческом отделе.');
-  }
+function computeAggregateTotals(req){
+  let sectionsCostGrand=0, sectionsCommGrand=0;
+  Object.keys(req.subs||{}).forEach(function(role){
+    const st=req.subs[role];
+    if(st&&st.sections)st.sections.forEach(function(sec){
+      sectionsCostGrand+=tonum(sec.cost);
+      sectionsCommGrand+=tonum(sec.commercial);
+    });
+  });
+  const objCoef=req.objectType?tonum(req.objectType.coef):1;
+  const stagesTotal=(req.stages||[]).reduce(function(sum,s){return sum+s.amount;},0);
+  const costFinal=sectionsCostGrand*objCoef;
+  const commFinal=sectionsCommGrand*objCoef+stagesTotal;
+  return {sectionsCostGrand,sectionsCommGrand,objCoef,stagesTotal,costFinal,commFinal};
+}
+function computeProfit(cost,comm){
+  const c=tonum(cost), m=tonum(comm);
+  const profit=m-c;
+  const pct=c>0?(profit/c*100):0;
+  return {profit,pct};
+}
+function recommendedCommFor(req,agg){
+  const p=req.prodMarkupPct!=null&&req.prodMarkupPct!==''?tonum(req.prodMarkupPct):null;
+  return {pctSaved:p, comm:p!=null?agg.costFinal*(1+p/100):agg.commFinal};
+}
+function updateProdMarkupPreview(){
+  const pctEl=byId('prod-markup-pct'); if(!pctEl)return;
+  const cost=tonum(pctEl.dataset.cost);
+  const pct=tonum(pctEl.value);
+  const comm=cost*(1+pct/100);
+  const profit=comm-cost;
+  const prev=byId('prod-markup-preview');
+  if(prev)prev.innerHTML='При '+pct.toFixed(1)+'% рекомендованная коммерческая — <b>'+fmtMoney(comm)+'</b>, прибыль — <b class="'+(profit<0?'pv neg':'pv')+'">'+fmtMoney(profit)+'</b>';
+}
+function saveProdMarkup(id){
+  const req=DB.requests[id]; if(!req)return;
+  const pctEl=byId('prod-markup-pct'); if(!pctEl)return;
+  const v=pctEl.value.trim();
+  if(v===''){alert('Укажите процент надбавки');return;}
+  req.prodMarkupPct=tonum(v);
+  pushHistory(req,'Производство задало рекомендованную надбавку к себестоимости: '+req.prodMarkupPct+'%');
+  pushRequest(id); openDetail(id);
+}
+function clearProdMarkup(id){
+  const req=DB.requests[id]; if(!req)return;
+  req.prodMarkupPct=null;
+  pushHistory(req,'Производство сбросило надбавку — коммерческому отделу снова рекомендуется сумма по разделам');
+  pushRequest(id); openDetail(id);
+}
+function toggleKpProfitEditor(){
+  const el=byId('kp-profit-editor'); if(!el)return;
+  const opening=el.style.display==='none';
+  el.style.display=opening?'block':'none';
+  if(opening)updateKpNetCalc();
+}
+function updateKpNetCalc(){
+  const pctEl=byId('kp-profit-pct'); if(!pctEl)return;
+  const cost=tonum(pctEl.dataset.cost);
+  const pct=tonum(pctEl.value);
+  const net=cost*(1+pct/100);
+  const profit=net-cost;
+  const preview=byId('kp-profit-preview');
+  if(preview)preview.innerHTML='Прибыль: <b class="'+(profit<0?'pv neg':'pv')+'">'+fmtMoney(profit)+'</b> ('+pct.toFixed(1)+'%)';
+  const netLine=byId('kp-net-line');
+  if(netLine)netLine.innerHTML='Итого без НДС: '+fmtMoney(net);
+  const vatEl=byId('kp-vat');
+  const vat=vatEl?tonum(vatEl.value):0;
+  const vatAmount=net*vat/100;
+  const gross=net+vatAmount;
+  const grossLine=byId('kp-gross-line');
+  if(grossLine)grossLine.innerHTML='Итого с НДС: '+fmtMoney(gross);
+  const netAmountEl=byId('kp-net-amount');
+  if(netAmountEl)netAmountEl.value=net;
 }
 function toggleSectionDetails(role,secId){
   const cb=document.querySelector('.sec-pick-'+role+'[value="'+secId+'"]');
