@@ -197,7 +197,7 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     <div class="role" id="user-box-role"></div>
     <button class="logout-btn" onclick="logout()">Выйти</button>
   </div>
-  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-11.5</div>
+  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-11.6</div>
 </div>
 
 <div id="main" style="display:none">
@@ -1338,7 +1338,13 @@ function buildKpBodyXml(req,amount,addressee,outNum,outDate,vatPct,kpStages,netA
     +'\nАдрес объекта: '+(req.address||'—')
     +'\nВид работ: '+(req.workType||'—')
     +'\nСрок исполнения: '+(req.deadline||'—'),{spaceBefore:120});
-  xml+=wPara((vat?'В том числе НДС ('+vat+'%): '+Math.round(vatAmount).toLocaleString('ru-RU')+' ₽\n':'')+'Итоговая стоимость: '+fmtMoney(amount),{bold:true,spaceBefore:160});
+  const totalsRows=[];
+  if(vat){
+    totalsRows.push(wRow([wCell('в т.ч. НДС ('+vat+'%)',{shade:'F5F5F5'}),wCell(Math.round(vatAmount).toLocaleString('ru-RU')+' ₽')]));
+  }
+  totalsRows.push(wRow([wCell('Итоговая стоимость',{shade:'F5F5F5',bold:true}),wCell(fmtMoney(amount),{bold:true})]));
+  xml+=wPara('',{spaceBefore:120});
+  xml+=wTable(totalsRows,2);
   // Customer-facing composition: section name + final (markup-included) sum only — never the rate/₽/м² or the % markup.
   const claimedSections=[];
   Object.keys(req.subs||{}).forEach(function(role){
@@ -1727,8 +1733,28 @@ function openDetail(id){
               +'</div>';
             }).join('')
             +'</div>'
-            +'<div style="margin-top:6px;font-size:12.5px;text-align:right"><b>Итого по '+subLabel(s)+': себест. '+fmtMoney(subCost)+' · комм. '+fmtMoney(subComm)+'</b></div>'
-          +'</div>';
+            +'<div style="margin-top:6px;font-size:12.5px;text-align:right"><b>Итого по '+subLabel(s)+': себест. '+fmtMoney(subCost)+' · комм. '+fmtMoney(subComm)+'</b></div>';
+          const subPctSaved=st.markupPct!=null&&st.markupPct!==''?tonum(st.markupPct):null;
+          const subRecommendedComm=subPctSaved!=null?subCost*(1+subPctSaved/100):subComm;
+          const subProfit=computeProfit(subCost,subRecommendedComm);
+          const subBaseProfit=computeProfit(subCost,subComm);
+          const canEditSubMarkup=(role===s||role==='admin');
+          if(subCost>0||subComm>0){
+            html+='<div class="profit-box" style="margin-top:8px;padding:10px 14px">'
+              +'<div style="font-size:15px"><span class="'+(subProfit.profit<0?'pv neg':'pv')+'">'+fmtMoney(subProfit.profit)+' ('+subProfit.pct.toFixed(1)+'%)</span> <span style="font-weight:600;font-size:11px;color:var(--muted)">прибыль по «'+subLabel(s)+'»</span></div>'
+              +(subPctSaved!=null?'<div style="font-size:11px;color:var(--muted);margin-top:2px">Надбавка задана вручную — рекомендованная коммерческая: <b>'+fmtMoney(subRecommendedComm)+'</b> (вместо '+fmtMoney(subComm)+' по разделам)</div>':'')
+              +(canEditSubMarkup
+                ?'<div style="display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap">'
+                  +'<label style="font-size:11.5px;font-weight:700;color:var(--muted)">Надбавка, %</label>'
+                  +'<input type="number" step="0.1" id="markup-pct-'+s+'" data-cost="'+subCost+'" value="'+(subPctSaved!=null?subPctSaved:subBaseProfit.pct.toFixed(1))+'" style="width:90px" oninput="updateSubMarkupPreview(\''+s+'\')">'
+                  +'<button type="button" class="btn btn-sm btn-primary" onclick="saveSubMarkup(\''+id+'\',\''+s+'\')">Сохранить</button>'
+                  +(subPctSaved!=null?'<button type="button" class="btn btn-sm" onclick="clearSubMarkup(\''+id+'\',\''+s+'\')">Сбросить</button>':'')
+                +'</div>'
+                +'<div id="markup-preview-'+s+'" style="font-size:11.5px;color:var(--muted);margin-top:6px"></div>'
+                :'')
+            +'</div>';
+          }
+          html+='</div>';
         }
       }else if(st.status==='insufficient'){
         html+='<div class="sub-detail" style="color:#b91c1c">Не хватает данных: '+escape(st.note||'')+'</div>';
@@ -1745,22 +1771,11 @@ function openDetail(id){
       +'</div>';
       const rec=recommendedCommFor(req,agg);
       const recProfit=computeProfit(agg.costFinal,rec.comm);
-      const baseProfit=computeProfit(agg.costFinal,agg.commFinal);
-      const canEditProfit=(role==='production'||role==='admin');
       html+='<div class="profit-box">'
-        +'<div style="font-size:19px"><span class="'+(recProfit.profit<0?'pv neg':'pv')+'">'+fmtMoney(recProfit.profit)+' ('+recProfit.pct.toFixed(1)+'%)</span> <span style="font-weight:600;font-size:12px;color:var(--muted)">прибыль</span></div>'
-        +'<div style="font-size:11.5px;color:var(--muted);margin-top:3px">'+(rec.pctSaved!=null
-            ?'Надбавка задана вручную — рекомендованная коммерческая для КП: <b>'+fmtMoney(rec.comm)+'</b> (вместо '+fmtMoney(agg.commFinal)+' по разделам)'
-            :'Надбавка не задавалась — рекомендуется коммерческому отделу сумма из «Итого коммерческая» выше')+'</div>'
-        +(canEditProfit
-          ?'<div style="display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap">'
-            +'<label style="font-size:12px;font-weight:700;color:var(--muted)">Надбавка, %</label>'
-            +'<input type="number" step="0.1" id="prod-markup-pct" data-cost="'+agg.costFinal+'" value="'+(rec.pctSaved!=null?rec.pctSaved:baseProfit.pct.toFixed(1))+'" style="width:100px" oninput="updateProdMarkupPreview()">'
-            +'<button type="button" class="btn btn-sm btn-primary" onclick="saveProdMarkup(\''+id+'\')">Сохранить</button>'
-            +(rec.pctSaved!=null?'<button type="button" class="btn btn-sm" onclick="clearProdMarkup(\''+id+'\')">Сбросить</button>':'')
-          +'</div>'
-          +'<div id="prod-markup-preview" style="font-size:12px;color:var(--muted);margin-top:8px"></div>'
-          :'')
+        +'<div style="font-size:19px"><span class="'+(recProfit.profit<0?'pv neg':'pv')+'">'+fmtMoney(recProfit.profit)+' ('+recProfit.pct.toFixed(1)+'%)</span> <span style="font-weight:600;font-size:12px;color:var(--muted)">прибыль по всей заявке</span></div>'
+        +'<div style="font-size:11.5px;color:var(--muted);margin-top:3px">'+(rec.pctSaved
+            ?'С учётом индивидуальных надбавок исполнителей (см. выше) — рекомендованная коммерческая для КП: <b>'+fmtMoney(rec.comm)+'</b> (вместо '+fmtMoney(agg.commFinal)+' по разделам)'
+            :'Надбавка ни у кого не задавалась — рекомендуется коммерческому отделу сумма из «Итого коммерческая» выше')+'</div>'
       +'</div>';
     }
   }
@@ -2167,31 +2182,43 @@ function computeProfit(cost,comm){
   return {profit,pct};
 }
 function recommendedCommFor(req,agg){
-  const p=req.prodMarkupPct!=null&&req.prodMarkupPct!==''?tonum(req.prodMarkupPct):null;
-  return {pctSaved:p, comm:p!=null?agg.costFinal*(1+p/100):agg.commFinal};
+  let sectionsCommRecommended=0, anyMarkupSet=false;
+  Object.keys(req.subs||{}).forEach(function(s){
+    const st=req.subs[s];
+    if(st&&st.sections&&st.sections.length){
+      const subCost=st.sections.reduce((sum,sec)=>sum+tonum(sec.cost),0);
+      const subComm=st.sections.reduce((sum,sec)=>sum+tonum(sec.commercial),0);
+      const pct=st.markupPct!=null&&st.markupPct!==''?tonum(st.markupPct):null;
+      if(pct!=null){anyMarkupSet=true; sectionsCommRecommended+=subCost*(1+pct/100);}
+      else{sectionsCommRecommended+=subComm;}
+    }
+  });
+  const comm=sectionsCommRecommended*agg.objCoef+agg.stagesTotal;
+  return {pctSaved:anyMarkupSet?true:null, comm};
 }
-function updateProdMarkupPreview(){
-  const pctEl=byId('prod-markup-pct'); if(!pctEl)return;
+function updateSubMarkupPreview(s){
+  const pctEl=byId('markup-pct-'+s); if(!pctEl)return;
   const cost=tonum(pctEl.dataset.cost);
   const pct=tonum(pctEl.value);
   const comm=cost*(1+pct/100);
   const profit=comm-cost;
-  const prev=byId('prod-markup-preview');
+  const prev=byId('markup-preview-'+s);
   if(prev)prev.innerHTML='При '+pct.toFixed(1)+'% рекомендованная коммерческая — <b>'+fmtMoney(comm)+'</b>, прибыль — <b class="'+(profit<0?'pv neg':'pv')+'">'+fmtMoney(profit)+'</b>';
 }
-function saveProdMarkup(id){
+function saveSubMarkup(id,s){
   const req=DB.requests[id]; if(!req)return;
-  const pctEl=byId('prod-markup-pct'); if(!pctEl)return;
+  const pctEl=byId('markup-pct-'+s); if(!pctEl)return;
   const v=pctEl.value.trim();
   if(v===''){alert('Укажите процент надбавки');return;}
-  req.prodMarkupPct=tonum(v);
-  pushHistory(req,'Производство задало рекомендованную надбавку к себестоимости: '+req.prodMarkupPct+'%');
+  req.subs[s]=req.subs[s]||{};
+  req.subs[s].markupPct=tonum(v);
+  pushHistory(req,'«'+subLabel(s)+'»: задана надбавка к себестоимости '+req.subs[s].markupPct+'%');
   pushRequest(id); openDetail(id);
 }
-function clearProdMarkup(id){
+function clearSubMarkup(id,s){
   const req=DB.requests[id]; if(!req)return;
-  req.prodMarkupPct=null;
-  pushHistory(req,'Производство сбросило надбавку — коммерческому отделу снова рекомендуется сумма по разделам');
+  if(req.subs[s])req.subs[s].markupPct=null;
+  pushHistory(req,'«'+subLabel(s)+'»: сброшена надбавка — снова используется сумма по разделам');
   pushRequest(id); openDetail(id);
 }
 function toggleKpProfitEditor(){
