@@ -197,7 +197,7 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     <div class="role" id="user-box-role"></div>
     <button class="logout-btn" onclick="logout()">Выйти</button>
   </div>
-  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-11.4</div>
+  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-11.5</div>
 </div>
 
 <div id="main" style="display:none">
@@ -1572,6 +1572,16 @@ function actionDecision(id,result){
   }
   pushRequest(id); closeModal('modal-detail'); renderAll();
 }
+function actionReturnToProduction(id){
+  const req=DB.requests[id]; if(!req)return;
+  const reason=(byId('kp-return-reason')&&byId('kp-return-reason').value.trim())||'';
+  req.subs.production=req.subs.production||{};
+  req.subs.production.status='waiting';
+  if(req.involvedSubs&&req.involvedSubs.length&&!req.involvedSubs.includes('production'))req.involvedSubs.push('production');
+  req.stage='subdivisions';
+  pushHistory(req,'Коммерческий отдел вернул заявку в производственный отдел'+(reason?': '+reason:''));
+  pushRequest(id); closeModal('modal-detail'); renderAll();
+}
 
 /* ========================= SUBDIVISION ACTIONS ========================= */
 function actionSubSubmit(id,sub){
@@ -1698,15 +1708,27 @@ function openDetail(id){
         if(st.sections&&st.sections.length){
           const subCost=st.sections.reduce((sum,sec)=>sum+tonum(sec.cost),0);
           const subComm=st.sections.reduce((sum,sec)=>sum+tonum(sec.commercial),0);
-          html+='<div class="sub-detail" style="margin-top:4px">Разделы: '+st.sections.map(sec=>{
-            let extra=[];
-            if(sec.priceType==='fixed')extra.push('фикс. цена');
-            if(sec.custom)extra.push('своя цена');
-            if(sec.region)extra.push(REGION_NAME[sec.region]||sec.region);
-            if(sec.days)extra.push(sec.days+' дн.');
-            if(sec.executor)extra.push((sec.executorType==='contractor'?'подрядчик: ':'исп.: ')+escape(sec.executor));
-            return escape(sec.name)+' ('+extra.join(', ')+') — себест. '+fmtMoney(sec.cost)+' · комм. '+fmtMoney(sec.commercial);
-          }).join('; ')+' · <b>Итого: себест. '+fmtMoney(subCost)+' · комм. '+fmtMoney(subComm)+'</b></div>';
+          html+='<div style="margin-top:8px">'
+            +'<div style="font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px">Разделы ('+st.sections.length+')</div>'
+            +'<div style="border:1px solid var(--border);border-radius:9px;overflow:hidden">'
+            +st.sections.map(function(sec,i){
+              let extra=[];
+              if(sec.priceType==='fixed')extra.push('фикс. цена');
+              if(sec.custom)extra.push('своя цена');
+              if(sec.region)extra.push(REGION_NAME[sec.region]||sec.region);
+              if(sec.days)extra.push(sec.days+' дн.');
+              if(sec.executor)extra.push((sec.executorType==='contractor'?'подрядчик: ':'исп.: ')+escape(sec.executor));
+              return '<div style="padding:7px 10px;font-size:12px;'+(i>0?'border-top:1px solid var(--border);':'')+'background:'+(i%2?'var(--surface-2,#f8fafc)':'transparent')+'">'
+                +'<div style="font-weight:600">'+escape(sec.name)+'</div>'
+                +'<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:3px;flex-wrap:wrap">'
+                  +'<div style="color:var(--muted);font-size:10.5px">'+(extra.length?escape(extra.join(' · ')):'—')+'</div>'
+                  +'<div style="white-space:nowrap;font-size:11px"><b>себест.</b> '+fmtMoney(sec.cost)+' · <b>комм.</b> '+fmtMoney(sec.commercial)+'</div>'
+                +'</div>'
+              +'</div>';
+            }).join('')
+            +'</div>'
+            +'<div style="margin-top:6px;font-size:12.5px;text-align:right"><b>Итого по '+subLabel(s)+': себест. '+fmtMoney(subCost)+' · комм. '+fmtMoney(subComm)+'</b></div>'
+          +'</div>';
         }
       }else if(st.status==='insufficient'){
         html+='<div class="sub-detail" style="color:#b91c1c">Не хватает данных: '+escape(st.note||'')+'</div>';
@@ -1758,6 +1780,13 @@ function openDetail(id){
     if(req.kpGenerated){
       html+='<div class="hint-box">КП №'+escape(req.kpOutNum||kpNumber(req))+' уже формировалось '+fmtDate(req.kpGenerated.at)+' ('+escape(req.kpGenerated.by)+'), сумма '+fmtMoney(req.finalAmount)+'. При необходимости можно сформировать заново.</div>';
     }
+    html+='<div class="card-block" style="padding:14px;margin-top:10px;background:var(--surface-2)">'
+      +'<div style="font-weight:700;font-size:13px;margin-bottom:6px">Нужны правки от производства?</div>'
+      +'<div class="field"><label>Комментарий для производственного отдела (необязательно)</label><textarea id="kp-return-reason" placeholder="Что нужно поправить — например, неверная себестоимость по разделу"></textarea></div>'
+      +'<div class="form-actions" style="justify-content:flex-start;margin-top:8px">'
+        +'<button type="button" class="btn btn-sm" onclick="actionReturnToProduction(\''+id+'\')">↩ Вернуть в производственный отдел</button>'
+      +'</div>'
+    +'</div>';
     const todayIso=new Date().toISOString().slice(0,10);
     html+='<div class="form-grid">'
       +'<div class="field span2"><label>Кому направляем (организация, ФИО, должность)</label><textarea id="kp-addressee" placeholder="напр. Генеральному директору ООО «Заказчик» Иванову И.И.">'+escape(req.kpAddressee||'')+'</textarea></div>'
