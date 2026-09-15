@@ -93,6 +93,12 @@ a{color:inherit}
 .sub-row-muted{opacity:.55}
 .badge-insufficient{background:#fee2e2;color:#b91c1c}
 .badge-done{background:#dcfce7;color:#15803d}
+.badge-ps-contact{background:#f1f5f9;color:#64748b}
+.badge-ps-negotiation{background:#dbeafe;color:#1d4ed8}
+.badge-ps-meeting{background:#ede9fe;color:#6d28d9}
+.badge-ps-preparing_kp{background:#fef3c7;color:#92400e}
+.badge-ps-won{background:#dcfce7;color:#15803d}
+.badge-ps-lost{background:#fee2e2;color:#b91c1c}
 
 .filters-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
 .filter-chip{padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:#fff;font-size:12.5px;font-weight:600;color:var(--muted)}
@@ -188,6 +194,7 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
   <div class="nav-item" data-page="dashboard" onclick="showPage('dashboard')">📊 Дашборд</div>
   <div class="nav-item" data-page="requests" onclick="showPage('requests')">📋 Заявки</div>
   <div class="nav-item" id="nav-analytics" data-page="analytics" onclick="showPage('analytics')" style="display:none">📈 Аналитика</div>
+  <div class="nav-item" id="nav-prospects" data-page="prospects" onclick="showPage('prospects')" style="display:none">🎯 Потенциальные заказчики</div>
   <div class="nav-item" id="nav-new" data-page="new" onclick="showPage('new')" style="display:none">➕ Новая заявка</div>
   <div class="nav-item" id="nav-users" data-page="users" onclick="showPage('users')" style="display:none">⚙️ Настройки</div>
   <div class="spacer"></div>
@@ -197,7 +204,7 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     <div class="role" id="user-box-role"></div>
     <button class="logout-btn" onclick="logout()">Выйти</button>
   </div>
-  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-15.1</div>
+  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-15.3</div>
 </div>
 
 <div id="main" style="display:none">
@@ -222,6 +229,17 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     <div class="filters-row" id="req-filters"></div>
     <select id="req-manager-filter" onchange="setManagerFilter(this.value)" style="margin-bottom:14px;max-width:240px"></select>
     <div class="req-list" id="req-list"></div>
+  </div>
+
+  <!-- PROSPECTS -->
+  <div id="section-prospects" class="section">
+    <div class="page-title">Потенциальные заказчики</div>
+    <div class="page-sub">Компании, с которыми идут переговоры и встречи — до появления формальной заявки на КП</div>
+    <div class="form-actions" style="justify-content:flex-start;margin-bottom:14px">
+      <button class="btn btn-primary" onclick="openProspectDetail(null)">+ Добавить потенциального заказчика</button>
+    </div>
+    <div class="filters-row" id="prospect-filters"></div>
+    <div class="req-list" id="prospect-list"></div>
   </div>
 
   <!-- ANALYTICS -->
@@ -494,6 +512,14 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
   </div>
 </div>
 
+<!-- PROSPECT DETAIL MODAL -->
+<div class="modal-overlay" id="modal-prospect" onclick="if(event.target===this)closeModal('modal-prospect')">
+  <div class="modal-box" style="max-width:640px" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal('modal-prospect')">×</button>
+    <div id="modal-prospect-content"></div>
+  </div>
+</div>
+
 <!-- ATTACHMENT PREVIEW MODAL -->
 <div class="modal-overlay" id="modal-attach" onclick="if(event.target===this)closeModal('modal-attach')">
   <div class="modal-box" style="max-width:560px" onclick="event.stopPropagation()">
@@ -597,6 +623,9 @@ const SEED_OBJECT_TYPES=[
 const UNITS_KEY='kptracker_units';
 const LEGAL_ENTITIES_KEY='kptracker_legal_entities';
 const REGION_NAME={ru:'Россия',msk:'Москва'};
+const PROSPECTS_KEY='kptracker_prospects';
+const PROSPECT_STATUS_NAME={contact:'Первый контакт',negotiation:'Переговоры',meeting:'Встреча назначена',preparing_kp:'Готовим КП',won:'Стал заказчиком',lost:'Отказ'};
+const PROSPECT_LOG_TYPE_NAME={call:'Звонок',meeting:'Встреча',email:'Письмо',other:'Другое'};
 function areaTier(area){
   const a=tonum(area);
   if(!a)return null;
@@ -652,11 +681,14 @@ const SEED_USERS=[
 ];
 
 /* ========================= STATE ========================= */
-let DB={users:[...SEED_USERS],requests:{},managers:[],divisions:[...SEED_DIVISIONS],sections:[...SEED_SECTIONS],stageCoefficients:[...SEED_STAGE_COEFFICIENTS],objectTypes:[...SEED_OBJECT_TYPES],units:[],legalEntities:[]};
+let DB={users:[...SEED_USERS],requests:{},managers:[],divisions:[...SEED_DIVISIONS],sections:[...SEED_SECTIONS],stageCoefficients:[...SEED_STAGE_COEFFICIENTS],objectTypes:[...SEED_OBJECT_TYPES],units:[],legalEntities:[],prospects:[]};
 let currentUser=null;
 let activePage='dashboard';
 let reqFilter='all';
 let managerFilter='all';
+let prospectFilter='all';
+let currentProspectId=null;
+let pendingProspectLink=null;
 let pushTimers={};
 let pendingPushIds=new Set();
 
@@ -702,42 +734,51 @@ function fetchRemote(initial){
     fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.'+STAGE_COEF_KEY,{headers:sbHeaders()}).then(r=>r.json()).catch(()=>[]),
     fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.'+OBJECT_TYPE_KEY,{headers:sbHeaders()}).then(r=>r.json()).catch(()=>[]),
     fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.'+UNITS_KEY,{headers:sbHeaders()}).then(r=>r.json()).catch(()=>[]),
-    fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.'+LEGAL_ENTITIES_KEY,{headers:sbHeaders()}).then(r=>r.json()).catch(()=>[])
+    fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.'+LEGAL_ENTITIES_KEY,{headers:sbHeaders()}).then(r=>r.json()).catch(()=>[]),
+    fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.'+PROSPECTS_KEY,{headers:sbHeaders()}).then(r=>r.json()).catch(()=>[])
   ]).then(function(res){
-    const usersRows=res[0]||[], reqRows=res[1]||[], managersRows=res[2]||[], divisionsRows=res[3]||[], sectionsRows=res[4]||[], stageCoefRows=res[5]||[], objectTypeRows=res[6]||[], unitsRows=res[7]||[], legalRows=res[8]||[];
-    if(usersRows.length&&usersRows[0].value){
+    const usersRows=res[0]||[], reqRows=res[1]||[], managersRows=res[2]||[], divisionsRows=res[3]||[], sectionsRows=res[4]||[], stageCoefRows=res[5]||[], objectTypeRows=res[6]||[], unitsRows=res[7]||[], legalRows=res[8]||[], prospectsRows=res[9]||[];
+    // Flat-array catalogs (users/managers/divisions/.../prospects) are each stored under one
+    // key and pushX() sends the whole array with no debounce — but the POST still takes a
+    // moment, and a poll's GET can land (and get applied here) before it's done, silently
+    // reverting whatever was just pushed. Skip overwriting DB.<x> while its push is pending —
+    // same fix as pendingPushIds for requests above, just for the single-key catalogs.
+    if(usersRows.length&&usersRows[0].value&&!pendingCatalogPushes.has('users')){
       try{const u=JSON.parse(usersRows[0].value);if(u&&u.length)DB.users=u;}catch(e){}
-    }else if(initial){
+    }else if(initial&&!usersRows.length){
       pushUsers();
     }
-    if(managersRows.length&&managersRows[0].value){
+    if(managersRows.length&&managersRows[0].value&&!pendingCatalogPushes.has('managers')){
       try{const m=JSON.parse(managersRows[0].value);if(m)DB.managers=m;}catch(e){}
     }
-    if(divisionsRows.length&&divisionsRows[0].value){
+    if(divisionsRows.length&&divisionsRows[0].value&&!pendingCatalogPushes.has('divisions')){
       try{const d=JSON.parse(divisionsRows[0].value);if(d&&d.length)DB.divisions=d;}catch(e){}
-    }else if(initial){
+    }else if(initial&&!divisionsRows.length){
       pushDivisions();
     }
-    if(sectionsRows.length&&sectionsRows[0].value){
+    if(sectionsRows.length&&sectionsRows[0].value&&!pendingCatalogPushes.has('sections')){
       try{const s=JSON.parse(sectionsRows[0].value);if(s&&s.length)DB.sections=s;}catch(e){}
-    }else if(initial){
+    }else if(initial&&!sectionsRows.length){
       pushSections();
     }
-    if(stageCoefRows.length&&stageCoefRows[0].value){
+    if(stageCoefRows.length&&stageCoefRows[0].value&&!pendingCatalogPushes.has('stageCoefficients')){
       try{const sc=JSON.parse(stageCoefRows[0].value);if(sc&&sc.length)DB.stageCoefficients=sc;}catch(e){}
-    }else if(initial){
+    }else if(initial&&!stageCoefRows.length){
       pushStageCoefficients();
     }
-    if(objectTypeRows.length&&objectTypeRows[0].value){
+    if(objectTypeRows.length&&objectTypeRows[0].value&&!pendingCatalogPushes.has('objectTypes')){
       try{const ot=JSON.parse(objectTypeRows[0].value);if(ot&&ot.length)DB.objectTypes=ot;}catch(e){}
-    }else if(initial){
+    }else if(initial&&!objectTypeRows.length){
       pushObjectTypes();
     }
-    if(unitsRows.length&&unitsRows[0].value){
+    if(unitsRows.length&&unitsRows[0].value&&!pendingCatalogPushes.has('units')){
       try{const un=JSON.parse(unitsRows[0].value);if(un)DB.units=un;}catch(e){}
     }
-    if(legalRows.length&&legalRows[0].value){
+    if(legalRows.length&&legalRows[0].value&&!pendingCatalogPushes.has('legalEntities')){
       try{const le=JSON.parse(legalRows[0].value);if(le)DB.legalEntities=le;}catch(e){}
+    }
+    if(prospectsRows.length&&prospectsRows[0].value&&!pendingCatalogPushes.has('prospects')){
+      try{const ps=JSON.parse(prospectsRows[0].value);if(ps)DB.prospects=ps;}catch(e){}
     }
     if(reqRows.length){
       const merged={};
@@ -759,62 +800,25 @@ function fetchRemote(initial){
   }).catch(function(){setSyncStatus(false,'Нет соединения');});
 }
 
-function pushUsers(){
+let pendingCatalogPushes=new Set();
+function pushCatalog(dbProp,key){
+  pendingCatalogPushes.add(dbProp);
   fetch(SUPABASE_URL+'/rest/v1/storage',{
     method:'POST',
     headers:sbHeaders({'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'}),
-    body:JSON.stringify({key:USERS_KEY,value:JSON.stringify(DB.users)})
-  }).then(r=>setSyncStatus(r.ok,r.ok?'Сохранено':'Ошибка сохранения')).catch(()=>setSyncStatus(false,'Нет соединения'));
+    body:JSON.stringify({key:key,value:JSON.stringify(DB[dbProp])})
+  }).then(r=>{setSyncStatus(r.ok,r.ok?'Сохранено':'Ошибка сохранения');setTimeout(function(){pendingCatalogPushes.delete(dbProp);},3000);})
+    .catch(()=>{setSyncStatus(false,'Нет соединения');setTimeout(function(){pendingCatalogPushes.delete(dbProp);},3000);});
 }
-function pushManagers(){
-  fetch(SUPABASE_URL+'/rest/v1/storage',{
-    method:'POST',
-    headers:sbHeaders({'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'}),
-    body:JSON.stringify({key:MANAGERS_KEY,value:JSON.stringify(DB.managers)})
-  }).then(r=>setSyncStatus(r.ok,r.ok?'Сохранено':'Ошибка сохранения')).catch(()=>setSyncStatus(false,'Нет соединения'));
-}
-function pushDivisions(){
-  fetch(SUPABASE_URL+'/rest/v1/storage',{
-    method:'POST',
-    headers:sbHeaders({'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'}),
-    body:JSON.stringify({key:DIVISIONS_KEY,value:JSON.stringify(DB.divisions)})
-  }).then(r=>setSyncStatus(r.ok,r.ok?'Сохранено':'Ошибка сохранения')).catch(()=>setSyncStatus(false,'Нет соединения'));
-}
-function pushSections(){
-  fetch(SUPABASE_URL+'/rest/v1/storage',{
-    method:'POST',
-    headers:sbHeaders({'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'}),
-    body:JSON.stringify({key:SECTIONS_KEY,value:JSON.stringify(DB.sections)})
-  }).then(r=>setSyncStatus(r.ok,r.ok?'Сохранено':'Ошибка сохранения')).catch(()=>setSyncStatus(false,'Нет соединения'));
-}
-function pushStageCoefficients(){
-  fetch(SUPABASE_URL+'/rest/v1/storage',{
-    method:'POST',
-    headers:sbHeaders({'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'}),
-    body:JSON.stringify({key:STAGE_COEF_KEY,value:JSON.stringify(DB.stageCoefficients)})
-  }).then(r=>setSyncStatus(r.ok,r.ok?'Сохранено':'Ошибка сохранения')).catch(()=>setSyncStatus(false,'Нет соединения'));
-}
-function pushObjectTypes(){
-  fetch(SUPABASE_URL+'/rest/v1/storage',{
-    method:'POST',
-    headers:sbHeaders({'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'}),
-    body:JSON.stringify({key:OBJECT_TYPE_KEY,value:JSON.stringify(DB.objectTypes)})
-  }).then(r=>setSyncStatus(r.ok,r.ok?'Сохранено':'Ошибка сохранения')).catch(()=>setSyncStatus(false,'Нет соединения'));
-}
-function pushUnits(){
-  fetch(SUPABASE_URL+'/rest/v1/storage',{
-    method:'POST',
-    headers:sbHeaders({'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'}),
-    body:JSON.stringify({key:UNITS_KEY,value:JSON.stringify(DB.units)})
-  }).then(r=>setSyncStatus(r.ok,r.ok?'Сохранено':'Ошибка сохранения')).catch(()=>setSyncStatus(false,'Нет соединения'));
-}
-function pushLegalEntities(){
-  fetch(SUPABASE_URL+'/rest/v1/storage',{
-    method:'POST',
-    headers:sbHeaders({'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'}),
-    body:JSON.stringify({key:LEGAL_ENTITIES_KEY,value:JSON.stringify(DB.legalEntities)})
-  }).then(r=>setSyncStatus(r.ok,r.ok?'Сохранено':'Ошибка сохранения')).catch(()=>setSyncStatus(false,'Нет соединения'));
-}
+function pushUsers(){pushCatalog('users',USERS_KEY);}
+function pushManagers(){pushCatalog('managers',MANAGERS_KEY);}
+function pushDivisions(){pushCatalog('divisions',DIVISIONS_KEY);}
+function pushSections(){pushCatalog('sections',SECTIONS_KEY);}
+function pushStageCoefficients(){pushCatalog('stageCoefficients',STAGE_COEF_KEY);}
+function pushObjectTypes(){pushCatalog('objectTypes',OBJECT_TYPE_KEY);}
+function pushUnits(){pushCatalog('units',UNITS_KEY);}
+function pushLegalEntities(){pushCatalog('legalEntities',LEGAL_ENTITIES_KEY);}
+function pushProspects(){pushCatalog('prospects',PROSPECTS_KEY);}
 
 function pushRequest(id){
   if(pushTimers[id])clearTimeout(pushTimers[id]);
@@ -864,6 +868,7 @@ function enterApp(){
   byId('user-box-name').textContent=currentUser.name;
   byId('user-box-role').textContent=roleName(currentUser.role);
   byId('nav-new').style.display=(currentUser.role==='commercial'||currentUser.role==='admin')?'flex':'none';
+  byId('nav-prospects').style.display=(currentUser.role==='commercial'||currentUser.role==='admin')?'flex':'none';
   byId('nav-users').style.display=(currentUser.role==='admin')?'flex':'none';
   byId('nav-analytics').style.display=(currentUser.role==='admin'||currentUser.role==='commercial'||currentUser.role==='production')?'flex':'none';
   showPage('dashboard');
@@ -911,6 +916,7 @@ function renderAll(){
   if(activePage==='dashboard')renderDashboard();
   if(activePage==='requests')renderRequests();
   if(activePage==='analytics')renderAnalytics();
+  if(activePage==='prospects')renderProspects();
   if(activePage==='users')renderUsers();
   if(activePage==='new'){renderManagerSelect();renderLegalEntitySelect();}
 }
@@ -1119,6 +1125,134 @@ function renderReqCard(r){
   +'</div>';
 }
 
+/* ========================= PROSPECTS (потенциальные заказчики) ========================= */
+function setProspectFilter(f){prospectFilter=f;renderProspects();}
+function renderProspects(){
+  const filters=[['all','Все']].concat(Object.keys(PROSPECT_STATUS_NAME).map(k=>[k,PROSPECT_STATUS_NAME[k]]));
+  byId('prospect-filters').innerHTML=filters.map(f=>
+    '<button class="filter-chip '+(prospectFilter===f[0]?'active':'')+'" onclick="setProspectFilter(\''+f[0]+'\')">'+f[1]+'</button>'
+  ).join('');
+  let list=(DB.prospects||[]).filter(p=>!p._del).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  if(prospectFilter!=='all')list=list.filter(p=>p.status===prospectFilter);
+  byId('prospect-list').innerHTML=list.length?list.map(renderProspectCard).join(''):'<div class="empty-state">Потенциальных заказчиков нет</div>';
+}
+function renderProspectCard(p){
+  const lastLog=(p.log&&p.log.length)?p.log[p.log.length-1]:null;
+  const sub=[];
+  if(p.contact)sub.push('<span>👤 '+escape(p.contact)+'</span>');
+  if(p.phone)sub.push('<span>'+escape(p.phone)+'</span>');
+  if(p.responsibleManager)sub.push('<span>Ответственный: '+escape(p.responsibleManager)+'</span>');
+  if(lastLog)sub.push('<span>Последняя запись: '+fmtDate(lastLog.at)+'</span>');
+  if(p.linkedRequestId)sub.push('<span>→ заявка <span class="mono">'+p.linkedRequestId+'</span></span>');
+  return '<div class="req-card" onclick="openProspectDetail(\''+p.id+'\')">'
+    +'<div class="rc-main">'
+      +'<div class="rc-title">'+escape(p.name)+'</div>'
+      +'<div class="rc-sub">'+sub.join('')+'</div>'
+    +'</div>'
+    +'<span class="badge badge-ps-'+p.status+'">'+PROSPECT_STATUS_NAME[p.status]+'</span>'
+  +'</div>';
+}
+function openProspectDetail(id){
+  currentProspectId=id;
+  const p=id?(DB.prospects||[]).find(x=>x.id===id&&!x._del):null;
+  if(id&&!p)return;
+  const managerOptions='<option value="">— Не выбран —</option>'+(DB.managers||[]).filter(m=>!m._del).map(function(m){
+    return '<option value="'+escape(m.name)+'"'+(p&&p.responsibleManager===m.name?' selected':'')+'>'+escape(m.name)+'</option>';
+  }).join('');
+  const statusOptions=Object.keys(PROSPECT_STATUS_NAME).map(function(k){
+    return '<option value="'+k+'"'+((p?p.status:'contact')===k?' selected':'')+'>'+PROSPECT_STATUS_NAME[k]+'</option>';
+  }).join('');
+  let html='';
+  html+='<h2>'+(p?escape(p.name):'Новый потенциальный заказчик')+'</h2>';
+  if(p)html+='<span class="badge badge-ps-'+p.status+'"><span class="badge-dot"></span>'+PROSPECT_STATUS_NAME[p.status]+'</span>';
+  html+='<div class="form-grid" style="margin-top:16px">'
+    +'<div class="field span2"><label>Название компании *</label><input id="ps-name" value="'+(p?escape(p.name):'')+'"></div>'
+    +'<div class="field"><label>Контактное лицо</label><input id="ps-contact" value="'+(p?escape(p.contact||''):'')+'"></div>'
+    +'<div class="field"><label>Телефон / e-mail</label><input id="ps-phone" value="'+(p?escape(p.phone||''):'')+'"></div>'
+    +'<div class="field"><label>Ответственный менеджер</label><select id="ps-manager">'+managerOptions+'</select></div>'
+    +'<div class="field"><label>Статус</label><select id="ps-status">'+statusOptions+'</select></div>'
+  +'</div>';
+  html+='<div class="form-actions" style="justify-content:flex-start;margin-top:10px">'
+    +'<button class="btn btn-primary" onclick="saveProspect()">'+(p?'Сохранить':'Создать')+'</button>'
+    +(p?'<button class="btn btn-danger" onclick="deleteProspect(\''+p.id+'\')">Удалить</button>':'')
+  +'</div>';
+  if(p){
+    html+='<div class="divider"></div><h3 style="font-size:14px;font-weight:800;margin-bottom:6px">Журнал переговоров</h3>';
+    if(p.log&&p.log.length){
+      html+=p.log.slice().reverse().map(function(e){
+        return '<div class="sub-detail" style="margin-bottom:8px"><b>'+fmtDate(e.at)+' · '+escape(e.by)+' · '+(PROSPECT_LOG_TYPE_NAME[e.type]||e.type)+'</b>'+(e.note?'<div>'+escape(e.note)+'</div>':'')+'</div>';
+      }).join('');
+    }else{
+      html+='<div class="empty-state">Записей пока нет</div>';
+    }
+    html+='<div class="form-grid" style="margin-top:10px">'
+      +'<div class="field"><label>Тип</label><select id="ps-log-type">'
+        +Object.keys(PROSPECT_LOG_TYPE_NAME).map(function(k){return '<option value="'+k+'">'+PROSPECT_LOG_TYPE_NAME[k]+'</option>';}).join('')
+      +'</select></div>'
+      +'<div class="field span2"><label>Заметка</label><textarea id="ps-log-note" placeholder="Что обсуждали"></textarea></div>'
+    +'</div>'
+    +'<div class="form-actions" style="justify-content:flex-start;margin-top:8px"><button class="btn btn-sm" onclick="addProspectLog(\''+p.id+'\')">Добавить запись</button></div>';
+    if(p.linkedRequestId){
+      html+='<div class="hint-box" style="margin-top:14px">Переведено в заявку на КП: <span class="mono">'+p.linkedRequestId+'</span> — <span style="cursor:pointer;text-decoration:underline" onclick="closeModal(\'modal-prospect\');openDetail(\''+p.linkedRequestId+'\')">открыть</span></div>';
+    }else{
+      html+='<div class="form-actions" style="justify-content:flex-start;margin-top:14px"><button class="btn btn-primary" onclick="convertProspectToRequest(\''+p.id+'\')">Создать заявку на КП</button></div>';
+    }
+  }
+  byId('modal-prospect-content').innerHTML=html;
+  openModal('modal-prospect');
+}
+function saveProspect(){
+  const name=(byId('ps-name').value||'').trim();
+  if(!name){alert('Укажите название компании');return;}
+  const contact=(byId('ps-contact').value||'').trim();
+  const phone=(byId('ps-phone').value||'').trim();
+  const manager=byId('ps-manager').value||'';
+  const status=byId('ps-status').value||'contact';
+  if(currentProspectId){
+    const p=(DB.prospects||[]).find(x=>x.id===currentProspectId); if(!p)return;
+    p.name=name; p.contact=contact; p.phone=phone; p.responsibleManager=manager; p.status=status;
+    pushProspects();
+    openProspectDetail(currentProspectId);
+  }else{
+    DB.prospects=DB.prospects||[];
+    const id=uid('ps');
+    DB.prospects.push({id,name,contact,phone,responsibleManager:manager,status,log:[],linkedRequestId:null,createdBy:currentUser.name,createdAt:nowIso()});
+    pushProspects();
+    closeModal('modal-prospect');
+    renderProspects();
+  }
+}
+function deleteProspect(id){
+  const p=(DB.prospects||[]).find(x=>x.id===id); if(!p)return;
+  if(!confirm('Удалить «'+p.name+'» из списка потенциальных заказчиков?'))return;
+  p._del=true;
+  pushProspects();
+  closeModal('modal-prospect');
+  renderProspects();
+}
+function addProspectLog(id){
+  const p=(DB.prospects||[]).find(x=>x.id===id); if(!p)return;
+  const type=byId('ps-log-type').value||'other';
+  const note=(byId('ps-log-note').value||'').trim();
+  if(!note){alert('Опишите, что обсуждали');return;}
+  p.log=p.log||[];
+  p.log.push({at:nowIso(),by:currentUser.name,type,note});
+  pushProspects();
+  openProspectDetail(id);
+}
+function convertProspectToRequest(id){
+  const p=(DB.prospects||[]).find(x=>x.id===id); if(!p)return;
+  pendingProspectLink=id;
+  closeModal('modal-prospect');
+  showPage('new');
+  byId('nf-customer').value=p.name||'';
+  byId('nf-manager').value=p.contact||'';
+  if(p.responsibleManager){
+    const sel=byId('nf-manager2');
+    if(sel&&Array.from(sel.options).some(o=>o.value===p.responsibleManager))sel.value=p.responsibleManager;
+  }
+}
+
 /* ========================= ATTACHMENTS ========================= */
 const ATTACH_PREFIX='kptracker_file_';
 const MAX_FILE_BYTES=8*1024*1024;
@@ -1264,6 +1398,17 @@ async function createRequest(){
   };
   DB.requests[id]=req;
   pushRequest(id);
+  if(pendingProspectLink){
+    const linkedP=(DB.prospects||[]).find(x=>x.id===pendingProspectLink);
+    if(linkedP){
+      linkedP.linkedRequestId=id;
+      linkedP.status='won';
+      linkedP.log=linkedP.log||[];
+      linkedP.log.push({at:nowIso(),by:currentUser.name,type:'other',note:'Создана заявка на КП '+id});
+      pushProspects();
+    }
+    pendingProspectLink=null;
+  }
   ['customer','manager','subject','address','area','amount','worktype','gov','currency','deadline','advance','tz','comment'].forEach(f=>{
     const el=byId('nf-'+f); if(el&&el.tagName!=='SELECT')el.value='';
   });
