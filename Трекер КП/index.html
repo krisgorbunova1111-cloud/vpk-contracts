@@ -204,7 +204,7 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     <div class="role" id="user-box-role"></div>
     <button class="logout-btn" onclick="logout()">Выйти</button>
   </div>
-  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-15.4</div>
+  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-15.5</div>
 </div>
 
 <div id="main" style="display:none">
@@ -867,7 +867,7 @@ function enterApp(){
   byId('main').style.display='block';
   byId('user-box-name').textContent=currentUser.name;
   byId('user-box-role').textContent=roleName(currentUser.role);
-  byId('nav-new').style.display=(currentUser.role==='commercial'||currentUser.role==='admin')?'flex':'none';
+  byId('nav-new').style.display=(currentUser.role==='commercial'||currentUser.role==='admin'||currentUser.role==='klientskiy_menedzher')?'flex':'none';
   byId('nav-prospects').style.display=(currentUser.role==='commercial'||currentUser.role==='admin'||currentUser.role==='klientskiy_menedzher')?'flex':'none';
   byId('nav-users').style.display=(currentUser.role==='admin')?'flex':'none';
   byId('nav-analytics').style.display=(currentUser.role==='admin'||currentUser.role==='commercial'||currentUser.role==='production')?'flex':'none';
@@ -883,6 +883,9 @@ function visibleRequests(){
   const all=allRequests();
   if(role==='admin'||role==='commercial')return all;
   if(role==='production')return all;
+  if(role==='klientskiy_menedzher'){
+    return all.filter(r=>r.createdBy===currentUser.name);
+  }
   if(divisionKeys().includes(role)){
     return all.filter(r=>r.subs&&r.subs[role]&&['waiting','insufficient','done','skipped'].includes(r.subs[role].status));
   }
@@ -893,6 +896,9 @@ function needsActionCount(){
   const all=allRequests();
   if(role==='production'){
     return all.filter(r=>r.stage==='new'||r.stage==='decision'||(r.stage==='subdivisions'&&Object.values(r.subs||{}).some(v=>v.status==='insufficient'))).length;
+  }
+  if(role==='klientskiy_menedzher'){
+    return all.filter(r=>r.createdBy===currentUser.name&&(r.stage==='returned'||r.stage==='rejected'||r.stage==='accepted')).length;
   }
   if(divisionKeys().includes(role)){
     return all.filter(r=>r.stage==='subdivisions'&&r.subs[role]&&r.subs[role].status==='waiting').length;
@@ -985,6 +991,8 @@ function renderDashboard(){
   let actionable=[];
   if(role==='production'){
     actionable=all.filter(r=>r.stage==='new'||r.stage==='decision'||(r.stage==='subdivisions'&&Object.values(r.subs||{}).some(v=>v.status==='insufficient')));
+  }else if(role==='klientskiy_menedzher'){
+    actionable=all.filter(r=>r.createdBy===currentUser.name&&['returned','rejected','accepted'].includes(r.stage)).slice(0,6);
   }else if(divisionKeys().includes(role)){
     actionable=all.filter(r=>r.stage==='subdivisions'&&r.subs[role]&&r.subs[role].status==='waiting');
   }else if(role==='commercial'){
@@ -1000,7 +1008,7 @@ function renderRequests(){
   const role=currentUser.role;
   byId('req-sub').textContent='Видимость по роли: '+roleName(role);
   const filters=[['all','Все']];
-  if(role==='admin'||role==='commercial'||role==='production'){
+  if(role==='admin'||role==='commercial'||role==='production'||role==='klientskiy_menedzher'){
     filters.push(['new','Новые'],['subdivisions','У подразделений'],['decision','На решении'],['accepted','Принято'],['rejected','Отказ'],['returned','Возврат']);
   }
   byId('req-filters').innerHTML=filters.map(f=>
