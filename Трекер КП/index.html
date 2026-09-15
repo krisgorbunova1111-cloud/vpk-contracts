@@ -204,7 +204,7 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     <div class="role" id="user-box-role"></div>
     <button class="logout-btn" onclick="logout()">Выйти</button>
   </div>
-  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-15.3</div>
+  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-15.4</div>
 </div>
 
 <div id="main" style="display:none">
@@ -868,7 +868,7 @@ function enterApp(){
   byId('user-box-name').textContent=currentUser.name;
   byId('user-box-role').textContent=roleName(currentUser.role);
   byId('nav-new').style.display=(currentUser.role==='commercial'||currentUser.role==='admin')?'flex':'none';
-  byId('nav-prospects').style.display=(currentUser.role==='commercial'||currentUser.role==='admin')?'flex':'none';
+  byId('nav-prospects').style.display=(currentUser.role==='commercial'||currentUser.role==='admin'||currentUser.role==='klientskiy_menedzher')?'flex':'none';
   byId('nav-users').style.display=(currentUser.role==='admin')?'flex':'none';
   byId('nav-analytics').style.display=(currentUser.role==='admin'||currentUser.role==='commercial'||currentUser.role==='production')?'flex':'none';
   showPage('dashboard');
