@@ -197,7 +197,7 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     <div class="role" id="user-box-role"></div>
     <button class="logout-btn" onclick="logout()">Выйти</button>
   </div>
-  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-11.7</div>
+  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-15.1</div>
 </div>
 
 <div id="main" style="display:none">
@@ -275,6 +275,7 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
         <div class="field"><label>Срок исполнения</label><input id="nf-deadline" placeholder="напр. 45 дней / 01.12.2026"></div>
         <div class="field"><label>Размер аванса, %</label><input id="nf-advance" type="number" min="0" max="100" step="1" placeholder="напр. 30"></div>
         <div class="field span2"><label>Файл ТЗ (ссылка или название)</label><input id="nf-tz" placeholder="напр. ТЗ_Объект.pdf или ссылка на диск"></div>
+        <div class="field span2"><label>Комментарий</label><textarea id="nf-comment" placeholder="Любые заметки по заявке"></textarea></div>
         <div class="field span2">
           <label>Иные документы (фото, сканы, файлы)</label>
           <input type="file" id="nf-files" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" onchange="handleAttachmentFiles(this.files)">
@@ -657,6 +658,7 @@ let activePage='dashboard';
 let reqFilter='all';
 let managerFilter='all';
 let pushTimers={};
+let pendingPushIds=new Set();
 
 /* ========================= UTIL ========================= */
 function uid(prefix){return prefix+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
@@ -742,6 +744,13 @@ function fetchRemote(initial){
       reqRows.forEach(function(row){
         try{const r=JSON.parse(row.value);if(r&&r.id)merged[r.id]=r;}catch(e){}
       });
+      // A request just created/edited locally may not have reached Supabase yet (pushRequest
+      // debounces 500ms, plus network time) — if a poll's GET lands in that window, the server
+      // copy it just fetched won't have it yet. Keep the local copy for anything still pending
+      // so it doesn't visibly vanish from the list until the next poll cycle catches up.
+      pendingPushIds.forEach(function(id){
+        if(DB.requests[id])merged[id]=DB.requests[id];
+      });
       DB.requests=merged;
     }
     saveLocal();
@@ -809,14 +818,16 @@ function pushLegalEntities(){
 
 function pushRequest(id){
   if(pushTimers[id])clearTimeout(pushTimers[id]);
+  pendingPushIds.add(id);
   pushTimers[id]=setTimeout(function(){
     const reqObj=DB.requests[id];
-    if(!reqObj)return;
+    if(!reqObj){pendingPushIds.delete(id);return;}
     fetch(SUPABASE_URL+'/rest/v1/storage',{
       method:'POST',
       headers:sbHeaders({'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'}),
       body:JSON.stringify({key:REQ_PREFIX+id,value:JSON.stringify(reqObj)})
-    }).then(r=>setSyncStatus(r.ok,r.ok?'Сохранено ☁️':'Ошибка сохранения')).catch(()=>setSyncStatus(false,'Нет соединения'));
+    }).then(r=>{setSyncStatus(r.ok,r.ok?'Сохранено ☁️':'Ошибка сохранения');setTimeout(function(){pendingPushIds.delete(id);},3000);})
+      .catch(()=>{setSyncStatus(false,'Нет соединения');setTimeout(function(){pendingPushIds.delete(id);},3000);});
   },500);
   saveLocal();
 }
@@ -1242,6 +1253,7 @@ async function createRequest(){
     deadline:byId('nf-deadline').value.trim(),
     advance:byId('nf-advance').value.trim(),
     tzLink:byId('nf-tz').value.trim(),
+    comment:byId('nf-comment').value.trim(),
     attachments,
     stage:'new',
     createdBy:currentUser.name, createdAt:nowIso(),
@@ -1252,7 +1264,7 @@ async function createRequest(){
   };
   DB.requests[id]=req;
   pushRequest(id);
-  ['customer','manager','subject','address','area','amount','worktype','gov','currency','deadline','advance','tz'].forEach(f=>{
+  ['customer','manager','subject','address','area','amount','worktype','gov','currency','deadline','advance','tz','comment'].forEach(f=>{
     const el=byId('nf-'+f); if(el&&el.tagName!=='SELECT')el.value='';
   });
   byId('nf-manager2').value='';
@@ -1588,6 +1600,15 @@ function actionReturnToProduction(id){
   pushHistory(req,'Коммерческий отдел вернул заявку в производственный отдел'+(reason?': '+reason:''));
   pushRequest(id); closeModal('modal-detail'); renderAll();
 }
+function saveDetailComment(id){
+  const req=DB.requests[id]; if(!req)return;
+  const el=byId('detail-comment'); if(!el)return;
+  const comment=el.value.trim();
+  if(comment===(req.comment||''))return;
+  req.comment=comment;
+  pushHistory(req,'Изменён комментарий к заявке');
+  pushRequest(id); openDetail(id);
+}
 
 /* ========================= SUBDIVISION ACTIONS ========================= */
 function actionSubSubmit(id,sub){
@@ -1701,6 +1722,11 @@ function openDetail(id){
     });
     html+='</div>';
   }
+
+  html+='<div class="field" style="margin-top:14px"><label>Комментарий</label>'
+    +'<textarea id="detail-comment" placeholder="Любые заметки по заявке">'+escape(req.comment||'')+'</textarea>'
+    +'<div class="form-actions" style="justify-content:flex-start;margin-top:6px"><button type="button" class="btn btn-sm" onclick="saveDetailComment(\''+id+'\')">Сохранить комментарий</button></div>'
+  +'</div>';
 
   html+='<!--TAB:performers-->';
   // Subdivisions block
