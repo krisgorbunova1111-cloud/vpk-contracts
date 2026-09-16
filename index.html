@@ -1088,7 +1088,7 @@ function openEditInternal(c,isNew){
   });
   objOptions+='<option value="__new__">Добавить новый...</option>';
 
-  var combinedVal=WORKFLOW_STATUSES.indexOf(c.status)>=0?c.status:(c.sign_status||'Подписан');
+  var combinedVal=EXCLUDED_SIGN_STATUSES.indexOf(c.sign_status||'')>=0?c.sign_status:(WORKFLOW_STATUSES.indexOf(c.status)>=0?c.status:(c.sign_status||'Подписан'));
   var wfOpts='';
   WORKFLOW_STATUSES.forEach(function(s){
     wfOpts+='<option value="'+esc(s)+'"'+(combinedVal===s?' selected':'')+'>'+esc(s)+'</option>';
@@ -1305,7 +1305,7 @@ function saveContract(id){
   var newStatus,newSignStatus;
   if(WORKFLOW_STATUSES.indexOf(combinedVal)>=0){
     newStatus=combinedVal;
-    newSignStatus='Подписан';
+    newSignStatus=EXCLUDED_SIGN_STATUSES.indexOf(c.sign_status||'')>=0?c.sign_status:'Подписан';
   } else {
     newStatus=c.status||'Активный';
     newSignStatus=combinedVal;
