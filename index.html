@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Договора ВПК</title>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{width:100%;height:100%}
@@ -401,6 +402,7 @@ body:not(.authenticated) .auth-only{display:none!important}
       <div class="page-title" style="margin-bottom:0">Договора</div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-ghost" onclick="printReport('contracts')">🖨️ Печать</button>
+        <button class="btn btn-ghost" onclick="exportExcel('contracts')">📥 Excel</button>
         <button class="btn btn-primary auth-only" onclick="openNewContract()">+ Новый договор</button>
       </div>
     </div>
@@ -478,6 +480,7 @@ body:not(.authenticated) .auth-only{display:none!important}
       <div class="page-title" style="margin-bottom:0">Платежи</div>
       <div style="display:flex;gap:8px;align-items:center">
         <button class="btn btn-ghost" onclick="printReport('payments')">🖨️ Печать</button>
+        <button class="btn btn-ghost" onclick="exportExcel('payments')">📥 Excel</button>
         <div class="view-toggle">
           <button id="btn-view-list" class="view-btn active" onclick="setPayView('list')">📋 Список</button>
           <button id="btn-view-obj" class="view-btn" onclick="setPayView('objects')">🏗 По объектам</button>
@@ -2158,6 +2161,42 @@ function msdClearAll(){
   document.querySelectorAll('#obj-msd-list .obj-cb').forEach(function(cb){cb.checked=false;});
   msdUpdateLabel();
   renderPayments();
+}
+
+// EXCEL EXPORT
+function exportExcel(type){
+  if(typeof XLSX==='undefined'){alert('Библиотека Excel ещё загружается, попробуйте через секунду.');return;}
+  var wb=XLSX.utils.book_new();
+  if(type==='contracts'){
+    var rows=[['№ договора','Объект','Подрядчик','Предмет','ИНН','Дата','Сумма договора','Статус работы','Статус подписания','Ответственный','Оплачено','Остаток','Ссылка на файл']];
+    cFiltered.forEach(function(c){
+      var totalAmt=calcTotalWithDs(c);
+      var paid=0,rem=0;
+      (c.payments||[]).forEach(function(p){var pr=calcPaidRem(p);paid+=pr.paid;rem+=pr.rem;});
+      rows.push([c.number||'',c.object||'',c.contractor||'',c.subject||'',c.inn||'',c.date||'',totalAmt,c.status||'',c.sign_status||'',c.responsible||'',paid,rem,c.file_url||'']);
+    });
+    var ws=XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols']=[{wch:16},{wch:24},{wch:24},{wch:30},{wch:14},{wch:12},{wch:16},{wch:18},{wch:28},{wch:18},{wch:14},{wch:14},{wch:40}];
+    XLSX.utils.book_append_sheet(wb,ws,'Договора');
+    XLSX.writeFile(wb,'Договора_ВПК_'+new Date().toLocaleDateString('ru-RU').replace(/\./g,'-')+'.xlsx');
+  } else if(type==='payments'){
+    var pRows=[['Договор','Объект','Подрядчик','Тип платежа','Неделя','Сумма план','Оплачено','Остаток','Статус','Примечание']];
+    var q2=(document.getElementById('p-search').value||'').toLowerCase();
+    var fWeek2=document.getElementById('p-filter-week').value;
+    var fSt2=document.getElementById('p-filter-status').value;
+    var fTyp2=document.getElementById('p-filter-type').value;
+    getAllPayments().filter(function(p){
+      var match=!q2||(p.object||'').toLowerCase().indexOf(q2)>=0||(p.contractor||'').toLowerCase().indexOf(q2)>=0||(p.number||'').toLowerCase().indexOf(q2)>=0;
+      var matchObj=selectedPayObjs.size===0||selectedPayObjs.has(p.object);
+      return match&&(!fWeek2||p.week===fWeek2)&&(!fTyp2||p.pay_type===fTyp2)&&(!fSt2||p.pay_status===fSt2)&&matchObj;
+    }).forEach(function(p){
+      pRows.push([p.number||'',p.object||'',p.contractor||'',p.pay_type||'',p.week||'',p.pay_amount||0,p.paid||0,p.remainder||0,p.pay_status||'',p.notes||'']);
+    });
+    var ws2=XLSX.utils.aoa_to_sheet(pRows);
+    ws2['!cols']=[{wch:16},{wch:24},{wch:24},{wch:20},{wch:10},{wch:14},{wch:14},{wch:14},{wch:20},{wch:24}];
+    XLSX.utils.book_append_sheet(wb,ws2,'Платежи');
+    XLSX.writeFile(wb,'Платежи_ВПК_'+new Date().toLocaleDateString('ru-RU').replace(/\./g,'-')+'.xlsx');
+  }
 }
 
 // PRINT REPORTS
