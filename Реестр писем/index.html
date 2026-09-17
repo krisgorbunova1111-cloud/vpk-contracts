@@ -48,6 +48,12 @@ input,select,textarea{font-family:inherit}
 .stat-card.object-card:hover{box-shadow:0 4px 14px rgba(0,0,0,.12);transform:translateY(-1px)}
 .stat-card.object-card .sub b{font-weight:800}
 .nav-divider{padding:14px 20px 4px;font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:rgba(255,255,255,.35);font-weight:700}
+.multicombo{display:flex;flex-direction:column;gap:6px}
+.multicombo-chips{display:flex;flex-wrap:wrap;gap:6px;min-height:26px}
+.chip{display:inline-flex;align-items:center;gap:4px;background:#eff6ff;color:#1d4ed8;border-radius:99px;padding:4px 6px 4px 10px;font-size:12px;font-weight:700;white-space:nowrap}
+.chip button{background:none;border:none;color:#1d4ed8;font-size:15px;line-height:1;cursor:pointer;padding:0 2px}
+.chip button:hover{color:#dc2626}
+.chip-empty{font-size:12px;color:#94a3b8;padding:4px 0}
 
 .panel{background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:24px}
 .panel .title{font-size:14px;font-weight:700;margin-bottom:12px;color:#374151}
@@ -354,7 +360,7 @@ var SCHEMA={
       ['subject','Заголовок / содержание','textarea',false],
       ['sheets','Кол-во листов','text',false],
       ['attach','Приложений (кол-во)','text',false],
-      ['executor','Исполнитель','combo:people',false],
+      ['executor','Исполнитель(и)','multicombo:people',false],
       ['link','Ссылка на письмо','text',false],
       ['need_reply','Ответ требуется','select:да,нет',false],
       ['got_reply','Ответ получен','select:да,нет',false],
@@ -376,7 +382,7 @@ var SCHEMA={
       ['attach','Приложение','text',false],
       ['link','Ссылка на письмо','text',false],
       ['need_reply','Необходимо предоставить ответ','select:да,нет',false],
-      ['responsible','Ответственный','combo:people',false],
+      ['responsible','Ответственный(е)','multicombo:people',false],
       ['deadline','Срок ответа','date',false],
       ['replied','Ответ направлен','select:да,нет',false],
       ['reply_link','Ссылка на ответ','text',false],
@@ -669,9 +675,16 @@ function addPerson(name){
   pushToSupabase();
   return p.name;
 }
+function splitNames(s){ return (s||'').split('\n').map(function(x){return x.trim();}).filter(Boolean); }
+function replaceNameInMulti(s,oldName,newName){
+  var arr=splitNames(s);
+  var changed=false;
+  arr=arr.map(function(n){ if(n===oldName){ changed=true; return newName; } return n; });
+  return changed?arr.join('\n'):s;
+}
 function cascadePersonRename(oldName,newName){
-  DB.out.forEach(function(r){ if(r.executor===oldName) r.executor=newName; });
-  DB.in.forEach(function(r){ if(r.responsible===oldName) r.responsible=newName; });
+  DB.out.forEach(function(r){ r.executor=replaceNameInMulti(r.executor,oldName,newName); });
+  DB.in.forEach(function(r){ r.responsible=replaceNameInMulti(r.responsible,oldName,newName); });
   DB.adm.forEach(function(r){ if(r.initiator===oldName) r.initiator=newName; });
 }
 function renamePerson(id,newName){
@@ -689,8 +702,8 @@ function renamePerson(id,newName){
   return newName;
 }
 function personUsage(name){
-  var o=(DB.out||[]).filter(function(r){return r.executor===name;}).length;
-  var i=(DB.in||[]).filter(function(r){return r.responsible===name;}).length;
+  var o=(DB.out||[]).filter(function(r){return splitNames(r.executor).indexOf(name)!==-1;}).length;
+  var i=(DB.in||[]).filter(function(r){return splitNames(r.responsible).indexOf(name)!==-1;}).length;
   var a=(DB.adm||[]).filter(function(r){return r.initiator===name;}).length;
   return {out:o,in:i,adm:a,total:o+i+a};
 }
@@ -841,8 +854,8 @@ function renderObjectDetailBody(id){
 
 /* ---------- People section ---------- */
 function personStats(name){
-  var o=(DB.out||[]).filter(function(r){return r.executor===name;}).length;
-  var i=(DB.in||[]).filter(function(r){return r.responsible===name;}).length;
+  var o=(DB.out||[]).filter(function(r){return splitNames(r.executor).indexOf(name)!==-1;}).length;
+  var i=(DB.in||[]).filter(function(r){return splitNames(r.responsible).indexOf(name)!==-1;}).length;
   var a=(DB.adm||[]).filter(function(r){return r.initiator===name;}).length;
   return {o:o,i:i,a:a,total:o+i+a};
 }
@@ -1024,13 +1037,57 @@ function openAddModal(type){
     } else if(ftype==='combo:objects'||ftype==='combo:people'){
       var kind=ftype==='combo:objects'?'objects':'people';
       input='<select id="af-'+key+'" onchange="onComboChange(\''+key+'\',\''+kind+'\',this)">'+comboOptionsHtml(kind)+'</select>';
+    } else if(ftype==='multicombo:people'){
+      full=' span2';
+      input='<div class="multicombo"><div class="multicombo-chips" id="af-'+key+'-chips"></div><select id="af-'+key+'-picker" onchange="onMultiComboPick(\''+key+'\',this)"></select></div>';
     } else {
       input='<input type="text" id="af-'+key+'">';
     }
     html+='<div class="form-group'+full+'"><label>'+esc(label)+(req?' *':'')+'</label>'+input+'</div>';
   });
   document.getElementById('add-form-fields').innerHTML=html;
+  SCHEMA[type].fields.forEach(function(f){
+    if(f[2]==='multicombo:people'){ multiComboState[f[0]]=[]; renderMultiComboField(f[0]); }
+  });
   document.getElementById('add-modal').classList.add('open');
+}
+
+/* ---------- Multi-select combo (e.g. several executors on one letter) ---------- */
+var multiComboState={};
+function renderMultiComboField(key){
+  var chipsEl=document.getElementById('af-'+key+'-chips'); if(!chipsEl) return;
+  var arr=multiComboState[key]||[];
+  chipsEl.innerHTML=arr.length?arr.map(function(n,idx){
+    return '<span class="chip">'+esc(n)+'<button type="button" onclick="removeMultiComboItem(\''+key+'\','+idx+')">✕</button></span>';
+  }).join(''):'<span class="chip-empty">Никто не выбран</span>';
+  refreshMultiComboPicker(key);
+}
+function refreshMultiComboPicker(key){
+  var picker=document.getElementById('af-'+key+'-picker'); if(!picker) return;
+  var arr=multiComboState[key]||[];
+  var opts=(DB.people||[]).filter(function(p){return arr.indexOf(p.name)===-1;}).slice().sort(function(a,b){return a.name.localeCompare(b.name,'ru');});
+  picker.innerHTML='<option value="">+ Добавить…</option>'+opts.map(function(p){return '<option value="'+esc(p.name)+'">'+esc(p.name)+'</option>';}).join('')+'<option value="__add__">+ Добавить нового…</option>';
+  picker.value='';
+}
+function onMultiComboPick(key,selectEl){
+  var val=selectEl.value;
+  if(!val) return;
+  if(val==='__add__'){
+    selectEl.value='';
+    openRegistryModal('people','add',null,function(name){
+      multiComboState[key]=multiComboState[key]||[];
+      if(multiComboState[key].indexOf(name)===-1) multiComboState[key].push(name);
+      renderMultiComboField(key);
+    });
+    return;
+  }
+  multiComboState[key]=multiComboState[key]||[];
+  if(multiComboState[key].indexOf(val)===-1) multiComboState[key].push(val);
+  renderMultiComboField(key);
+}
+function removeMultiComboItem(key,idx){
+  multiComboState[key].splice(idx,1);
+  renderMultiComboField(key);
 }
 function closeAddModal(){ document.getElementById('add-modal').classList.remove('open'); currentAddType=null; }
 function submitAddModal(){
@@ -1039,9 +1096,14 @@ function submitAddModal(){
   var rec={id:'n'+Date.now()+Math.floor(Math.random()*1000)};
   var missing=[];
   SCHEMA[type].fields.forEach(function(f){
-    var key=f[0], label=f[1], req=f[3];
-    var el=document.getElementById('af-'+key);
-    var val=el?el.value.trim():'';
+    var key=f[0], label=f[1], ftype=f[2], req=f[3];
+    var val;
+    if(ftype==='multicombo:people'){
+      val=(multiComboState[key]||[]).join('\n');
+    } else {
+      var el=document.getElementById('af-'+key);
+      val=el?el.value.trim():'';
+    }
     if(req&&!val) missing.push(label);
     rec[key]=val;
   });
