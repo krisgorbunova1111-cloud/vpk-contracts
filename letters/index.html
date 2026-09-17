@@ -54,6 +54,13 @@ input,select,textarea{font-family:inherit}
 .chip button{background:none;border:none;color:#1d4ed8;font-size:15px;line-height:1;cursor:pointer;padding:0 2px}
 .chip button:hover{color:#dc2626}
 .chip-empty{font-size:12px;color:#94a3b8;padding:4px 0}
+body:not(.is-admin) .admin-only{display:none!important}
+.admin-bar{padding:10px 20px;border-top:1px solid rgba(255,255,255,.08)}
+.admin-bar button{width:100%;padding:8px;border-radius:8px;font-size:12px;font-weight:700;border:1.5px solid rgba(255,255,255,.2);background:transparent;color:rgba(255,255,255,.7);transition:all .18s}
+.admin-bar button:hover{background:rgba(255,255,255,.08);color:#fff;border-color:rgba(255,255,255,.4)}
+body.is-admin .admin-bar .btn-admin-login{display:none}
+body:not(.is-admin) .admin-bar .btn-admin-logout{display:none}
+.admin-login-error{font-size:12px;color:#dc2626;min-height:16px;margin-top:6px}
 
 .panel{background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:24px}
 .panel .title{font-size:14px;font-weight:700;margin-bottom:12px;color:#374151}
@@ -156,6 +163,10 @@ input,select,textarea{font-family:inherit}
     <div class="nav-divider">Справочники</div>
     <a href="#" data-tab="people"><span class="icon">👤</span><span>Сотрудники</span><span class="count" id="cnt-people"></span></a>
   </nav>
+  <div class="admin-bar">
+    <button class="btn-admin-login" onclick="openAdminLoginModal()">🔒 Войти как администратор</button>
+    <button class="btn-admin-logout" onclick="adminLogout()">🔓 Админ · Выйти</button>
+  </div>
   <div class="sync-info"><span id="sync-dot"></span><span id="sync-text">Загрузка…</span></div>
 </div>
 
@@ -190,7 +201,7 @@ input,select,textarea{font-family:inherit}
       <div class="page-title">Исходящие письма</div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-ghost" onclick="exportTab('out')">⬇ Экспорт в Excel</button>
-        <button class="btn btn-primary" onclick="openAddModal('out')">+ Добавить письмо</button>
+        <button class="btn btn-primary admin-only" onclick="openAddModal('out')">+ Добавить письмо</button>
       </div>
     </div>
     <div class="filters-row">
@@ -211,7 +222,7 @@ input,select,textarea{font-family:inherit}
       <div class="page-title">Входящие письма</div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-ghost" onclick="exportTab('in')">⬇ Экспорт в Excel</button>
-        <button class="btn btn-primary" onclick="openAddModal('in')">+ Добавить письмо</button>
+        <button class="btn btn-primary admin-only" onclick="openAddModal('in')">+ Добавить письмо</button>
       </div>
     </div>
     <div class="filters-row">
@@ -232,7 +243,7 @@ input,select,textarea{font-family:inherit}
       <div class="page-title">Накладные</div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-ghost" onclick="exportTab('inv')">⬇ Экспорт в Excel</button>
-        <button class="btn btn-primary" onclick="openAddModal('inv')">+ Добавить накладную</button>
+        <button class="btn btn-primary admin-only" onclick="openAddModal('inv')">+ Добавить накладную</button>
       </div>
     </div>
     <div class="filters-row">
@@ -251,7 +262,7 @@ input,select,textarea{font-family:inherit}
       <div class="page-title">Административные письма</div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-ghost" onclick="exportTab('adm')">⬇ Экспорт в Excel</button>
-        <button class="btn btn-primary" onclick="openAddModal('adm')">+ Добавить запись</button>
+        <button class="btn btn-primary admin-only" onclick="openAddModal('adm')">+ Добавить запись</button>
       </div>
     </div>
     <div class="filters-row">
@@ -269,7 +280,7 @@ input,select,textarea{font-family:inherit}
     <div id="objects-list-view">
       <div class="page-title-row">
         <div class="page-title">Объекты</div>
-        <button class="btn btn-primary" onclick="openRegistryModal('objects','add',null,function(){renderObjectsSection();})">+ Добавить объект</button>
+        <button class="btn btn-primary admin-only" onclick="openRegistryModal('objects','add',null,function(){renderObjectsSection();})">+ Добавить объект</button>
       </div>
       <div class="filters-row"><input class="search" type="text" id="objects-search" placeholder="Поиск по объекту…" oninput="renderObjectsSection()"></div>
       <div class="cards-row" id="objects-grid" style="grid-template-columns:repeat(auto-fill,minmax(230px,1fr))"></div>
@@ -281,8 +292,8 @@ input,select,textarea{font-family:inherit}
           <div class="page-title" id="object-detail-title" style="margin-top:8px"></div>
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-ghost" id="object-detail-rename">✎ Переименовать</button>
-          <button class="btn btn-danger" id="object-detail-delete">🗑 Удалить объект</button>
+          <button class="btn btn-ghost admin-only" id="object-detail-rename">✎ Переименовать</button>
+          <button class="btn btn-danger admin-only" id="object-detail-delete">🗑 Удалить объект</button>
         </div>
       </div>
       <div id="object-detail-body"></div>
@@ -292,7 +303,7 @@ input,select,textarea{font-family:inherit}
   <section class="section" id="sec-people">
     <div class="page-title-row">
       <div class="page-title">Сотрудники</div>
-      <button class="btn btn-primary" onclick="openRegistryModal('people','add',null,function(){renderPeopleSection();})">+ Добавить сотрудника</button>
+      <button class="btn btn-primary admin-only" onclick="openRegistryModal('people','add',null,function(){renderPeopleSection();})">+ Добавить сотрудника</button>
     </div>
     <div class="filters-row"><input class="search" type="text" id="people-search" placeholder="Поиск по имени…" oninput="renderPeopleSection()"></div>
     <div class="table-wrap"><div class="table-scroll"><table>
@@ -301,6 +312,20 @@ input,select,textarea{font-family:inherit}
     </table></div></div>
   </section>
 
+</div>
+
+<div class="modal-overlay" id="admin-login-modal" style="z-index:300">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header"><h2>Вход для администратора</h2><button class="modal-close" onclick="closeAdminLoginModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>PIN-код</label><input type="password" id="admin-login-input" autocomplete="off"></div>
+      <div class="admin-login-error" id="admin-login-error"></div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeAdminLoginModal()">Отмена</button>
+        <button class="btn btn-primary" onclick="submitAdminLogin()">Войти</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="modal-overlay" id="registry-modal" style="z-index:300">
@@ -345,9 +370,36 @@ var SUPABASE_URL='https://urfnpjumxkewyizaxgns.supabase.co';
 var SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVyZm5wanVteGtld3lpemF4Z25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMzkyNDMsImV4cCI6MjA5MTgxNTI0M30.vDbdyE3Z4whApQo50Mfgor11SL-dT1PWDOygipxVKtE';
 var STORAGE_KEY='vpk_letters_v1';
 var LS_KEY='vpk_letters_local_v1';
+var ADMIN_PIN='vpk2026'; /* change this to your own PIN */
+var ADMIN_SESSION_KEY='vpk_letters_is_admin';
 
 var DB={out:[],in:[],inv:[],adm:[]};
 var saveDebounceTimer=null;
+
+/* ---------- Admin mode (view/download is public; editing is gated) ---------- */
+function setAdminMode(on){
+  try{ if(on) sessionStorage.setItem(ADMIN_SESSION_KEY,'1'); else sessionStorage.removeItem(ADMIN_SESSION_KEY); }catch(e){}
+  document.body.classList.toggle('is-admin',!!on);
+}
+function isAdmin(){ return document.body.classList.contains('is-admin'); }
+function openAdminLoginModal(){
+  document.getElementById('admin-login-error').textContent='';
+  document.getElementById('admin-login-input').value='';
+  document.getElementById('admin-login-modal').classList.add('open');
+  setTimeout(function(){ document.getElementById('admin-login-input').focus(); },50);
+}
+function closeAdminLoginModal(){ document.getElementById('admin-login-modal').classList.remove('open'); }
+function submitAdminLogin(){
+  var val=document.getElementById('admin-login-input').value;
+  if(val===ADMIN_PIN){ setAdminMode(true); closeAdminLoginModal(); }
+  else { document.getElementById('admin-login-error').textContent='Неверный PIN-код'; }
+}
+function adminLogout(){ setAdminMode(false); }
+(function(){
+  var was=false;
+  try{ was=sessionStorage.getItem(ADMIN_SESSION_KEY)==='1'; }catch(e){}
+  if(was) document.body.classList.add('is-admin');
+})();
 
 var SCHEMA={
   out:{
@@ -468,8 +520,10 @@ function fetchRemote(){
   }).then(function(r){return r.json();}).then(function(rows){
     if(rows&&rows.length&&rows[0].value){
       var parsed=JSON.parse(rows[0].value);
-      if(parsed){
+      var totalRecords=parsed?((parsed.out||[]).length+(parsed.in||[]).length+(parsed.inv||[]).length+(parsed.adm||[]).length):0;
+      if(parsed&&totalRecords>0){
         DB=parsed;
+        ensureRegistries();
         saveLocalOnly();
         refreshAll();
         setSyncStatus(true,'Синхронизировано');
@@ -477,6 +531,7 @@ function fetchRemote(){
       }
     }
     DB=LETTERS_INIT;
+    ensureRegistries();
     pushToSupabase(true);
     refreshAll();
     setSyncStatus(true,'Первая загрузка');
@@ -506,6 +561,49 @@ function pushToSupabase(silent){
     }).catch(function(){ setSyncStatus(false,'Нет соединения'); });
   },400);
   saveLocalOnly();
+}
+
+/* Applies `mutator` to the local DB immediately (instant UI feedback), then
+   re-fetches the freshest server copy and re-applies the SAME mutator to it
+   before saving — so a concurrent edit from another admin tab isn't silently
+   clobbered by an out-of-date local copy. Calls are queued so that two
+   commits fired back-to-back (even from this same tab) can't race each
+   other's fetch-then-push round trip. */
+var commitQueue=Promise.resolve();
+function commitChange(mutator){
+  mutator(DB);
+  refreshAll();
+  saveLocalOnly();
+  commitQueue=commitQueue.then(function(){ return commitChangeNow(mutator); });
+  return commitQueue;
+}
+function commitChangeNow(mutator){
+  setSyncStatus(null,'Сохранение…');
+  return fetch(SUPABASE_URL+'/rest/v1/storage?select=value&key=eq.'+STORAGE_KEY,{
+    headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}
+  }).then(function(r){return r.json();}).then(function(rows){
+    var remote=(rows&&rows.length&&rows[0].value)?JSON.parse(rows[0].value):JSON.parse(JSON.stringify(DB));
+    mutator(remote);
+    return fetch(SUPABASE_URL+'/rest/v1/storage',{
+      method:'POST',
+      headers:{
+        'apikey':SUPABASE_KEY,
+        'Authorization':'Bearer '+SUPABASE_KEY,
+        'Content-Type':'application/json',
+        'Prefer':'resolution=merge-duplicates'
+      },
+      body:JSON.stringify({key:STORAGE_KEY,value:JSON.stringify(remote)})
+    }).then(function(r){
+      if(r.ok){
+        DB=remote;
+        saveLocalOnly();
+        refreshAll();
+        setSyncStatus(true,'Синхронизировано');
+      } else {
+        setSyncStatus(false,'Ошибка сохранения');
+      }
+    });
+  }).catch(function(){ setSyncStatus(false,'Нет соединения (сохранено локально)'); });
 }
 
 /* ---------- Nav ---------- */
@@ -623,16 +721,22 @@ function addObject(name){
   var existing=DB.objects.find(function(o){return o.name.toLowerCase()===name.toLowerCase();});
   if(existing) return existing.name;
   var obj={id:'obj'+Date.now()+Math.floor(Math.random()*1000),name:name};
-  DB.objects.push(obj);
-  pushToSupabase();
-  populateFilterOptions();
+  commitChange(function(db){
+    db.objects=db.objects||[];
+    if(!db.objects.find(function(o){return o.name.toLowerCase()===name.toLowerCase();})) db.objects.push(obj);
+  });
   return obj.name;
 }
-function cascadeObjectRename(oldName,newName){
-  DB.out.forEach(function(r){ if(r.contract===oldName) r.contract=newName; });
-  DB.in.forEach(function(r){ if(r.object===oldName) r.object=newName; });
-  DB.inv.forEach(function(r){ if(r.object===oldName) r.object=newName; });
-  DB.adm.forEach(function(r){ if(r.object===oldName) r.object=newName; });
+function applyObjectRename(db,id,fallbackOldName,newName){
+  var obj=(db.objects||[]).find(function(o){return o.id===id;});
+  var oldName=obj?obj.name:fallbackOldName;
+  db.out=(db.out||[]).map(function(r){ if(r.contract===oldName) r.contract=newName; return r; });
+  db.in=(db.in||[]).map(function(r){ if(r.object===oldName) r.object=newName; return r; });
+  db.inv=(db.inv||[]).map(function(r){ if(r.object===oldName) r.object=newName; return r; });
+  db.adm=(db.adm||[]).map(function(r){ if(r.object===oldName) r.object=newName; return r; });
+  var dup=(db.objects||[]).find(function(o){return o.id!==id && o.name.toLowerCase()===newName.toLowerCase();});
+  if(dup){ db.objects=(db.objects||[]).filter(function(o){return o.id!==id;}); }
+  else if(obj){ obj.name=newName; }
 }
 function renameObject(id,newName){
   newName=(newName||'').trim();
@@ -640,12 +744,7 @@ function renameObject(id,newName){
   if(!obj||!newName) return newName;
   var oldName=obj.name;
   if(newName===oldName) return newName;
-  var dup=DB.objects.find(function(o){return o.id!==id && o.name.toLowerCase()===newName.toLowerCase();});
-  cascadeObjectRename(oldName,newName);
-  if(dup){ DB.objects=DB.objects.filter(function(o){return o.id!==id;}); }
-  else { obj.name=newName; }
-  pushToSupabase();
-  refreshAll();
+  commitChange(function(db){ applyObjectRename(db,id,oldName,newName); });
   return newName;
 }
 function objectUsage(name){
@@ -660,10 +759,7 @@ function deleteObjectEntry(id){
   var usage=objectUsage(obj.name);
   if(usage.total>0){ alert('Нельзя удалить «'+obj.name+'»: объект используется в '+usage.total+' записях. Сначала переименуйте или уберите ссылки на него.'); return; }
   if(!confirm('Удалить объект «'+obj.name+'» из справочника?')) return;
-  DB.objects=DB.objects.filter(function(o){return o.id!==id;});
-  pushToSupabase();
-  populateFilterOptions();
-  renderObjectsSection();
+  commitChange(function(db){ db.objects=(db.objects||[]).filter(function(o){return o.id!==id;}); });
 }
 
 function addPerson(name){
@@ -671,8 +767,10 @@ function addPerson(name){
   var existing=DB.people.find(function(p){return p.name.toLowerCase()===name.toLowerCase();});
   if(existing) return existing.name;
   var p={id:'per'+Date.now()+Math.floor(Math.random()*1000),name:name};
-  DB.people.push(p);
-  pushToSupabase();
+  commitChange(function(db){
+    db.people=db.people||[];
+    if(!db.people.find(function(x){return x.name.toLowerCase()===name.toLowerCase();})) db.people.push(p);
+  });
   return p.name;
 }
 function splitNames(s){ return (s||'').split('\n').map(function(x){return x.trim();}).filter(Boolean); }
@@ -682,10 +780,15 @@ function replaceNameInMulti(s,oldName,newName){
   arr=arr.map(function(n){ if(n===oldName){ changed=true; return newName; } return n; });
   return changed?arr.join('\n'):s;
 }
-function cascadePersonRename(oldName,newName){
-  DB.out.forEach(function(r){ r.executor=replaceNameInMulti(r.executor,oldName,newName); });
-  DB.in.forEach(function(r){ r.responsible=replaceNameInMulti(r.responsible,oldName,newName); });
-  DB.adm.forEach(function(r){ if(r.initiator===oldName) r.initiator=newName; });
+function applyPersonRename(db,id,fallbackOldName,newName){
+  var p=(db.people||[]).find(function(x){return x.id===id;});
+  var oldName=p?p.name:fallbackOldName;
+  db.out=(db.out||[]).map(function(r){ r.executor=replaceNameInMulti(r.executor,oldName,newName); return r; });
+  db.in=(db.in||[]).map(function(r){ r.responsible=replaceNameInMulti(r.responsible,oldName,newName); return r; });
+  db.adm=(db.adm||[]).map(function(r){ if(r.initiator===oldName) r.initiator=newName; return r; });
+  var dup=(db.people||[]).find(function(x){return x.id!==id && x.name.toLowerCase()===newName.toLowerCase();});
+  if(dup){ db.people=(db.people||[]).filter(function(x){return x.id!==id;}); }
+  else if(p){ p.name=newName; }
 }
 function renamePerson(id,newName){
   newName=(newName||'').trim();
@@ -693,12 +796,7 @@ function renamePerson(id,newName){
   if(!p||!newName) return newName;
   var oldName=p.name;
   if(newName===oldName) return newName;
-  var dup=DB.people.find(function(x){return x.id!==id && x.name.toLowerCase()===newName.toLowerCase();});
-  cascadePersonRename(oldName,newName);
-  if(dup){ DB.people=DB.people.filter(function(x){return x.id!==id;}); }
-  else { p.name=newName; }
-  pushToSupabase();
-  refreshAll();
+  commitChange(function(db){ applyPersonRename(db,id,oldName,newName); });
   return newName;
 }
 function personUsage(name){
@@ -712,9 +810,7 @@ function deletePersonEntry(id){
   var usage=personUsage(p.name);
   if(usage.total>0){ alert('Нельзя удалить «'+p.name+'»: сотрудник указан в '+usage.total+' записях.'); return; }
   if(!confirm('Удалить «'+p.name+'» из справочника?')) return;
-  DB.people=DB.people.filter(function(x){return x.id!==id;});
-  pushToSupabase();
-  renderPeopleSection();
+  commitChange(function(db){ db.people=(db.people||[]).filter(function(x){return x.id!==id;}); });
 }
 
 /* ---------- Registry modal (add/rename object or person) ---------- */
@@ -803,9 +899,7 @@ function openObjectDetail(id){
     var usage=objectUsage(obj.name);
     if(usage.total>0){ alert('Нельзя удалить «'+obj.name+'»: объект используется в '+usage.total+' записях.'); return; }
     if(!confirm('Удалить объект «'+obj.name+'» из справочника?')) return;
-    DB.objects=DB.objects.filter(function(o){return o.id!==id;});
-    pushToSupabase();
-    populateFilterOptions();
+    commitChange(function(db){ db.objects=(db.objects||[]).filter(function(o){return o.id!==id;}); });
     showObjectsList();
   };
   renderObjectDetailBody(id);
@@ -870,8 +964,8 @@ function renderPeopleSection(){
     body.innerHTML=list.map(function(p){
       var st=personStats(p.name);
       return '<tr><td>'+esc(p.name)+'</td><td>'+st.o+'</td><td>'+st.i+'</td><td>'+st.a+'</td><td><b>'+st.total+'</b></td>'+
-      '<td style="white-space:nowrap;display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="openRegistryModal(\'people\',\'rename\',\''+p.id+'\',function(){renderPeopleSection();})">✎</button>'+
-      '<button class="btn btn-danger btn-sm" onclick="deletePersonEntry(\''+p.id+'\')">🗑</button></td></tr>';
+      '<td style="white-space:nowrap;display:flex;gap:6px"><button class="btn btn-ghost btn-sm admin-only" onclick="openRegistryModal(\'people\',\'rename\',\''+p.id+'\',function(){renderPeopleSection();})">✎</button>'+
+      '<button class="btn btn-danger btn-sm admin-only" onclick="deletePersonEntry(\''+p.id+'\')">🗑</button></td></tr>';
     }).join('');
   }
   document.getElementById('cnt-people').textContent=(DB.people||[]).length;
@@ -898,7 +992,7 @@ function rerender(type){
         '<td class="cell-subject" title="'+esc(r.subject)+'">'+esc(r.subject)+'</td>'+
         '<td>'+(r.need_reply&&r.need_reply.toLowerCase()==='да'?(waiting?'<span class="badge badge-orange">Ожидает</span>':'<span class="badge badge-green">Получен</span>'):'<span class="badge badge-gray">—</span>')+'</td>'+
         '<td onclick="event.stopPropagation()">'+linkHtml(r.link)+'</td>'+
-        '<td onclick="event.stopPropagation()"><button class="btn btn-danger btn-sm" onclick="deleteRow(\'out\',\''+r.id+'\')">✕</button></td>'+
+        '<td onclick="event.stopPropagation()"><button class="btn btn-danger btn-sm admin-only" onclick="deleteRow(\'out\',\''+r.id+'\')">✕</button></td>'+
       '</tr>';
     }).join('');
   } else if(type==='in'){
@@ -910,14 +1004,14 @@ function rerender(type){
         '<td class="cell-subject" title="'+esc(r.subject)+'">'+esc(r.subject)+'</td>'+
         '<td>'+fmtDate(r.deadline)+'</td><td>'+replyBadge+'</td>'+
         '<td onclick="event.stopPropagation()">'+linkHtml(r.link)+'</td>'+
-        '<td onclick="event.stopPropagation()"><button class="btn btn-danger btn-sm" onclick="deleteRow(\'in\',\''+r.id+'\')">✕</button></td>'+
+        '<td onclick="event.stopPropagation()"><button class="btn btn-danger btn-sm admin-only" onclick="deleteRow(\'in\',\''+r.id+'\')">✕</button></td>'+
       '</tr>';
     }).join('');
   } else if(type==='inv'){
     body.innerHTML=pageItems.map(function(r){
       return '<tr class="clickable" onclick="openDetail(\'inv\',\''+r.id+'\')">'+
         '<td>'+esc(r.num)+'</td><td>'+fmtDate(r.date)+'</td><td>'+esc(r.inv_no)+'</td><td>'+esc(r.object)+'</td><td>'+esc(r.contract)+'</td><td>'+esc(r.recipient)+'</td><td>'+esc(r.sheets)+'</td>'+
-        '<td onclick="event.stopPropagation()"><button class="btn btn-danger btn-sm" onclick="deleteRow(\'inv\',\''+r.id+'\')">✕</button></td>'+
+        '<td onclick="event.stopPropagation()"><button class="btn btn-danger btn-sm admin-only" onclick="deleteRow(\'inv\',\''+r.id+'\')">✕</button></td>'+
       '</tr>';
     }).join('');
   } else if(type==='adm'){
@@ -925,7 +1019,7 @@ function rerender(type){
       return '<tr class="clickable" onclick="openDetail(\'adm\',\''+r.id+'\')">'+
         '<td>'+esc(r.num)+'</td><td>'+fmtDate(r.date)+'</td><td>'+esc(r.object)+'</td>'+
         '<td class="cell-subject" title="'+esc(r.subject)+'">'+esc(r.subject)+'</td><td>'+esc(r.initiator)+'</td>'+
-        '<td onclick="event.stopPropagation()"><button class="btn btn-danger btn-sm" onclick="deleteRow(\'adm\',\''+r.id+'\')">✕</button></td>'+
+        '<td onclick="event.stopPropagation()"><button class="btn btn-danger btn-sm admin-only" onclick="deleteRow(\'adm\',\''+r.id+'\')">✕</button></td>'+
       '</tr>';
     }).join('');
   }
@@ -988,7 +1082,6 @@ function switchTo(tab){
 }
 
 function refreshAll(){
-  ensureRegistries();
   populateFilterOptions();
   ['out','in','inv','adm'].forEach(rerender);
   renderDashboard();
@@ -1108,19 +1201,14 @@ function submitAddModal(){
     rec[key]=val;
   });
   if(missing.length){ alert('Заполните обязательные поля: '+missing.join(', ')); return; }
-  if(!DB[type]) DB[type]=[];
-  DB[type].unshift(rec);
   closeAddModal();
-  pushToSupabase();
-  refreshAll();
+  commitChange(function(db){ db[type]=db[type]||[]; db[type].unshift(rec); });
 }
 
 /* ---------- Delete ---------- */
 function deleteRow(type,id){
   if(!confirm('Удалить эту запись?')) return;
-  DB[type]=(DB[type]||[]).filter(function(r){return r.id!==id;});
-  pushToSupabase();
-  refreshAll();
+  commitChange(function(db){ db[type]=(db[type]||[]).filter(function(r){return r.id!==id;}); });
 }
 
 /* ---------- Export ---------- */
@@ -1142,6 +1230,8 @@ document.getElementById('detail-modal').addEventListener('click',function(e){ if
 document.getElementById('add-modal').addEventListener('click',function(e){ if(e.target===this) closeAddModal(); });
 document.getElementById('registry-modal').addEventListener('click',function(e){ if(e.target===this) closeRegistryModal(); });
 document.getElementById('registry-modal-input').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); submitRegistryModal(); } });
+document.getElementById('admin-login-modal').addEventListener('click',function(e){ if(e.target===this) closeAdminLoginModal(); });
+document.getElementById('admin-login-input').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); submitAdminLogin(); } });
 
 loadLocal();
 refreshAll();
