@@ -359,6 +359,9 @@ body:not(.is-admin) .admin-bar .btn-admin-logout{display:none}
     <div class="modal-header"><h2 id="detail-modal-title">Письмо</h2><button class="modal-close" onclick="closeDetailModal()">✕</button></div>
     <div class="modal-body">
       <div class="detail-grid" id="detail-fields"></div>
+      <div class="modal-footer">
+        <button class="btn btn-primary admin-only" id="detail-edit-btn">✎ Редактировать</button>
+      </div>
     </div>
   </div>
 </div>
@@ -476,6 +479,7 @@ var state={
 };
 var PAGE_SIZE=50;
 var currentAddType=null;
+var currentEditId=null;
 
 function todayStr(){ var d=new Date(); return d.toISOString().slice(0,10); }
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
@@ -694,10 +698,10 @@ function ensureRegistries(){
   if(changed) pushToSupabase(true);
 }
 
-function comboOptionsHtml(kind){
+function comboOptionsHtml(kind,selected){
   var registry=kind==='objects'?DB.objects:DB.people;
   var opts=registry.slice().sort(function(a,b){return a.name.localeCompare(b.name,'ru');});
-  return '<option value="">—</option>'+opts.map(function(o){return '<option value="'+esc(o.name)+'">'+esc(o.name)+'</option>';}).join('')+'<option value="__add__">+ Добавить новый…</option>';
+  return '<option value="">—</option>'+opts.map(function(o){return '<option value="'+esc(o.name)+'"'+(o.name===selected?' selected':'')+'>'+esc(o.name)+'</option>';}).join('')+'<option value="__add__">+ Добавить новый…</option>';
 }
 function onComboChange(fieldKey,kind,selectEl){
   if(selectEl.value==='__add__'){
@@ -992,7 +996,7 @@ function rerender(type){
         '<td class="cell-subject" title="'+esc(r.subject)+'">'+esc(r.subject)+'</td>'+
         '<td>'+(r.need_reply&&r.need_reply.toLowerCase()==='да'?(waiting?'<span class="badge badge-orange">Ожидает</span>':'<span class="badge badge-green">Получен</span>'):'<span class="badge badge-gray">—</span>')+'</td>'+
         '<td onclick="event.stopPropagation()">'+linkHtml(r.link)+'</td>'+
-        '<td onclick="event.stopPropagation()"><button class="btn btn-danger btn-sm admin-only" onclick="deleteRow(\'out\',\''+r.id+'\')">✕</button></td>'+
+        '<td onclick="event.stopPropagation()" style="white-space:nowrap"><button class="btn btn-ghost btn-sm admin-only" onclick="openAddModal(\'out\',\''+r.id+'\')">✎</button> <button class="btn btn-danger btn-sm admin-only" onclick="deleteRow(\'out\',\''+r.id+'\')">✕</button></td>'+
       '</tr>';
     }).join('');
   } else if(type==='in'){
@@ -1004,14 +1008,14 @@ function rerender(type){
         '<td class="cell-subject" title="'+esc(r.subject)+'">'+esc(r.subject)+'</td>'+
         '<td>'+fmtDate(r.deadline)+'</td><td>'+replyBadge+'</td>'+
         '<td onclick="event.stopPropagation()">'+linkHtml(r.link)+'</td>'+
-        '<td onclick="event.stopPropagation()"><button class="btn btn-danger btn-sm admin-only" onclick="deleteRow(\'in\',\''+r.id+'\')">✕</button></td>'+
+        '<td onclick="event.stopPropagation()" style="white-space:nowrap"><button class="btn btn-ghost btn-sm admin-only" onclick="openAddModal(\'in\',\''+r.id+'\')">✎</button> <button class="btn btn-danger btn-sm admin-only" onclick="deleteRow(\'in\',\''+r.id+'\')">✕</button></td>'+
       '</tr>';
     }).join('');
   } else if(type==='inv'){
     body.innerHTML=pageItems.map(function(r){
       return '<tr class="clickable" onclick="openDetail(\'inv\',\''+r.id+'\')">'+
         '<td>'+esc(r.num)+'</td><td>'+fmtDate(r.date)+'</td><td>'+esc(r.inv_no)+'</td><td>'+esc(r.object)+'</td><td>'+esc(r.contract)+'</td><td>'+esc(r.recipient)+'</td><td>'+esc(r.sheets)+'</td>'+
-        '<td onclick="event.stopPropagation()"><button class="btn btn-danger btn-sm admin-only" onclick="deleteRow(\'inv\',\''+r.id+'\')">✕</button></td>'+
+        '<td onclick="event.stopPropagation()" style="white-space:nowrap"><button class="btn btn-ghost btn-sm admin-only" onclick="openAddModal(\'inv\',\''+r.id+'\')">✎</button> <button class="btn btn-danger btn-sm admin-only" onclick="deleteRow(\'inv\',\''+r.id+'\')">✕</button></td>'+
       '</tr>';
     }).join('');
   } else if(type==='adm'){
@@ -1019,7 +1023,7 @@ function rerender(type){
       return '<tr class="clickable" onclick="openDetail(\'adm\',\''+r.id+'\')">'+
         '<td>'+esc(r.num)+'</td><td>'+fmtDate(r.date)+'</td><td>'+esc(r.object)+'</td>'+
         '<td class="cell-subject" title="'+esc(r.subject)+'">'+esc(r.subject)+'</td><td>'+esc(r.initiator)+'</td>'+
-        '<td onclick="event.stopPropagation()"><button class="btn btn-danger btn-sm admin-only" onclick="deleteRow(\'adm\',\''+r.id+'\')">✕</button></td>'+
+        '<td onclick="event.stopPropagation()" style="white-space:nowrap"><button class="btn btn-ghost btn-sm admin-only" onclick="openAddModal(\'adm\',\''+r.id+'\')">✎</button> <button class="btn btn-danger btn-sm admin-only" onclick="deleteRow(\'adm\',\''+r.id+'\')">✕</button></td>'+
       '</tr>';
     }).join('');
   }
@@ -1106,41 +1110,45 @@ function openDetail(type,id){
     html+='<div class="detail-item'+full+'"><div class="k">'+esc(label)+'</div><div class="v">'+display+'</div></div>';
   });
   document.getElementById('detail-fields').innerHTML=html;
+  document.getElementById('detail-edit-btn').onclick=function(){ closeDetailModal(); openAddModal(type,id); };
   document.getElementById('detail-modal').classList.add('open');
 }
 function closeDetailModal(){ document.getElementById('detail-modal').classList.remove('open'); }
 
 /* ---------- Add modal ---------- */
-function openAddModal(type){
+function openAddModal(type,editId){
   currentAddType=type;
-  document.getElementById('add-modal-title').textContent='Добавить: '+SCHEMA[type].label;
+  currentEditId=editId||null;
+  var editRec=currentEditId?(DB[type]||[]).find(function(r){return r.id===currentEditId;}):null;
+  document.getElementById('add-modal-title').textContent=(editRec?'Редактировать: ':'Добавить: ')+SCHEMA[type].label;
   var html='';
   SCHEMA[type].fields.forEach(function(f){
     var key=f[0], label=f[1], ftype=f[2], req=f[3];
     var full=(ftype==='textarea')?' span2':'';
+    var existing=editRec?(editRec[key]||''):'';
     var input='';
     if(ftype==='date'){
-      var def=key==='date'?todayStr():'';
-      input='<input type="date" id="af-'+key+'" value="'+def+'">';
+      var def=editRec?existing:(key==='date'?todayStr():'');
+      input='<input type="date" id="af-'+key+'" value="'+esc(def)+'">';
     } else if(ftype==='textarea'){
-      input='<textarea id="af-'+key+'"></textarea>';
+      input='<textarea id="af-'+key+'">'+esc(existing)+'</textarea>';
     } else if(ftype.indexOf('select:')===0){
       var opts=ftype.slice(7).split(',');
-      input='<select id="af-'+key+'"><option value="">—</option>'+opts.map(function(o){return '<option value="'+esc(o)+'">'+esc(o)+'</option>';}).join('')+'</select>';
+      input='<select id="af-'+key+'"><option value="">—</option>'+opts.map(function(o){return '<option value="'+esc(o)+'"'+(o===existing?' selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select>';
     } else if(ftype==='combo:objects'||ftype==='combo:people'){
       var kind=ftype==='combo:objects'?'objects':'people';
-      input='<select id="af-'+key+'" onchange="onComboChange(\''+key+'\',\''+kind+'\',this)">'+comboOptionsHtml(kind)+'</select>';
+      input='<select id="af-'+key+'" onchange="onComboChange(\''+key+'\',\''+kind+'\',this)">'+comboOptionsHtml(kind,existing)+'</select>';
     } else if(ftype==='multicombo:people'){
       full=' span2';
       input='<div class="multicombo"><div class="multicombo-chips" id="af-'+key+'-chips"></div><select id="af-'+key+'-picker" onchange="onMultiComboPick(\''+key+'\',this)"></select></div>';
     } else {
-      input='<input type="text" id="af-'+key+'">';
+      input='<input type="text" id="af-'+key+'" value="'+esc(existing)+'">';
     }
     html+='<div class="form-group'+full+'"><label>'+esc(label)+(req?' *':'')+'</label>'+input+'</div>';
   });
   document.getElementById('add-form-fields').innerHTML=html;
   SCHEMA[type].fields.forEach(function(f){
-    if(f[2]==='multicombo:people'){ multiComboState[f[0]]=[]; renderMultiComboField(f[0]); }
+    if(f[2]==='multicombo:people'){ multiComboState[f[0]]=editRec?splitNames(editRec[f[0]]):[]; renderMultiComboField(f[0]); }
   });
   document.getElementById('add-modal').classList.add('open');
 }
@@ -1182,11 +1190,12 @@ function removeMultiComboItem(key,idx){
   multiComboState[key].splice(idx,1);
   renderMultiComboField(key);
 }
-function closeAddModal(){ document.getElementById('add-modal').classList.remove('open'); currentAddType=null; }
+function closeAddModal(){ document.getElementById('add-modal').classList.remove('open'); currentAddType=null; currentEditId=null; }
 function submitAddModal(){
   var type=currentAddType;
   if(!type) return;
-  var rec={id:'n'+Date.now()+Math.floor(Math.random()*1000)};
+  var editId=currentEditId;
+  var vals={};
   var missing=[];
   SCHEMA[type].fields.forEach(function(f){
     var key=f[0], label=f[1], ftype=f[2], req=f[3];
@@ -1198,11 +1207,19 @@ function submitAddModal(){
       val=el?el.value.trim():'';
     }
     if(req&&!val) missing.push(label);
-    rec[key]=val;
+    vals[key]=val;
   });
   if(missing.length){ alert('Заполните обязательные поля: '+missing.join(', ')); return; }
   closeAddModal();
-  commitChange(function(db){ db[type]=db[type]||[]; db[type].unshift(rec); });
+  if(editId){
+    commitChange(function(db){
+      var r=(db[type]||[]).find(function(x){return x.id===editId;});
+      if(r) Object.keys(vals).forEach(function(k){ r[k]=vals[k]; });
+    });
+  } else {
+    var rec=Object.assign({id:'n'+Date.now()+Math.floor(Math.random()*1000)},vals);
+    commitChange(function(db){ db[type]=db[type]||[]; db[type].unshift(rec); });
+  }
 }
 
 /* ---------- Delete ---------- */
