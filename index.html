@@ -32,6 +32,7 @@ input,select,textarea{font-family:inherit}
 #main{margin-left:220px;flex:1;min-height:100vh;display:flex;flex-direction:column}
 .section{display:none;padding:28px 32px;flex:1}
 .section.active{display:block}
+.section.active.planfact-section{padding:0;display:flex;flex-direction:column}
 .page-title{font-size:22px;font-weight:800;margin-bottom:24px;color:#0f172a}
 
 /* CARDS */
@@ -350,6 +351,9 @@ body:not(.authenticated) .auth-only{display:none!important}
     <a href="#" onclick="showSection('analytics',this)" id="nav-analytics">
       <span class="icon">📈</span><span class="nav-text">Аналитика</span>
     </a>
+    <a href="#" onclick="showSection('planfact',this)" id="nav-planfact">
+      <span class="icon">📊</span><span class="nav-text">План-Факт</span>
+    </a>
   </nav>
   <!-- Блок авторизации -->
   <div id="auth-login-wrap">
@@ -636,6 +640,11 @@ body:not(.authenticated) .auth-only{display:none!important}
       <button class="btn btn-primary" onclick="saveContractor(currentContractorId)">💾 Сохранить</button>
     </div>
   </div>
+</div>
+
+<!-- ПЛАН-ФАКТ -->
+<div id="section-planfact" class="section planfact-section">
+  <iframe src="plan-fact.html" style="flex:1;width:100%;border:none;min-height:calc(100vh - 56px)" allowfullscreen></iframe>
 </div>
 
 <script>
