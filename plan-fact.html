@@ -1075,6 +1075,12 @@ function clearDist(){
 }
 
 // INIT
+// Hide own header when embedded in an iframe (e.g. inside the contracts registry)
+if(window!==window.parent){
+  var hdr=document.querySelector('.header');
+  if(hdr)hdr.style.display='none';
+  document.body.style.background='var(--bg)';
+}
 renderSummary();
 renderMatrix();
 renderMonths();
