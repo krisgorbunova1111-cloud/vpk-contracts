@@ -32,7 +32,7 @@ input,select,textarea{font-family:inherit}
 #main{margin-left:220px;flex:1;min-height:100vh;display:flex;flex-direction:column}
 .section{display:none;padding:28px 32px;flex:1}
 .section.active{display:block}
-.section.active.planfact-section{padding:0;display:block;width:100%}
+.section.active.planfact-section{padding:0;display:block;position:fixed;top:0;left:220px;right:0;bottom:0;z-index:50}
 .page-title{font-size:22px;font-weight:800;margin-bottom:24px;color:#0f172a}
 
 /* CARDS */
@@ -644,7 +644,7 @@ body:not(.authenticated) .auth-only{display:none!important}
 
 <!-- ПЛАН-ФАКТ -->
 <div id="section-planfact" class="section planfact-section">
-  <iframe src="plan-fact.html" style="display:block;width:100%;height:100vh;border:none"></iframe>
+  <iframe src="plan-fact.html" style="display:block;width:100%;height:100%;border:none"></iframe>
 </div>
 
 <script>
