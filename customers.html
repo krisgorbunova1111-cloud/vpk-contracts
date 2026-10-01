@@ -261,6 +261,7 @@ var DATA=[
 var CUSTOMER_ORDER=['МВД / ФКУ / ОМВД','Стройресурс','ООО 495 ССУ','ООО «РСА»','Прочие'];
 
 function parseDt(s){if(!s||s==='—')return null;var p=s.split('.');return new Date(p[2],p[1]-1,p[0]);}
+function ea(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');}
 
 function endCell(s){
   if(!s||s==='—')return '<span class="no-date">—</span>';
@@ -370,7 +371,7 @@ function render(){
     if(!rows||!rows.length)return;
     var custSum=rows.reduce(function(s,d){return s+(parseFloat(sums[d.id])||0);},0);
     totalSum+=custSum;
-    h+='<tr class="group-row"><td colspan="15">'+
+    h+='<tr class="group-row"><td colspan="16">'+
        '<span class="badge b-customer">'+cust+'</span> — '+rows.length+
        ' дог'+(rows.length===1?'овор':'оворов')+
        (custSum?'<span style="float:right;color:#1d4ed8;font-weight:700">'+Math.round(custSum).toLocaleString('ru-RU')+' ₽</span>':'')+
