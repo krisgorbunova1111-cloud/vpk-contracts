@@ -116,7 +116,7 @@ select.sel-sm:focus{border-color:var(--blue)}
   <input class="fi fi-search" id="fsearch" placeholder="Поиск по объекту, номеру..." oninput="applyFilter()">
   <select class="fi" id="fcustomer" onchange="applyFilter()">
     <option value="">Все заказчики</option>
-    <option>МВД / ФКУ / ОМВД</option>
+    <option>ЕКС</option>
     <option>Стройресурс</option>
     <option>ООО 495 ССУ</option>
     <option>ООО «РСА»</option>
@@ -255,30 +255,30 @@ function updatePFBar(pf){
 }
 
 var DATA=[
-  {id:'1',num:'Договор 1 ВПКЭ П',cust:'МВД / ФКУ / ОМВД',obj:'МКД Мариуполь (30 домов)',subj:'ПИР',dt:'19.10.2022',end:'10.12.2022',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/ub1gcuDSm8hIQg'},
-  {id:'2',num:'Договор 2 ВПКПЭ П',cust:'МВД / ФКУ / ОМВД',obj:'МКД Мариуполь (25 домов)',subj:'ПИР',dt:'19.10.2022',end:'10.12.2022',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/_h7POd-U--tx7g'},
-  {id:'3',num:'Договор 3 ВПКПЭ П',cust:'МВД / ФКУ / ОМВД',obj:'Нахимова / Строителей',subj:'ПИР',dt:'10.01.2023',end:'20.05.2023',sign:'подписан',tz:'',link:'https://disk.360.yandex.ru/i/x3VCvnXEW5l3RA'},
-  {id:'4',num:'Договор 4 ВПКПЭ П',cust:'МВД / ФКУ / ОМВД',obj:'Солнечная / Урицкого / Шевченко',subj:'ПИР',dt:'15.05.2023',end:'30.06.2023',sign:'подписан',tz:'',link:'https://disk.360.yandex.ru/i/rKizzHnETbCLKA'},
-  {id:'5',num:'Договор 5 ВПКПЭ П',cust:'МВД / ФКУ / ОМВД',obj:'Школа №67, №52 Мариуполь',subj:'ПИР',dt:'01.06.2023',end:'15.07.2023',sign:'не подписан',tz:'',link:'https://disk.360.yandex.ru/i/7ztncI9h38TIQg'},
-  {id:'6',num:'Договор 6 ВПКПЭ ОК',cust:'МВД / ФКУ / ОМВД',obj:'Городская больница №2 Мариуполь',subj:'ПИР',dt:'10.08.2023',end:'—',sign:'не подписан',tz:'',link:'https://disk.360.yandex.ru/i/SZmfUgmGuXEbtQ'},
-  {id:'8',num:'Договор №8ВПКПЭ-ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Кирова 56, Луганск',subj:'ПИР',dt:'12.01.2024',end:'30.06.2024',sign:'подписан',tz:'https://disk.yandex.ru/d/Gec67FkxzLDh3g',link:'https://disk.yandex.ru/d/Gec67FkxzLDh3g'},
-  {id:'9',num:'Договор №9ВПКПЭ-ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Торез РВР (Энгельса 126)',subj:'ПИР',dt:'12.01.2024',end:'30.05.2024',sign:'подписан',tz:'https://disk.yandex.ru/d/b0M7Wqt7EGbUGQ',link:'https://disk.yandex.ru/d/b0M7Wqt7EGbUGQ'},
-  {id:'10',num:'Договор №10ВПКПЭ-ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Свердловск (Станционный 2)',subj:'ПИР',dt:'12.01.2024',end:'31.03.2024',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/5qLWPbkZR5tb2w'},
-  {id:'11',num:'Договор №11ВПКПЭ-ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Луганск (Магнитогорская 2)',subj:'ПИР',dt:'15.01.2024',end:'01.07.2024',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/ujleSjQJukqfKw'},
-  {id:'12',num:'Договор №12ВПКПЭ-ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Луганск (Ленинского Комсомола 5А)',subj:'ПИР',dt:'15.01.2024',end:'14.09.2024',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/0RFiPSMtj3sBEw'},
-  {id:'13',num:'Договор №13ВПКПЭ-ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Луганск (Руднева 119А)',subj:'ПИР',dt:'01.02.2024',end:'—',sign:'подписан',tz:'да',link:'https://disk.yandex.ru/i/gb5CSJwV47f-GA'},
-  {id:'14',num:'Договор №14ВПКПЭ-ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Луганск школа №55/51 (Южный 5)',subj:'ПИР',dt:'21.06.2024',end:'31.10.2024',sign:'подписан',tz:'',link:'https://disk.yandex.ru/d/k_4YygJjyHV4Uw'},
-  {id:'15',num:'Договор №15ВПКПЭ-ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Урицкого НС, Луганск',subj:'ФКУ ЦХ СО МВД — ПИР',dt:'18.07.2024',end:'31.12.2024',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/-uGwKInb6jZYGw'},
-  {id:'16',num:'Договор №16ВПКПЭ-ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Урицкого РВР, Луганск',subj:'ЦХиСО МВД — ПИР',dt:'18.07.2024',end:'31.12.2024',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/CSccN_BW-LwAXA'},
-  {id:'17',num:'Договор №17ВПКПЭ-ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Мангуш (Титова 63)',subj:'ОМВД «Мангушский» — ПИР',dt:'17.10.2024',end:'09.12.2024',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/3Fs_k60rL3uQqw'},
-  {id:'18',num:'Договор №18ВПКПЭ-ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Коваля, Донецк',subj:'МВД России — ПИР',dt:'09.11.2024',end:'—',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/rUnhT7pplp_5qQ'},
-  {id:'19',num:'Договор №19ВПКПЭ/ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Почтовая, Луганск',subj:'ПИР',dt:'19.02.2025',end:'31.05.2025',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/4aWJRSCYmZFCfw'},
-  {id:'20',num:'Договор №20ВПКПЭ/ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Гастелло, Луганск',subj:'ОБППС МВД — ПИР',dt:'20.02.2025',end:'31.07.2025',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/VB4dadjBTU1icQ'},
-  {id:'21',num:'Договор №21ВПКПЭ/ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Москва-Донбасс (Станица Луганская)',subj:'ОМВД «Станично-Луганский» — ПИР',dt:'20.02.2025',end:'30.06.2025',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/138E9xSh4WexoQ'},
-  {id:'22',num:'Договор №22ВПКПЭ/ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Торез НС',subj:'ПИР',dt:'11.03.2025',end:'28.03.2025',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/21_0BpsIByS0oQ'},
-  {id:'24',num:'Договор №24ВПКПЭ-ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Гимназия №60, Луганск',subj:'ПИР',dt:'10.04.2025',end:'—',sign:'не подписан',tz:'',link:'https://disk.360.yandex.ru/i/fVqFf7jfTkIXeg'},
-  {id:'23',num:'Договор №23ВПКПЭ-ПИР',cust:'МВД / ФКУ / ОМВД',obj:'МКД Панфилова 24А',subj:'ПИР',dt:'05.05.2025',end:'—',sign:'не подписан',tz:'',link:'https://disk.360.yandex.ru/i/si1TS2sJZ3T7cg'},
-  {id:'bn',num:'Договор №б/н',cust:'МВД / ФКУ / ОМВД',obj:'Щаденко',subj:'ПИР',dt:'—',end:'—',sign:'не подписан',tz:'',link:''},
+  {id:'1',num:'Договор 1 ВПКЭ П',cust:'ЕКС',obj:'МКД Мариуполь (30 домов)',subj:'ПИР',dt:'19.10.2022',end:'10.12.2022',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/ub1gcuDSm8hIQg'},
+  {id:'2',num:'Договор 2 ВПКПЭ П',cust:'ЕКС',obj:'МКД Мариуполь (25 домов)',subj:'ПИР',dt:'19.10.2022',end:'10.12.2022',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/_h7POd-U--tx7g'},
+  {id:'3',num:'Договор 3 ВПКПЭ П',cust:'ЕКС',obj:'Нахимова / Строителей',subj:'ПИР',dt:'10.01.2023',end:'20.05.2023',sign:'подписан',tz:'',link:'https://disk.360.yandex.ru/i/x3VCvnXEW5l3RA'},
+  {id:'4',num:'Договор 4 ВПКПЭ П',cust:'ЕКС',obj:'Солнечная / Урицкого / Шевченко',subj:'ПИР',dt:'15.05.2023',end:'30.06.2023',sign:'подписан',tz:'',link:'https://disk.360.yandex.ru/i/rKizzHnETbCLKA'},
+  {id:'5',num:'Договор 5 ВПКПЭ П',cust:'ЕКС',obj:'Школа №67, №52 Мариуполь',subj:'ПИР',dt:'01.06.2023',end:'15.07.2023',sign:'не подписан',tz:'',link:'https://disk.360.yandex.ru/i/7ztncI9h38TIQg'},
+  {id:'6',num:'Договор 6 ВПКПЭ ОК',cust:'ЕКС',obj:'Городская больница №2 Мариуполь',subj:'ПИР',dt:'10.08.2023',end:'—',sign:'не подписан',tz:'',link:'https://disk.360.yandex.ru/i/SZmfUgmGuXEbtQ'},
+  {id:'8',num:'Договор №8ВПКПЭ-ПИР',cust:'ЕКС',obj:'Кирова 56, Луганск',subj:'ПИР',dt:'12.01.2024',end:'30.06.2024',sign:'подписан',tz:'https://disk.yandex.ru/d/Gec67FkxzLDh3g',link:'https://disk.yandex.ru/d/Gec67FkxzLDh3g'},
+  {id:'9',num:'Договор №9ВПКПЭ-ПИР',cust:'ЕКС',obj:'Торез РВР (Энгельса 126)',subj:'ПИР',dt:'12.01.2024',end:'30.05.2024',sign:'подписан',tz:'https://disk.yandex.ru/d/b0M7Wqt7EGbUGQ',link:'https://disk.yandex.ru/d/b0M7Wqt7EGbUGQ'},
+  {id:'10',num:'Договор №10ВПКПЭ-ПИР',cust:'ЕКС',obj:'Свердловск (Станционный 2)',subj:'ПИР',dt:'12.01.2024',end:'31.03.2024',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/5qLWPbkZR5tb2w'},
+  {id:'11',num:'Договор №11ВПКПЭ-ПИР',cust:'ЕКС',obj:'Луганск (Магнитогорская 2)',subj:'ПИР',dt:'15.01.2024',end:'01.07.2024',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/ujleSjQJukqfKw'},
+  {id:'12',num:'Договор №12ВПКПЭ-ПИР',cust:'ЕКС',obj:'Луганск (Ленинского Комсомола 5А)',subj:'ПИР',dt:'15.01.2024',end:'14.09.2024',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/0RFiPSMtj3sBEw'},
+  {id:'13',num:'Договор №13ВПКПЭ-ПИР',cust:'ЕКС',obj:'Луганск (Руднева 119А)',subj:'ПИР',dt:'01.02.2024',end:'—',sign:'подписан',tz:'да',link:'https://disk.yandex.ru/i/gb5CSJwV47f-GA'},
+  {id:'14',num:'Договор №14ВПКПЭ-ПИР',cust:'ЕКС',obj:'Луганск школа №55/51 (Южный 5)',subj:'ПИР',dt:'21.06.2024',end:'31.10.2024',sign:'подписан',tz:'',link:'https://disk.yandex.ru/d/k_4YygJjyHV4Uw'},
+  {id:'15',num:'Договор №15ВПКПЭ-ПИР',cust:'ЕКС',obj:'Урицкого НС, Луганск',subj:'ФКУ ЦХ СО МВД — ПИР',dt:'18.07.2024',end:'31.12.2024',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/-uGwKInb6jZYGw'},
+  {id:'16',num:'Договор №16ВПКПЭ-ПИР',cust:'ЕКС',obj:'Урицкого РВР, Луганск',subj:'ЦХиСО МВД — ПИР',dt:'18.07.2024',end:'31.12.2024',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/CSccN_BW-LwAXA'},
+  {id:'17',num:'Договор №17ВПКПЭ-ПИР',cust:'ЕКС',obj:'Мангуш (Титова 63)',subj:'ОМВД «Мангушский» — ПИР',dt:'17.10.2024',end:'09.12.2024',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/3Fs_k60rL3uQqw'},
+  {id:'18',num:'Договор №18ВПКПЭ-ПИР',cust:'ЕКС',obj:'Коваля, Донецк',subj:'МВД России — ПИР',dt:'09.11.2024',end:'—',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/rUnhT7pplp_5qQ'},
+  {id:'19',num:'Договор №19ВПКПЭ/ПИР',cust:'ЕКС',obj:'Почтовая, Луганск',subj:'ПИР',dt:'19.02.2025',end:'31.05.2025',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/4aWJRSCYmZFCfw'},
+  {id:'20',num:'Договор №20ВПКПЭ/ПИР',cust:'ЕКС',obj:'Гастелло, Луганск',subj:'ОБППС МВД — ПИР',dt:'20.02.2025',end:'31.07.2025',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/VB4dadjBTU1icQ'},
+  {id:'21',num:'Договор №21ВПКПЭ/ПИР',cust:'ЕКС',obj:'Москва-Донбасс (Станица Луганская)',subj:'ОМВД «Станично-Луганский» — ПИР',dt:'20.02.2025',end:'30.06.2025',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/138E9xSh4WexoQ'},
+  {id:'22',num:'Договор №22ВПКПЭ/ПИР',cust:'ЕКС',obj:'Торез НС',subj:'ПИР',dt:'11.03.2025',end:'28.03.2025',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/21_0BpsIByS0oQ'},
+  {id:'24',num:'Договор №24ВПКПЭ-ПИР',cust:'ЕКС',obj:'Гимназия №60, Луганск',subj:'ПИР',dt:'10.04.2025',end:'—',sign:'не подписан',tz:'',link:'https://disk.360.yandex.ru/i/fVqFf7jfTkIXeg'},
+  {id:'23',num:'Договор №23ВПКПЭ-ПИР',cust:'ЕКС',obj:'МКД Панфилова 24А',subj:'ПИР',dt:'05.05.2025',end:'—',sign:'не подписан',tz:'',link:'https://disk.360.yandex.ru/i/si1TS2sJZ3T7cg'},
+  {id:'bn',num:'Договор №б/н',cust:'ЕКС',obj:'Щаденко',subj:'ПИР',dt:'—',end:'—',sign:'не подписан',tz:'',link:''},
   {id:'s9',num:'Договор РИТ-2/СУБ/9',cust:'Стройресурс',obj:'Вышка Мариуполь (РТПС)',subj:'ПИР',dt:'07.10.2024',end:'28.02.2025',sign:'не подписан',tz:'',link:'https://disk.360.yandex.ru/i/BkhgPdWR01BUww'},
   {id:'s8',num:'Договор РИТ-2/СУБ/8',cust:'Стройресурс',obj:'Вышка Новотроицк (РТПС)',subj:'ПИР',dt:'07.10.2024',end:'28.02.2025',sign:'не подписан',tz:'',link:'https://disk.360.yandex.ru/i/P7-i-7Kjc_Rbvw'},
   {id:'s6',num:'Договор РИТ-2/СУБ/6',cust:'Стройресурс',obj:'Вышка Геническ (РТПС)',subj:'ПИР',dt:'07.10.2024',end:'28.02.2025',sign:'не подписан',tz:'',link:'https://disk.360.yandex.ru/i/S9QcNuaM7xlyMw'},
@@ -291,7 +291,7 @@ var DATA=[
   {id:'p2',num:'Договор №15ВПКПЭ/ПИР',cust:'Прочие',obj:'БХЗ (Брянск, Сельцо)',subj:'Техническое обследование',dt:'—',end:'—',sign:'подписан',tz:'',link:'https://disk.360.yandex.ru/i/KVZ3hCX6z8IZBA'},
 ];
 
-var CUSTOMER_ORDER=['МВД / ФКУ / ОМВД','Стройресурс','ООО 495 ССУ','ООО «РСА»','Прочие'];
+var CUSTOMER_ORDER=['ЕКС','Стройресурс','ООО 495 ССУ','ООО «РСА»','Прочие'];
 
 function parseDt(s){if(!s||s==='—')return null;var p=s.split('.');return new Date(p[2],p[1]-1,p[0]);}
 function ea(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');}
@@ -596,7 +596,7 @@ function saveModal(){
         <div>
           <label class="mf-lbl">Заказчик</label>
           <select name="cust" class="mf-inp" style="cursor:pointer">
-            <option>МВД / ФКУ / ОМВД</option>
+            <option>ЕКС</option>
             <option>Стройресурс</option>
             <option>ООО 495 ССУ</option>
             <option>ООО «РСА»</option>
