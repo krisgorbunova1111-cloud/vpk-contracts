@@ -154,6 +154,7 @@ select.sel-sm:focus{border-color:var(--blue)}
   <th>Связь ПФ</th>
   <th>→ ПФ</th>
   <th>Папка</th>
+  <th style="width:36px"></th>
 </tr>
 </thead>
 <tbody id="tbody"></tbody>
@@ -164,13 +165,34 @@ select.sel-sm:focus{border-color:var(--blue)}
 var LS_SUMS='vpk_cust_sums';
 var LS_EXTRA='vpk_cust_extra';
 var LS_PF='vpk_priority_from_customer';
+var LS_DEL='vpk_cust_deleted';
 var sums={};
 var extra={};
+var deleted=new Set();
 try{sums=JSON.parse(localStorage.getItem(LS_SUMS)||'{}');}catch(e){}
 try{extra=JSON.parse(localStorage.getItem(LS_EXTRA)||'{}');}catch(e){}
+try{(JSON.parse(localStorage.getItem(LS_DEL)||'[]')).forEach(function(id){deleted.add(id);});}catch(e){}
 function saveSums(){try{localStorage.setItem(LS_SUMS,JSON.stringify(sums));}catch(e){}}
 function saveExtra(){try{localStorage.setItem(LS_EXTRA,JSON.stringify(extra));}catch(e){}}
+function saveDeleted(){try{localStorage.setItem(LS_DEL,JSON.stringify(Array.from(deleted)));}catch(e){}}
 function getEx(id){if(!extra[id])extra[id]={};return extra[id];}
+
+// Объекты из план-факта для выпадающего списка
+var PF_OBJECTS=[
+  'Гимназия №60','Академия детства','Панфилова','Луганская спец школа 57',
+  'Гастелло','Коваля','МКД Мариуполь','Ленком','Москва-Донбасс','Почтовая',
+  'Руднева','Вышка Новогригоровка','Вышка Геническ','Вышка Антоновка',
+  'Торез НС','Вышка Новотроицк','Урицкого','Челябинск','РСА',
+  'Урицкого РВР','Урицкого НС','АО «Завод Пластмасс»','Кирова 56',
+  'Мангущ','Теплотрасса','Проспект Нахимова','Вышка Мариуполь','Торез РВР'
+];
+
+function deleteContract(id, name){
+  if(!confirm('Удалить «'+name+'»?\n\nДоговор будет скрыт из реестра.'))return;
+  deleted.add(id);
+  saveDeleted();
+  render();
+}
 
 function syncPF(){
   var pf={};
@@ -327,6 +349,7 @@ function render(){
   });
 
   var filtered=DATA.filter(function(d){
+    if(deleted.has(d.id))return false;
     if(search&&!(d.num.toLowerCase().includes(search)||d.obj.toLowerCase().includes(search)||d.subj.toLowerCase().includes(search)))return false;
     if(fCust&&d.cust!==fCust)return false;
     if(fSign&&d.sign!==fSign)return false;
@@ -417,11 +440,15 @@ function render(){
         '<td style="min-width:100px">'+exonCell+'</td>'+
         '<td style="min-width:110px">'+clTypeCell+clStatusCell+'</td>'+
         '<td><input class="inp-cmt'+(ex.comment?' filled':'')+'" placeholder="Заметка..." value="'+(ex.comment||'').replace(/"/g,'&quot;')+'" onblur="onExtraBlur(\''+d.id+'\',\'comment\',this)"></td>'+
-        '<td style="min-width:120px">'+
-          '<input class="inp-lg'+(ex.pfname?' filled':'')+'" placeholder="Объект в ПФ..." value="'+(ex.pfname||'').replace(/"/g,'&quot;')+'" onblur="onExtraBlur(\''+d.id+'\',\'pfname\',this)" title="Введите точное название объекта из план-факта">'+
+        '<td style="min-width:130px">'+
+          '<select class="sel-sm" style="width:130px" onchange="onExtraChange(\''+d.id+'\',\'pfname\',this.value)">'+
+            '<option value="">— объект —</option>'+
+            PF_OBJECTS.map(function(o){return '<option value="'+o+'"'+(ex.pfname===o?' selected':'')+'>'+o+'</option>';}).join('')+
+          '</select>'+
         '</td>'+
         '<td style="min-width:90px" id="pf-'+d.id+'">'+pfCell+'</td>'+
         '<td>'+(d.link?'<a href="'+d.link+'" target="_blank" class="ext-link">📁</a>':'<span style="color:var(--tx3)">—</span>')+'</td>'+
+        '<td style="text-align:center"><button onclick="deleteContract(\''+d.id+'\',\''+ea(d.num)+'\')" title="Удалить договор" style="background:none;border:none;cursor:pointer;font-size:14px;opacity:.35;transition:opacity .15s;padding:2px" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=.35">🗑</button></td>'+
       '</tr>';
     });
   });
