@@ -33,6 +33,7 @@ input,select,textarea{font-family:inherit}
 .section{display:none;padding:28px 32px;flex:1}
 .section.active{display:block}
 .section.active.planfact-section{padding:0;display:block;position:fixed;top:0;left:220px;right:0;bottom:0;z-index:50}
+.section.active.customers-section{padding:0;display:block;position:fixed;top:0;left:220px;right:0;bottom:0;z-index:50}
 .page-title{font-size:22px;font-weight:800;margin-bottom:24px;color:#0f172a}
 
 /* CARDS */
@@ -354,6 +355,9 @@ body:not(.authenticated) .auth-only{display:none!important}
     <a href="#" onclick="showSection('planfact',this)" id="nav-planfact">
       <span class="icon">📊</span><span class="nav-text">План-Факт</span>
     </a>
+    <a href="#" onclick="showSection('customers',this)" id="nav-customers">
+      <span class="icon">🤝</span><span class="nav-text">Заказчики</span>
+    </a>
   </nav>
   <!-- Блок авторизации -->
   <div id="auth-login-wrap">
@@ -645,6 +649,11 @@ body:not(.authenticated) .auth-only{display:none!important}
 <!-- ПЛАН-ФАКТ -->
 <div id="section-planfact" class="section planfact-section">
   <iframe src="plan-fact.html" style="display:block;width:100%;height:100%;border:none"></iframe>
+</div>
+
+<!-- ЗАКАЗЧИКИ -->
+<div id="section-customers" class="section customers-section">
+  <iframe src="customers.html" style="display:block;width:100%;height:100%;border:none"></iframe>
 </div>
 
 <script>

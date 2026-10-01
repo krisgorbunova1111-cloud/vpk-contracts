@@ -283,6 +283,17 @@ var objPriority={};
 try{objPriority=JSON.parse(localStorage.getItem('vpk_obj_priority')||'{}');}catch(e){}
 function savePriority(){try{localStorage.setItem('vpk_obj_priority',JSON.stringify(objPriority));}catch(e){}}
 
+// Customer-contract driven priorities — set by customers.html when ГГЭ/EXON approved
+var custPriority={};
+try{custPriority=JSON.parse(localStorage.getItem('vpk_priority_from_customer')||'{}');}catch(e){}
+// effPri: returns effective priority — customer-driven wins if it sorts higher (lower PRI_ORDER index)
+function effPri(name){
+  var c=custPriority[name];
+  var m=objPriority[name]||'nor';
+  if(c&&PRI_ORDER[c]!==undefined&&PRI_ORDER[c]<=PRI_ORDER[m])return c;
+  return m;
+}
+
 var PRI_CYCLE={nor:'exp',exp:'urg',urg:'nor'};
 var PRI_LABEL={exp:'📋 Экспертиза',urg:'⚡ Срочно',nor:'• Обычный'};
 var PRI_CLASS={exp:'pri-exp',urg:'pri-urg',nor:'pri-nor'};
@@ -304,27 +315,31 @@ function setDistStep(s){
 }
 
 function renderPriorityStep(){
+  // Reload customer priorities each render (updated by customers.html)
+  try{custPriority=JSON.parse(localStorage.getItem('vpk_priority_from_customer')||'{}');}catch(e){}
+
   var objs=ctrMap
     ? Object.keys(ctrMap).map(function(n){
         var rem=Object.values(ctrMap[n]).reduce(function(s,c){return s+c.rem;},0);
         return {objName:n,rem:rem};
       }).filter(function(o){return o.rem>0;})
       .sort(function(a,b){
-        var pa=PRI_ORDER[objPriority[a.objName]||'nor'];
-        var pb=PRI_ORDER[objPriority[b.objName]||'nor'];
+        var pa=PRI_ORDER[effPri(a.objName)];
+        var pb=PRI_ORDER[effPri(b.objName)];
         return pa!==pb ? pa-pb : b.rem-a.rem;
       })
     : DATA.filter(function(d){return d.r>0;}).map(function(d){return {objName:d.n,rem:d.r};})
       .sort(function(a,b){
-        var pa=PRI_ORDER[objPriority[a.objName]||'nor'];
-        var pb=PRI_ORDER[objPriority[b.objName]||'nor'];
+        var pa=PRI_ORDER[effPri(a.objName)];
+        var pb=PRI_ORDER[effPri(b.objName)];
         return pa!==pb ? pa-pb : b.rem-a.rem;
       });
 
   var h='';
   var lastPri=null;
   objs.forEach(function(o){
-    var pri=objPriority[o.objName]||'nor';
+    var pri=effPri(o.objName);
+    var fromCust=custPriority[o.objName]&&PRI_ORDER[custPriority[o.objName]]<=PRI_ORDER[objPriority[o.objName]||'nor'];
     if(pri!==lastPri){
       var groupLabel={exp:'📋 Экспертиза — первоочередная оплата',urg:'⚡ Срочно',nor:'• Обычный порядок'}[pri];
       var groupColor={exp:'#fef2f2',urg:'#fff7ed',nor:'#f8fafc'}[pri];
@@ -333,10 +348,13 @@ function renderPriorityStep(){
       lastPri=pri;
     }
     h+='<tr>'+
-       '<td style="font-size:13px;font-weight:500;padding:7px 12px">'+o.objName+'</td>'+
+       '<td style="font-size:13px;font-weight:500;padding:7px 12px">'+o.objName+
+         (fromCust?'<span title="Приоритет поднят: ГГЭ/EXON по договору заказчика" style="font-size:10px;margin-left:5px;color:#b91c1c">🔒</span>':'')+
+       '</td>'+
        '<td class="num o" style="padding:7px 12px;font-size:12px">'+fmt(o.rem)+'</td>'+
        '<td style="padding:6px 12px">'+
          '<button class="pri-btn '+PRI_CLASS[pri]+'" onclick="setPriorityStep(\''+ea(o.objName)+'\',this)">'+PRI_LABEL[pri]+'</button>'+
+         (fromCust?'<span style="font-size:9px;color:#b91c1c;margin-left:4px;white-space:nowrap">по договору</span>':'')+
        '</td>'+
     '</tr>';
   });
@@ -668,8 +686,8 @@ function getDebtItems(){
   var items=Object.keys(map).map(function(n){return{objName:n,totalDebt:map[n]};});
   // Sort by priority then by debt desc
   items.sort(function(a,b){
-    var pa=PRI_ORDER[objPriority[a.objName]||'nor'];
-    var pb=PRI_ORDER[objPriority[b.objName]||'nor'];
+    var pa=PRI_ORDER[effPri(a.objName)];
+    var pb=PRI_ORDER[effPri(b.objName)];
     return pa!==pb?pa-pb:b.totalDebt-a.totalDebt;
   });
   return items;
@@ -717,7 +735,7 @@ function renderDistByWeeks(){
   } else {
     cw.items.forEach(function(item,ii){
       var sid='dcw_'+ii;
-      var pri=objPriority[item.objName]||'nor';
+      var pri=effPri(item.objName);
       h+='<tr>'+
          '<td style="padding:6px 12px 6px 24px;font-size:13px">'+
            '<span class="pri-btn '+PRI_CLASS[pri]+'" style="cursor:default;font-size:10px;margin-right:6px">'+PRI_LABEL[pri]+'</span>'+
@@ -747,7 +765,7 @@ function renderDistByWeeks(){
   } else {
     debtItems.forEach(function(item,ii){
       var sid='ddbt_'+ii;
-      var pri=objPriority[item.objName]||'nor';
+      var pri=effPri(item.objName);
       h+='<tr>'+
          '<td style="padding:6px 12px 6px 24px;font-size:13px">'+
            '<span class="pri-btn '+PRI_CLASS[pri]+'" style="cursor:default;font-size:10px;margin-right:6px">'+PRI_LABEL[pri]+'</span>'+
@@ -870,8 +888,8 @@ function getDistObjs(){
       return {objName:objName,totalRem:totalRem,ctrs:ctrs};
     }).filter(function(o){return o.totalRem>0;})
       .sort(function(a,b){
-        var pa=PRI_ORDER[objPriority[a.objName]||'nor'];
-        var pb=PRI_ORDER[objPriority[b.objName]||'nor'];
+        var pa=PRI_ORDER[effPri(a.objName)];
+        var pb=PRI_ORDER[effPri(b.objName)];
         return pa!==pb ? pa-pb : b.totalRem-a.totalRem;
       });
   }
@@ -888,7 +906,7 @@ function renderDist(){
   objs.forEach(function(o,i){
     var hasCtrs=o.ctrs.length>0;
     var exp=distExpanded[i];
-    var pri=objPriority[o.objName]||'nor';
+    var pri=effPri(o.objName);
     var priCls=pri!=='nor'?'is-'+pri:'';
     h+='<tr class="obj-hd '+priCls+'" onclick="toggleDist('+i+')">'+
        '<td style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">'+
@@ -938,8 +956,8 @@ function getDistObjsFallback(){
   return DATA.filter(function(d){return d.r>0;}).map(function(d){
     return {objName:d.n,totalRem:d.r,ctrs:[]};
   }).sort(function(a,b){
-    var pa=PRI_ORDER[objPriority[a.objName]||'nor'];
-    var pb=PRI_ORDER[objPriority[b.objName]||'nor'];
+    var pa=PRI_ORDER[effPri(a.objName)];
+    var pb=PRI_ORDER[effPri(b.objName)];
     return pa!==pb ? pa-pb : b.totalRem-a.totalRem;
   });
 }

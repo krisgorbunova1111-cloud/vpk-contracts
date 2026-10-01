@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Реестр договоров заказчиков — ВПК</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1e3a5f;--blue:#2563eb;--tx:#1e293b;--tx2:#475569;--tx3:#94a3b8;
+  --surf:#fff;--surf2:#f8fafc;--bdr:#e2e8f0;
+  --grn:#16a34a;--grn-bg:#dcfce7;--org:#ea580c;--org-bg:#fff7ed;
+  --red:#dc2626;--red-bg:#fee2e2;--yel:#ca8a04;--yel-bg:#fef9c3;
+  --pur:#7c3aed;--pur-bg:#ede9fe;
+}
+body{font-family:'Inter',system-ui,sans-serif;background:#f1f5f9;color:var(--tx);font-size:13px;min-height:100vh}
+
+.hdr{background:var(--navy);color:#fff;padding:14px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;position:sticky;top:0;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.hdr-brand{font-size:15px;font-weight:700;white-space:nowrap}
+.hdr-brand span{color:#60a5fa}
+.hdr-tiles{display:flex;gap:10px;flex-wrap:wrap;margin-left:auto}
+.tile{background:rgba(255,255,255,.1);border-radius:8px;padding:6px 14px;text-align:center;min-width:90px}
+.tile-val{font-size:17px;font-weight:700;line-height:1.2}
+.tile-lbl{font-size:10px;opacity:.65;text-transform:uppercase;letter-spacing:.4px}
+.tile.grn .tile-val{color:#86efac}
+.tile.org .tile-val{color:#fdba74}
+.tile.red .tile-val{color:#fca5a5}
+.tile.pur .tile-val{color:#c4b5fd}
+
+.filters{display:flex;gap:8px;flex-wrap:wrap;padding:12px 24px;background:var(--surf);border-bottom:1px solid var(--bdr);align-items:center}
+.fi{border:1px solid var(--bdr);border-radius:7px;padding:5px 9px;font-size:12px;font-family:inherit;color:var(--tx);background:var(--surf);outline:none;transition:border .15s}
+.fi:focus{border-color:var(--blue)}
+.fi-search{width:210px}
+.lbl{font-size:11px;font-weight:600;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px}
+.btn-reset{padding:5px 11px;border:1px solid var(--bdr);border-radius:7px;background:var(--surf);font-size:12px;font-family:inherit;cursor:pointer;color:var(--tx2)}
+.btn-reset:hover{background:var(--surf2)}
+
+.wrap{overflow-x:auto;margin:14px 24px;border-radius:10px;box-shadow:0 1px 6px rgba(0,0,0,.07);background:var(--surf)}
+table{border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums;font-size:12px}
+thead{position:sticky;top:55px;z-index:10}
+th{background:var(--navy);color:rgba(255,255,255,.8);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;padding:7px 9px;text-align:left;white-space:nowrap;border-right:1px solid rgba(255,255,255,.1)}
+th:last-child{border-right:none}
+td{padding:6px 9px;border-bottom:1px solid var(--bdr);vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f8fafc}
+
+.col-num{position:sticky;left:0;z-index:2;background:var(--surf);min-width:140px;max-width:160px;font-size:11px;font-weight:600;border-right:2px solid var(--bdr);white-space:normal;line-height:1.3}
+tr:hover .col-num{background:#f8fafc}
+thead th.col-num{background:var(--navy);z-index:11}
+
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:600;white-space:nowrap}
+.b-signed{background:var(--grn-bg);color:var(--grn)}
+.b-nosign{background:var(--red-bg);color:var(--red)}
+.b-yes{background:var(--grn-bg);color:var(--grn);cursor:pointer;border:none;font-family:inherit}
+.b-no{background:#f1f5f9;color:var(--tx3);cursor:pointer;border:none;font-family:inherit}
+.b-partial{background:var(--org-bg);color:var(--org)}
+.b-review{background:var(--yel-bg);color:var(--yel)}
+.b-pf{background:var(--red-bg);color:var(--red);font-weight:700}
+.b-customer{background:rgba(37,99,235,.1);color:#1d4ed8}
+.b-btn{cursor:pointer;border:none;font-family:inherit;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:600}
+
+.inp-sm{width:90px;border:1px solid var(--bdr);border-radius:5px;padding:2px 5px;font-size:11px;font-family:inherit;color:var(--tx);background:var(--surf);outline:none}
+.inp-sm:focus{border-color:var(--blue)}
+.inp-sm.filled{border-color:#93c5fd;background:rgba(37,99,235,.04)}
+.inp-lg{width:130px;border:1px solid var(--bdr);border-radius:5px;padding:2px 5px;font-size:11px;font-family:inherit;color:var(--tx);background:var(--surf);outline:none}
+.inp-lg:focus{border-color:var(--blue)}
+.inp-lg.filled{border-color:#93c5fd;background:rgba(37,99,235,.04)}
+.inp-sum{width:110px;border:1px solid var(--bdr);border-radius:5px;padding:3px 6px;font-size:12px;text-align:right;font-family:inherit;font-variant-numeric:tabular-nums;color:var(--tx);background:var(--surf);outline:none}
+.inp-sum:focus{border-color:var(--blue)}
+.inp-sum.has-val{border-color:#93c5fd;background:rgba(37,99,235,.04);font-weight:600;color:var(--blue)}
+.inp-cmt{width:140px;border:1px solid transparent;border-radius:5px;padding:2px 5px;font-size:11px;font-family:inherit;color:var(--tx2);background:transparent;outline:none}
+.inp-cmt:focus,.inp-cmt:hover{border-color:var(--bdr);background:var(--surf)}
+.inp-cmt.filled{color:var(--tx)}
+
+select.sel-sm{border:1px solid var(--bdr);border-radius:5px;padding:2px 4px;font-size:11px;font-family:inherit;color:var(--tx);background:var(--surf);outline:none;cursor:pointer}
+select.sel-sm:focus{border-color:var(--blue)}
+
+.gge-sub{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+.ext-link{color:var(--blue);text-decoration:none;font-size:11px;opacity:.7;transition:opacity .15s}
+.ext-link:hover{opacity:1}
+
+.group-row td{background:#eef2f7;font-weight:700;font-size:11px;color:var(--tx2);text-transform:uppercase;letter-spacing:.5px;padding:5px 10px;border-bottom:1px solid var(--bdr)}
+.overdue{color:var(--red);font-weight:600}
+.no-date{color:var(--tx3);font-style:italic}
+
+.pf-sync-info{padding:8px 24px;background:#fef2f2;border-bottom:1px solid #fecaca;font-size:12px;color:#991b1b;display:none;align-items:center;gap:6px}
+.pf-sync-info.visible{display:flex}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-brand">ВПК · <span>Заказчики</span></div>
+  <div style="font-size:11px;opacity:.5">Реестр договоров</div>
+  <div class="hdr-tiles">
+    <div class="tile"><div class="tile-val" id="t-total">0</div><div class="tile-lbl">Договоров</div></div>
+    <div class="tile grn"><div class="tile-val" id="t-signed">0</div><div class="tile-lbl">Подписано</div></div>
+    <div class="tile red"><div class="tile-val" id="t-nosign">0</div><div class="tile-lbl">Не подписано</div></div>
+    <div class="tile org"><div class="tile-val" id="t-sum">—</div><div class="tile-lbl">Общая сумма</div></div>
+    <div class="tile pur"><div class="tile-val" id="t-pf">0</div><div class="tile-lbl">→ Приоритет ПФ</div></div>
+  </div>
+</div>
+
+<div class="pf-sync-info" id="pf-bar">
+  🔴 <strong id="pf-bar-names"></strong> — статус экспертизы передан в «План-Факт», приоритет поднят автоматически
+</div>
+
+<div class="filters">
+  <span class="lbl">Фильтр:</span>
+  <input class="fi fi-search" id="fsearch" placeholder="Поиск по объекту, номеру..." oninput="applyFilter()">
+  <select class="fi" id="fcustomer" onchange="applyFilter()">
+    <option value="">Все заказчики</option>
+    <option>МВД / ФКУ / ОМВД</option>
+    <option>Стройресурс</option>
+    <option>ООО 495 ССУ</option>
+    <option>ООО «РСА»</option>
+    <option>Прочие</option>
+  </select>
+  <select class="fi" id="fstatus" onchange="applyFilter()">
+    <option value="">Все статусы</option>
+    <option value="подписан">Подписан</option>
+    <option value="не подписан">Не подписан</option>
+  </select>
+  <select class="fi" id="fgge" onchange="applyFilter()">
+    <option value="">ГГЭ — все</option>
+    <option value="пройдена">ГГЭ пройдена</option>
+    <option value="на рассмотрении">На рассмотрении</option>
+  </select>
+  <select class="fi" id="fpf" onchange="applyFilter()">
+    <option value="">→ ПФ — все</option>
+    <option value="1">Только с приоритетом ПФ</option>
+  </select>
+  <button class="btn-reset" onclick="resetFilter()">Сбросить</button>
+  <span style="margin-left:auto;font-size:11px;color:var(--tx3)" id="count-lbl"></span>
+</div>
+
+<div class="wrap">
+<table id="tbl">
+<thead>
+<tr>
+  <th class="col-num">№ Договора</th>
+  <th>Объект</th>
+  <th>Предмет</th>
+  <th>Дата / Срок</th>
+  <th style="text-align:right">Сумма, ₽</th>
+  <th>Подписан</th>
+  <th>ТЗ</th>
+  <th>ДС</th>
+  <th>ГГЭ</th>
+  <th>EXON</th>
+  <th>Закрывающие</th>
+  <th>Комментарий</th>
+  <th>Связь ПФ</th>
+  <th>→ ПФ</th>
+  <th>Папка</th>
+</tr>
+</thead>
+<tbody id="tbody"></tbody>
+</table>
+</div>
+
+<script>
+var LS_SUMS='vpk_cust_sums';
+var LS_EXTRA='vpk_cust_extra';
+var LS_PF='vpk_priority_from_customer';
+var sums={};
+var extra={};
+try{sums=JSON.parse(localStorage.getItem(LS_SUMS)||'{}');}catch(e){}
+try{extra=JSON.parse(localStorage.getItem(LS_EXTRA)||'{}');}catch(e){}
+function saveSums(){try{localStorage.setItem(LS_SUMS,JSON.stringify(sums));}catch(e){}}
+function saveExtra(){try{localStorage.setItem(LS_EXTRA,JSON.stringify(extra));}catch(e){}}
+function getEx(id){if(!extra[id])extra[id]={};return extra[id];}
+
+function syncPF(){
+  var pf={};
+  DATA.forEach(function(d){
+    var ex=extra[d.id]||{};
+    if(ex.pfname&&(ex.gge_status==='пройдена'||ex.exon_status==='одобрен')){
+      pf[ex.pfname]='exp';
+    }
+  });
+  try{localStorage.setItem(LS_PF,JSON.stringify(pf));}catch(e){}
+  updatePFBar(pf);
+}
+
+function updatePFBar(pf){
+  var names=Object.keys(pf);
+  var bar=document.getElementById('pf-bar');
+  var tile=document.getElementById('t-pf');
+  if(tile)tile.textContent=names.length;
+  if(bar){
+    if(names.length>0){
+      bar.classList.add('visible');
+      document.getElementById('pf-bar-names').textContent=names.join(', ');
+    } else {
+      bar.classList.remove('visible');
+    }
+  }
+}
+
+var DATA=[
+  {id:'1',num:'Договор 1 ВПКЭ П',cust:'МВД / ФКУ / ОМВД',obj:'МКД Мариуполь (30 домов)',subj:'ПИР',dt:'19.10.2022',end:'10.12.2022',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/ub1gcuDSm8hIQg'},
+  {id:'2',num:'Договор 2 ВПКПЭ П',cust:'МВД / ФКУ / ОМВД',obj:'МКД Мариуполь (25 домов)',subj:'ПИР',dt:'19.10.2022',end:'10.12.2022',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/_h7POd-U--tx7g'},
+  {id:'3',num:'Договор 3 ВПКПЭ П',cust:'МВД / ФКУ / ОМВД',obj:'Нахимова / Строителей',subj:'ПИР',dt:'10.01.2023',end:'20.05.2023',sign:'подписан',tz:'',link:'https://disk.360.yandex.ru/i/x3VCvnXEW5l3RA'},
+  {id:'4',num:'Договор 4 ВПКПЭ П',cust:'МВД / ФКУ / ОМВД',obj:'Солнечная / Урицкого / Шевченко',subj:'ПИР',dt:'15.05.2023',end:'30.06.2023',sign:'подписан',tz:'',link:'https://disk.360.yandex.ru/i/rKizzHnETbCLKA'},
+  {id:'5',num:'Договор 5 ВПКПЭ П',cust:'МВД / ФКУ / ОМВД',obj:'Школа №67, №52 Мариуполь',subj:'ПИР',dt:'01.06.2023',end:'15.07.2023',sign:'не подписан',tz:'',link:'https://disk.360.yandex.ru/i/7ztncI9h38TIQg'},
+  {id:'6',num:'Договор 6 ВПКПЭ ОК',cust:'МВД / ФКУ / ОМВД',obj:'Городская больница №2 Мариуполь',subj:'ПИР',dt:'10.08.2023',end:'—',sign:'не подписан',tz:'',link:'https://disk.360.yandex.ru/i/SZmfUgmGuXEbtQ'},
+  {id:'8',num:'Договор №8ВПКПЭ-ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Кирова 56, Луганск',subj:'ПИР',dt:'12.01.2024',end:'30.06.2024',sign:'подписан',tz:'https://disk.yandex.ru/d/Gec67FkxzLDh3g',link:'https://disk.yandex.ru/d/Gec67FkxzLDh3g'},
+  {id:'9',num:'Договор №9ВПКПЭ-ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Торез РВР (Энгельса 126)',subj:'ПИР',dt:'12.01.2024',end:'30.05.2024',sign:'подписан',tz:'https://disk.yandex.ru/d/b0M7Wqt7EGbUGQ',link:'https://disk.yandex.ru/d/b0M7Wqt7EGbUGQ'},
+  {id:'10',num:'Договор №10ВПКПЭ-ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Свердловск (Станционный 2)',subj:'ПИР',dt:'12.01.2024',end:'31.03.2024',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/5qLWPbkZR5tb2w'},
+  {id:'11',num:'Договор №11ВПКПЭ-ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Луганск (Магнитогорская 2)',subj:'ПИР',dt:'15.01.2024',end:'01.07.2024',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/ujleSjQJukqfKw'},
+  {id:'12',num:'Договор №12ВПКПЭ-ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Луганск (Ленинского Комсомола 5А)',subj:'ПИР',dt:'15.01.2024',end:'14.09.2024',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/0RFiPSMtj3sBEw'},
+  {id:'13',num:'Договор №13ВПКПЭ-ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Луганск (Руднева 119А)',subj:'ПИР',dt:'01.02.2024',end:'—',sign:'подписан',tz:'да',link:'https://disk.yandex.ru/i/gb5CSJwV47f-GA'},
+  {id:'14',num:'Договор №14ВПКПЭ-ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Луганск школа №55/51 (Южный 5)',subj:'ПИР',dt:'21.06.2024',end:'31.10.2024',sign:'подписан',tz:'',link:'https://disk.yandex.ru/d/k_4YygJjyHV4Uw'},
+  {id:'15',num:'Договор №15ВПКПЭ-ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Урицкого НС, Луганск',subj:'ФКУ ЦХ СО МВД — ПИР',dt:'18.07.2024',end:'31.12.2024',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/-uGwKInb6jZYGw'},
+  {id:'16',num:'Договор №16ВПКПЭ-ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Урицкого РВР, Луганск',subj:'ЦХиСО МВД — ПИР',dt:'18.07.2024',end:'31.12.2024',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/CSccN_BW-LwAXA'},
+  {id:'17',num:'Договор №17ВПКПЭ-ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Мангуш (Титова 63)',subj:'ОМВД «Мангушский» — ПИР',dt:'17.10.2024',end:'09.12.2024',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/3Fs_k60rL3uQqw'},
+  {id:'18',num:'Договор №18ВПКПЭ-ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Коваля, Донецк',subj:'МВД России — ПИР',dt:'09.11.2024',end:'—',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/rUnhT7pplp_5qQ'},
+  {id:'19',num:'Договор №19ВПКПЭ/ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Почтовая, Луганск',subj:'ПИР',dt:'19.02.2025',end:'31.05.2025',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/4aWJRSCYmZFCfw'},
+  {id:'20',num:'Договор №20ВПКПЭ/ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Гастелло, Луганск',subj:'ОБППС МВД — ПИР',dt:'20.02.2025',end:'31.07.2025',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/VB4dadjBTU1icQ'},
+  {id:'21',num:'Договор №21ВПКПЭ/ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Москва-Донбасс (Станица Луганская)',subj:'ОМВД «Станично-Луганский» — ПИР',dt:'20.02.2025',end:'30.06.2025',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/138E9xSh4WexoQ'},
+  {id:'22',num:'Договор №22ВПКПЭ/ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Торез НС',subj:'ПИР',dt:'11.03.2025',end:'28.03.2025',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/21_0BpsIByS0oQ'},
+  {id:'24',num:'Договор №24ВПКПЭ-ПИР',cust:'МВД / ФКУ / ОМВД',obj:'Гимназия №60, Луганск',subj:'ПИР',dt:'10.04.2025',end:'—',sign:'не подписан',tz:'',link:'https://disk.360.yandex.ru/i/fVqFf7jfTkIXeg'},
+  {id:'23',num:'Договор №23ВПКПЭ-ПИР',cust:'МВД / ФКУ / ОМВД',obj:'МКД Панфилова 24А',subj:'ПИР',dt:'05.05.2025',end:'—',sign:'не подписан',tz:'',link:'https://disk.360.yandex.ru/i/si1TS2sJZ3T7cg'},
+  {id:'bn',num:'Договор №б/н',cust:'МВД / ФКУ / ОМВД',obj:'Щаденко',subj:'ПИР',dt:'—',end:'—',sign:'не подписан',tz:'',link:''},
+  {id:'s9',num:'Договор РИТ-2/СУБ/9',cust:'Стройресурс',obj:'Вышка Мариуполь (РТПС)',subj:'ПИР',dt:'07.10.2024',end:'28.02.2025',sign:'не подписан',tz:'',link:'https://disk.360.yandex.ru/i/BkhgPdWR01BUww'},
+  {id:'s8',num:'Договор РИТ-2/СУБ/8',cust:'Стройресурс',obj:'Вышка Новотроицк (РТПС)',subj:'ПИР',dt:'07.10.2024',end:'28.02.2025',sign:'не подписан',tz:'',link:'https://disk.360.yandex.ru/i/P7-i-7Kjc_Rbvw'},
+  {id:'s6',num:'Договор РИТ-2/СУБ/6',cust:'Стройресурс',obj:'Вышка Геническ (РТПС)',subj:'ПИР',dt:'07.10.2024',end:'28.02.2025',sign:'не подписан',tz:'',link:'https://disk.360.yandex.ru/i/S9QcNuaM7xlyMw'},
+  {id:'s5',num:'Договор РИТ-2/СУБ/5',cust:'Стройресурс',obj:'Вышка Антоновка (РТПС)',subj:'ПИР',dt:'07.10.2024',end:'28.02.2025',sign:'подписан',tz:'',link:'https://disk.360.yandex.ru/i/LWIoeBrPzy1mJA'},
+  {id:'s7',num:'Договор РИТ-2/СУБ/7',cust:'Стройресурс',obj:'Вышка Новогригоровка (РТПС)',subj:'ПИР',dt:'07.10.2024',end:'28.02.2025',sign:'не подписан',tz:'',link:'https://disk.360.yandex.ru/i/GBEba5x5OU2NlA'},
+  {id:'m7',num:'Договор 7 М-7-П-1',cust:'ООО 495 ССУ',obj:'МКД Макеевка (Ханжёнково)',subj:'ПИР МКД',dt:'04.09.2024',end:'22.06.2024',sign:'подписан',tz:'да',link:'https://disk.360.yandex.ru/i/992Lfe4LQ-9tnQ'},
+  {id:'r1',num:'Договор №00/24/ВПК РСА',cust:'ООО «РСА»',obj:'Больница + 3 дома, Мариуполь',subj:'ПИР: больница и МКД',dt:'07.02.2024',end:'—',sign:'подписан',tz:'',link:''},
+  {id:'r2',num:'Договор №17/06/2024-ДНР М',cust:'ООО «РСА»',obj:'Больница + 3 дома, Мариуполь (доп)',subj:'ПИР: больница и МКД',dt:'—',end:'—',sign:'не подписан',tz:'',link:''},
+  {id:'p1',num:'Договор №36/2025',cust:'Прочие',obj:'Каменск-Шахтинский (ФКП Комбинат)',subj:'РВР — ПИР',dt:'03.02.2025',end:'—',sign:'подписан',tz:'',link:'https://disk.360.yandex.ru/i/PolXSopnoJQx2A'},
+  {id:'p2',num:'Договор №15ВПКПЭ/ПИР',cust:'Прочие',obj:'БХЗ (Брянск, Сельцо)',subj:'Техническое обследование',dt:'—',end:'—',sign:'подписан',tz:'',link:'https://disk.360.yandex.ru/i/KVZ3hCX6z8IZBA'},
+];
+
+var CUSTOMER_ORDER=['МВД / ФКУ / ОМВД','Стройресурс','ООО 495 ССУ','ООО «РСА»','Прочие'];
+
+function parseDt(s){if(!s||s==='—')return null;var p=s.split('.');return new Date(p[2],p[1]-1,p[0]);}
+
+function endCell(s){
+  if(!s||s==='—')return '<span class="no-date">—</span>';
+  var d=parseDt(s);if(!d)return s;
+  if(d<new Date())return '<span class="overdue" title="Срок истёк">'+s+' ⚠</span>';
+  return s;
+}
+
+function tzBadge(v){
+  if(v&&v.startsWith('http'))return '<a href="'+v+'" target="_blank" class="badge b-yes" style="text-decoration:none">✓ ссылка</a>';
+  if(v==='да')return '<span class="badge b-yes">✓</span>';
+  return '<span class="badge b-no">—</span>';
+}
+
+// ---- Inline field handlers (no full re-render) ----
+
+function onSumInput(id, inp){
+  var v=inp.value;
+  if(v)sums[id]=parseFloat(v); else delete sums[id];
+  saveSums();
+  inp.classList.toggle('has-val',!!v);
+  updateTiles();
+}
+
+function onExtraBlur(id, field, inp){
+  getEx(id)[field]=inp.value;
+  saveExtra();
+  if(field==='pfname'){
+    syncPF();
+    updatePFCell(id);
+  }
+}
+
+function onExtraChange(id, field, val){
+  getEx(id)[field]=val;
+  saveExtra();
+  syncPF();
+  // Show/hide GGE sub-fields
+  if(field==='gge_status'){
+    var sub=document.getElementById('gge-sub-'+id);
+    if(sub)sub.style.display=val==='пройдена'?'flex':'none';
+  }
+  updatePFCell(id);
+}
+
+function toggleBadge(id, field, btn){
+  var ex=getEx(id);
+  ex[field]=(ex[field]==='да'?'нет':'да');
+  saveExtra();
+  var yes=ex[field]==='да';
+  btn.className='badge b-btn '+(yes?'b-yes':'b-no');
+  btn.textContent=yes?'✓ есть':'—';
+}
+
+function updatePFCell(id){
+  var el=document.getElementById('pf-'+id);
+  if(!el)return;
+  var ex=extra[id]||{};
+  var active=ex.pfname&&(ex.gge_status==='пройдена'||ex.exon_status==='одобрен');
+  el.innerHTML=active
+    ?'<span class="badge b-pf">🔴 → ПФ</span>'
+    +'<div style="font-size:10px;color:var(--tx3);margin-top:2px">'+ex.pfname+'</div>'
+    :'<span style="color:var(--tx3);font-size:11px">—</span>';
+}
+
+function updateTiles(){
+  var total=0;
+  DATA.forEach(function(d){total+=parseFloat(sums[d.id])||0;});
+  var t=document.getElementById('t-sum');
+  if(t)t.textContent=total?Math.round(total).toLocaleString('ru-RU')+' ₽':'—';
+}
+
+// ---- Main render ----
+function render(){
+  var search=(document.getElementById('fsearch').value||'').toLowerCase();
+  var fCust=document.getElementById('fcustomer').value;
+  var fSign=document.getElementById('fstatus').value;
+  var fGge=document.getElementById('fgge').value;
+  var fPf=document.getElementById('fpf').value;
+
+  // Pre-compute current PF state
+  var curPF={};
+  DATA.forEach(function(d){
+    var ex=extra[d.id]||{};
+    if(ex.pfname&&(ex.gge_status==='пройдена'||ex.exon_status==='одобрен'))curPF[d.id]=true;
+  });
+
+  var filtered=DATA.filter(function(d){
+    if(search&&!(d.num.toLowerCase().includes(search)||d.obj.toLowerCase().includes(search)||d.subj.toLowerCase().includes(search)))return false;
+    if(fCust&&d.cust!==fCust)return false;
+    if(fSign&&d.sign!==fSign)return false;
+    var ex=extra[d.id]||{};
+    if(fGge&&ex.gge_status!==fGge)return false;
+    if(fPf&&!curPF[d.id])return false;
+    return true;
+  });
+
+  var grouped={};
+  CUSTOMER_ORDER.forEach(function(c){grouped[c]=[];});
+  filtered.forEach(function(d){if(grouped[d.cust])grouped[d.cust].push(d);});
+
+  var h='';
+  var totalSum=0;
+  CUSTOMER_ORDER.forEach(function(cust){
+    var rows=grouped[cust];
+    if(!rows||!rows.length)return;
+    var custSum=rows.reduce(function(s,d){return s+(parseFloat(sums[d.id])||0);},0);
+    totalSum+=custSum;
+    h+='<tr class="group-row"><td colspan="15">'+
+       '<span class="badge b-customer">'+cust+'</span> — '+rows.length+
+       ' дог'+(rows.length===1?'овор':'оворов')+
+       (custSum?'<span style="float:right;color:#1d4ed8;font-weight:700">'+Math.round(custSum).toLocaleString('ru-RU')+' ₽</span>':'')+
+       '</td></tr>';
+
+    rows.forEach(function(d){
+      var sv=sums[d.id]||'';
+      var ex=extra[d.id]||{};
+      var pfActive=ex.pfname&&(ex.gge_status==='пройдена'||ex.exon_status==='одобрен');
+
+      // ДС toggle
+      var dsYes=ex.ds==='да';
+      var dsBtn='<button class="badge b-btn '+(dsYes?'b-yes':'b-no')+'" onclick="toggleBadge(\''+d.id+'\',\'ds\',this)">'+(dsYes?'✓ есть':'—')+'</button>';
+
+      // ГГЭ cell
+      var ggeStatus=ex.gge_status||'';
+      var ggeCell='<select class="sel-sm" onchange="onExtraChange(\''+d.id+'\',\'gge_status\',this.value)">'+
+        '<option value=""'+(ggeStatus===''?' selected':'')+'>—</option>'+
+        '<option value="на рассмотрении"'+(ggeStatus==='на рассмотрении'?' selected':'')+'>⏳ На рассм.</option>'+
+        '<option value="пройдена"'+(ggeStatus==='пройдена'?' selected':'')+'>✓ Пройдена</option>'+
+        '</select>'+
+        '<div id="gge-sub-'+d.id+'" class="gge-sub" style="display:'+(ggeStatus==='пройдена'?'flex':'none')+'">'+
+          '<input class="inp-sm'+(ex.gge_num?' filled':'')+'" placeholder="№ закл." value="'+(ex.gge_num||'')+'" onblur="onExtraBlur(\''+d.id+'\',\'gge_num\',this)" title="Номер заключения ГГЭ">'+
+          '<input class="inp-sm'+(ex.gge_date?' filled':'')+'" placeholder="Дата" value="'+(ex.gge_date||'')+'" onblur="onExtraBlur(\''+d.id+'\',\'gge_date\',this)" title="Дата заключения ГГЭ">'+
+        '</div>';
+
+      // EXON cell
+      var exonStatus=ex.exon_status||'';
+      var exonCell='<select class="sel-sm" onchange="onExtraChange(\''+d.id+'\',\'exon_status\',this.value)">'+
+        '<option value=""'+(exonStatus===''?' selected':'')+'>—</option>'+
+        '<option value="в работе"'+(exonStatus==='в работе'?' selected':'')+'>⏳ В работе</option>'+
+        '<option value="одобрен"'+(exonStatus==='одобрен'?' selected':'')+'>✓ Одобрен</option>'+
+        '<option value="отклонён"'+(exonStatus==='отклонён'?' selected':'')+'>✗ Откл.</option>'+
+        '</select>';
+
+      // Закрывающие
+      var clType=ex.closetype||'';
+      var clStatus=ex.closestatus||'';
+      var clTypeCell='<select class="sel-sm" style="margin-bottom:3px" onchange="onExtraChange(\''+d.id+'\',\'closetype\',this.value)">'+
+        '<option value=""'+(clType===''?' selected':'')+'>тип...</option>'+
+        '<option value="Акт"'+(clType==='Акт'?' selected':'')+'>Акт</option>'+
+        '<option value="КС-2/КС-3"'+(clType==='КС-2/КС-3'?' selected':'')+'>КС-2/КС-3</option>'+
+        '</select>';
+      var clStatusCell=clType?'<select class="sel-sm" onchange="onExtraChange(\''+d.id+'\',\'closestatus\',this.value)">'+
+        '<option value=""'+(clStatus===''?' selected':'')+'>—</option>'+
+        '<option value="в работе"'+(clStatus==='в работе'?' selected':'')+'>В работе</option>'+
+        '<option value="подписан"'+(clStatus==='подписан'?' selected':'')+'>✓ Подписан</option>'+
+        '<option value="замечания"'+(clStatus==='замечания'?' selected':'')+'>! Замечания</option>'+
+        '</select>':'';
+
+      // →ПФ cell
+      var pfCell=pfActive
+        ?'<span class="badge b-pf">🔴 → ПФ</span>'+
+          '<div style="font-size:10px;color:var(--tx3);margin-top:2px">'+ex.pfname+'</div>'
+        :'<span style="color:var(--tx3);font-size:11px">—</span>';
+
+      h+='<tr>'+
+        '<td class="col-num">'+d.num+'</td>'+
+        '<td style="min-width:160px;font-weight:500;line-height:1.35">'+d.obj+'</td>'+
+        '<td style="max-width:160px;color:var(--tx2);font-size:11px;line-height:1.3">'+d.subj+'</td>'+
+        '<td style="white-space:nowrap;font-size:11px">'+d.dt+'<br><span style="color:var(--tx3)">до </span>'+endCell(d.end)+'</td>'+
+        '<td style="text-align:right"><input class="inp-sum'+(sv?' has-val':'')+'" type="number" placeholder="Сумма" value="'+sv+'" oninput="onSumInput(\''+d.id+'\',this)"></td>'+
+        '<td>'+(d.sign==='подписан'?'<span class="badge b-signed">✓</span>':'<span class="badge b-nosign">✗</span>')+'</td>'+
+        '<td>'+tzBadge(d.tz)+'</td>'+
+        '<td>'+dsBtn+'</td>'+
+        '<td style="min-width:120px">'+ggeCell+'</td>'+
+        '<td style="min-width:100px">'+exonCell+'</td>'+
+        '<td style="min-width:110px">'+clTypeCell+clStatusCell+'</td>'+
+        '<td><input class="inp-cmt'+(ex.comment?' filled':'')+'" placeholder="Заметка..." value="'+(ex.comment||'').replace(/"/g,'&quot;')+'" onblur="onExtraBlur(\''+d.id+'\',\'comment\',this)"></td>'+
+        '<td style="min-width:120px">'+
+          '<input class="inp-lg'+(ex.pfname?' filled':'')+'" placeholder="Объект в ПФ..." value="'+(ex.pfname||'').replace(/"/g,'&quot;')+'" onblur="onExtraBlur(\''+d.id+'\',\'pfname\',this)" title="Введите точное название объекта из план-факта">'+
+        '</td>'+
+        '<td style="min-width:90px" id="pf-'+d.id+'">'+pfCell+'</td>'+
+        '<td>'+(d.link?'<a href="'+d.link+'" target="_blank" class="ext-link">📁</a>':'<span style="color:var(--tx3)">—</span>')+'</td>'+
+      '</tr>';
+    });
+  });
+
+  document.getElementById('tbody').innerHTML=h;
+
+  // Tiles
+  document.getElementById('t-total').textContent=filtered.length;
+  document.getElementById('t-signed').textContent=filtered.filter(function(d){return d.sign==='подписан';}).length;
+  document.getElementById('t-nosign').textContent=filtered.filter(function(d){return d.sign==='не подписан';}).length;
+  document.getElementById('t-sum').textContent=totalSum?Math.round(totalSum).toLocaleString('ru-RU')+' ₽':'—';
+  document.getElementById('count-lbl').textContent='Показано: '+filtered.length+' из '+DATA.length;
+
+  // Sync and update PF bar
+  syncPF();
+}
+
+function applyFilter(){render();}
+function resetFilter(){
+  document.getElementById('fsearch').value='';
+  document.getElementById('fcustomer').value='';
+  document.getElementById('fstatus').value='';
+  document.getElementById('fgge').value='';
+  document.getElementById('fpf').value='';
+  render();
+}
+
+// Init
+syncPF();
+render();
+</script>
+</body>
+</html>
