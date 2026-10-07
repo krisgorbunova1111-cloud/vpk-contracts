@@ -204,7 +204,7 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     <div class="role" id="user-box-role"></div>
     <button class="logout-btn" onclick="logout()">Выйти</button>
   </div>
-  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-09-15.5</div>
+  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-10-07.1</div>
 </div>
 
 <div id="main" style="display:none">
@@ -697,6 +697,12 @@ function uid(prefix){return prefix+'_'+Date.now().toString(36)+Math.random().toS
 function nowIso(){return new Date().toISOString();}
 function fmtDate(iso){if(!iso)return '';const d=new Date(iso);return d.toLocaleDateString('ru-RU')+' '+d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});}
 function escape(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function linkifyText(s){
+  return escape(s).replace(/(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi,function(u){
+    const href=/^www\./i.test(u)?'https://'+u:u;
+    return '<a href="'+href+'" target="_blank" rel="noopener noreferrer" style="color:#2563eb;word-break:break-all">'+u+'</a>';
+  });
+}
 function tonum(v){if(v==null||v==='')return 0;const n=parseFloat(String(v).replace(/[^\d.,-]/g,'').replace(',','.'));return isNaN(n)?0:n;}
 function fmtMoney(v){return Math.round(tonum(v)).toLocaleString('ru-RU')+' ₽';}
 function subLabel(k){return roleName(k);}
@@ -1864,7 +1870,7 @@ function openDetail(id){
     ['Срок исполнения',req.deadline],['Размер аванса',req.advance?String(req.advance).replace(/%+\s*$/,'')+'%':''],
     ['Файл ТЗ',req.tzLink],['Создал',req.createdBy+' · '+fmtDate(req.createdAt)]
   ];
-  rows.forEach(([k,v])=>{html+='<div><div class="dk">'+k+'</div><div class="dv">'+(escape(v)||'—')+'</div></div>';});
+  rows.forEach(([k,v])=>{html+='<div><div class="dk">'+k+'</div><div class="dv">'+((k==='Файл ТЗ'?linkifyText(v):escape(v))||'—')+'</div></div>';});
   html+='</div>';
 
   if(req.attachments&&req.attachments.length){
