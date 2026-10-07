@@ -204,7 +204,7 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     <div class="role" id="user-box-role"></div>
     <button class="logout-btn" onclick="logout()">Выйти</button>
   </div>
-  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-10-07.2</div>
+  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-10-07.3</div>
 </div>
 
 <div id="main" style="display:none">
@@ -1139,7 +1139,7 @@ function renderReqCard(r){
   if(r.stage==='accepted'&&r.priceApproval&&r.priceApproval.status==='pending')subInfo+='<span style="color:#b45309">⏳ цена ждёт согласования директора</span>';
   if(r.stage==='accepted'&&r.priceApproval&&r.priceApproval.status==='returned')subInfo+='<span style="color:#b91c1c">↩ цена возвращена директором</span>';
   const crWait=calcWaitingCount(r);
-  if(crWait&&(r.stage==='subdivisions'||r.stage==='decision'))subInfo+='<span style="color:#b45309">⏳ ждём ответ по расчёту: '+crWait+'</span>';
+  if(crWait&&(r.stage==='subdivisions'||r.stage==='decision')&&(currentUser.role==='production'||currentUser.role==='admin'))subInfo+='<span style="color:#b45309">⏳ ждём ответ по расчёту: '+crWait+'</span>';
   return '<div class="req-card" onclick="openDetail(\''+r.id+'\')">'
     +'<div class="rc-main">'
       +'<div class="rc-title">'+escape(r.customer)+' — '+escape(r.subject)+'</div>'
@@ -1927,7 +1927,7 @@ function crCanEdit(req){
   const role=currentUser.role;
   return (role==='production'||role==='admin')&&(req.stage==='subdivisions'||req.stage==='decision');
 }
-function crReopen(id){openDetail(id);switchDetailTab('performers');}
+function crReopen(id){openDetail(id);}
 function crSectionSelectHtml(){
   const used=crDraftSections.map(function(x){return x.id;});
   const list=(DB.sections||[]).filter(function(s){return !s._del&&!used.includes(s.id);});
@@ -1962,8 +1962,12 @@ function crToggleNewExec(){
 function calcRequestsHtml(req){
   const list=req.calcRequests||[];
   const editable=crCanEdit(req);
+  if(currentUser.role!=='production'&&currentUser.role!=='admin')return '';
   if(!editable&&!list.length)return '';
-  let h='<div class="divider"></div><h3 style="font-size:14px;font-weight:800;margin-bottom:6px">Запросы на расчёт</h3>';
+  const waitingTotal=list.filter(function(c){return !c.answeredAt;}).length;
+  let h='<details open class="card-block" style="padding:12px 14px;margin-top:14px"><summary style="cursor:pointer;font-size:14px;font-weight:800">Запросы на расчёт'
+    +(list.length?' <span style="font-weight:600;font-size:12px;color:'+(waitingTotal?'#b45309':'var(--muted)')+'">· '+(waitingTotal?'ждём ответ: '+waitingTotal:'все ответы получены')+'</span>':'')
+    +'</summary><div style="margin-top:8px">';
   if(list.length){
     const waiting=list.filter(function(c){return !c.answeredAt;}).length;
     const answered=list.filter(function(c){return c.answeredAt&&c.sentAt;});
@@ -2000,7 +2004,7 @@ function calcRequestsHtml(req){
   });
   if(editable){
     const units=(DB.units||[]).filter(function(u){return !u._del;});
-    h+='<details style="margin-top:8px"'+(list.length?'':' open')+'><summary style="cursor:pointer;font-size:12.5px;font-weight:700;color:var(--accent-ink)">＋ Новый запрос на расчёт</summary>'
+    h+='<details style="margin-top:8px"><summary style="cursor:pointer;font-size:12.5px;font-weight:700;color:var(--accent-ink)">＋ Новый запрос на расчёт</summary>'
       +'<div class="card-block" style="padding:12px;margin-top:6px">'
         +'<div class="form-grid">'
           +'<div class="field"><label>Исполнитель</label><select id="cr-exec" onchange="crToggleNewExec()"><option value="">— выберите —</option>'
@@ -2016,6 +2020,7 @@ function calcRequestsHtml(req){
         +'<div class="form-actions" style="justify-content:flex-start;margin-top:8px"><button type="button" class="btn btn-primary btn-sm" onclick="crSubmit(\''+req.id+'\')">Запрос отправлен</button></div>'
       +'</div></details>';
   }
+  h+='</div></details>';
   return h;
 }
 function crSubmit(id){
@@ -2202,7 +2207,6 @@ function openDetail(id){
   }
 
   html+='<!--TAB:performers-->';
-  html+=calcRequestsHtml(req);
   // Subdivisions block
   if(req.stage==='subdivisions'||req.stage==='decision'||req.stage==='accepted'||req.stage==='rejected'){
     html+='<div class="divider"></div><h3 style="font-size:14px;font-weight:800;margin-bottom:6px">Исполнители</h3>';
@@ -2394,6 +2398,7 @@ function openDetail(id){
   }
 
   html+='<!--TAB:actions-->';
+  html+=calcRequestsHtml(req);
   // ===== ROLE ACTIONS =====
   // Production: initial control
   if((role==='production'||role==='admin')&&req.stage==='new'){
