@@ -185,6 +185,7 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     <input type="password" id="login-pass" placeholder="Пароль" autocomplete="current-password" onkeydown="if(event.key==='Enter')submitLogin()">
     <div class="login-error" id="login-error"></div>
     <button class="btn btn-primary" onclick="submitLogin()">Войти</button>
+    <div style="margin-bottom:10px"><a href="instruction.html" target="_blank" rel="noopener" style="font-size:12.5px;font-weight:600;color:var(--accent-ink)">📖 Инструкция для сотрудников</a></div>
     <div class="login-hint">Демо-доступы: admin/admin, kom/kom123 (коммерческий), pro/pro123 (производственный), izyskaniya/izyskaniya123, obsledovanie/obsledovanie123</div>
   </div>
 </div>
@@ -198,13 +199,14 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
   <div class="nav-item" id="nav-new" data-page="new" onclick="showPage('new')" style="display:none">➕ Новая заявка</div>
   <div class="nav-item" id="nav-users" data-page="users" onclick="showPage('users')" style="display:none">⚙️ Настройки</div>
   <div class="spacer"></div>
+  <div class="nav-item" onclick="window.open('instruction.html','_blank')">📖 Инструкция</div>
   <div class="sync-info"><span id="sync-dot"></span><span id="sync-text">Загрузка...</span></div>
   <div class="user-box">
     <div class="name" id="user-box-name"></div>
     <div class="role" id="user-box-role"></div>
     <button class="logout-btn" onclick="logout()">Выйти</button>
   </div>
-  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-10-07.6</div>
+  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-10-07.7</div>
 </div>
 
 <div id="main" style="display:none">
