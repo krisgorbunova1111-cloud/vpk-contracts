@@ -204,7 +204,7 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     <div class="role" id="user-box-role"></div>
     <button class="logout-btn" onclick="logout()">Выйти</button>
   </div>
-  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-10-07.5</div>
+  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-10-07.6</div>
 </div>
 
 <div id="main" style="display:none">
@@ -1801,6 +1801,30 @@ function actionInitialControlReject(id){
   pushHistory(req,'Возврат в коммерческий отдел (первичный контроль): '+comment);
   pushRequest(id); closeModal('modal-detail'); renderAll();
 }
+function actionResubmit(id){
+  const req=DB.requests[id]; if(!req||req.stage!=='returned')return;
+  const g=function(f){const el=byId('rs-'+f);return el?(el.value||'').trim():'';};
+  if(!g('customer')||!g('subject')||!g('address')){alert('Заполните обязательные поля: заказчик, предмет договора и адрес');return;}
+  const labels={customer:'заказчик',manager:'менеджер клиента',clientManager:'клиентский менеджер',legalEntity:'юр. лицо',subject:'предмет договора',address:'адрес',buildingArea:'площадь',amount:'сумма',workType:'вид работ',govOrder:'гос. заказ',currency:'валюта',deadline:'срок',advance:'аванс',tzLink:'файл ТЗ'};
+  const changed=[];
+  Object.keys(labels).forEach(function(f){
+    const v=g(f);
+    if(String(req[f]==null?'':req[f]).trim()!==v){req[f]=v;changed.push(labels[f]);}
+  });
+  const newComment=g('comment');
+  if(newComment!==(req.comment||'')){
+    req.commentLog=req.commentLog||[];
+    if(!req.commentLog.length&&req.comment)req.commentLog.push({at:req.createdAt,by:req.createdBy,text:req.comment,legacy:true});
+    req.commentLog.push({at:nowIso(),by:currentUser.name,text:newComment});
+    req.comment=newComment;
+    changed.push('комментарий');
+  }
+  const prevReason=req.returnReason||'';
+  req.stage='new';
+  req.returnReason='';
+  pushHistory(req,'Заявка исправлена и отправлена повторно в производственный отдел'+(changed.length?' (изменено: '+changed.join(', ')+')':' (без изменений данных)')+(prevReason?' · причина возврата была: '+prevReason:''));
+  pushRequest(id); closeModal('modal-detail'); renderAll();
+}
 function actionInitialControlSend(id){
   const req=DB.requests[id]; if(!req)return;
   req.stage='subdivisions';
@@ -2409,6 +2433,35 @@ function openDetail(id){
 
   html+='<!--TAB:actions-->';
   html+=calcRequestsHtml(req);
+  if(req.stage==='returned'&&(role==='commercial'||role==='admin'||(role==='klientskiy_menedzher'&&req.createdBy===currentUser.name))){
+    const mgrList=(DB.managers||[]).filter(m=>!m._del).map(m=>m.name);
+    if(req.clientManager&&!mgrList.includes(req.clientManager))mgrList.push(req.clientManager);
+    const leList=(DB.legalEntities||[]).filter(l=>!l._del).map(l=>l.name);
+    if(req.legalEntity&&!leList.includes(req.legalEntity))leList.push(req.legalEntity);
+    const opt=function(list,cur){return '<option value="">— Не выбран —</option>'+list.map(n=>'<option value="'+escape(n)+'"'+(n===cur?' selected':'')+'>'+escape(n)+'</option>').join('');};
+    const inp=function(f,label,val,extra){return '<div class="field"><label>'+label+'</label><input id="rs-'+f+'" value="'+escape(val==null?'':val)+'" '+(extra||'')+'></div>';};
+    html+='<div class="divider"></div><h3>Исправить и отправить повторно</h3>'
+      +'<div class="note-box" style="margin-top:0"><b>Причина возврата:</b><br>'+escape(req.returnReason||'—')+'</div>'
+      +'<div class="hint-box" style="margin-top:8px">Исправьте данные ниже и нажмите «Отправить повторно в ПО» — заявка снова уйдёт на первичный контроль.</div>'
+      +'<div class="form-grid" style="margin-top:10px">'
+        +inp('customer','Название заказчика *',req.customer)
+        +inp('manager','Менеджер клиента',req.manager)
+        +'<div class="field"><label>Клиентский менеджер (наш специалист)</label><select id="rs-clientManager">'+opt(mgrList,req.clientManager||'')+'</select></div>'
+        +'<div class="field"><label>Юридическое лицо</label><select id="rs-legalEntity">'+opt(leList,req.legalEntity||'')+'</select></div>'
+        +'<div class="field span2"><label>Предмет договора *</label><input id="rs-subject" value="'+escape(req.subject||'')+'"></div>'
+        +'<div class="field span2"><label>Адрес *</label><input id="rs-address" value="'+escape(req.address||'')+'"></div>'
+        +inp('buildingArea','Площадь объекта, м²',req.buildingArea,'type="number" min="0" step="1"')
+        +inp('amount','Ориентировочная сумма, ₽',req.amount,'type="number" min="0" step="1"')
+        +inp('workType','Вид работ',req.workType)
+        +'<div class="field"><label>Гос. заказ</label><select id="rs-govOrder"><option value="Нет"'+(req.govOrder!=='Да'?' selected':'')+'>Нет</option><option value="Да"'+(req.govOrder==='Да'?' selected':'')+'>Да</option></select></div>'
+        +'<div class="field"><label>Валюта расчётов</label><select id="rs-currency"><option value="Рубль"'+(req.currency!=='Цифровой рубль'?' selected':'')+'>Рубль</option><option value="Цифровой рубль"'+(req.currency==='Цифровой рубль'?' selected':'')+'>Цифровой рубль</option></select></div>'
+        +inp('deadline','Срок исполнения',req.deadline)
+        +inp('advance','Размер аванса, %',String(req.advance==null?'':req.advance).replace(/%+\s*$/,''),'type="number" min="0" max="100" step="1"')
+        +'<div class="field span2"><label>Файл ТЗ (ссылка или название)</label><input id="rs-tzLink" value="'+escape(req.tzLink||'')+'"></div>'
+        +'<div class="field span2"><label>Комментарий</label><textarea id="rs-comment">'+escape(req.comment||'')+'</textarea></div>'
+      +'</div>'
+      +'<div class="form-actions" style="justify-content:flex-start;margin-top:10px"><button class="btn btn-primary" onclick="actionResubmit(\''+id+'\')">Отправить повторно в ПО</button></div>';
+  }
   // ===== ROLE ACTIONS =====
   // Production: initial control
   if((role==='production'||role==='admin')&&req.stage==='new'){
