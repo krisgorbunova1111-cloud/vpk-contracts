@@ -202,9 +202,10 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
   <div class="user-box">
     <div class="name" id="user-box-name"></div>
     <div class="role" id="user-box-role"></div>
-    <button class="logout-btn" onclick="logout()">Выйти</button>
+    <button class="logout-btn" onclick="changeOwnPassword()">Сменить пароль</button>
+    <button class="logout-btn" style="margin-left:10px" onclick="logout()">Выйти</button>
   </div>
-  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-10-07.3</div>
+  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-10-07.4</div>
 </div>
 
 <div id="main" style="display:none">
@@ -808,14 +809,24 @@ function fetchRemote(initial){
 }
 
 let pendingCatalogPushes=new Set();
+let catalogInFlight={}, catalogDirty={}, catalogClearTimers={};
 function pushCatalog(dbProp,key){
   pendingCatalogPushes.add(dbProp);
+  if(catalogClearTimers[dbProp]){clearTimeout(catalogClearTimers[dbProp]);catalogClearTimers[dbProp]=null;}
+  if(catalogInFlight[dbProp]){catalogDirty[dbProp]=key;return;}
+  catalogInFlight[dbProp]=true;
+  const settle=function(ok,msg){
+    setSyncStatus(ok,msg);
+    catalogInFlight[dbProp]=false;
+    if(catalogDirty[dbProp]){const k=catalogDirty[dbProp];catalogDirty[dbProp]=null;pushCatalog(dbProp,k);return;}
+    catalogClearTimers[dbProp]=setTimeout(function(){pendingCatalogPushes.delete(dbProp);catalogClearTimers[dbProp]=null;},3000);
+  };
   fetch(SUPABASE_URL+'/rest/v1/storage',{
     method:'POST',
     headers:sbHeaders({'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'}),
     body:JSON.stringify({key:key,value:JSON.stringify(DB[dbProp])})
-  }).then(r=>{setSyncStatus(r.ok,r.ok?'Сохранено':'Ошибка сохранения');setTimeout(function(){pendingCatalogPushes.delete(dbProp);},3000);})
-    .catch(()=>{setSyncStatus(false,'Нет соединения');setTimeout(function(){pendingCatalogPushes.delete(dbProp);},3000);});
+  }).then(r=>settle(r.ok,r.ok?'Сохранено':'Ошибка сохранения'))
+    .catch(()=>settle(false,'Нет соединения'));
 }
 function pushUsers(){pushCatalog('users',USERS_KEY);}
 function pushManagers(){pushCatalog('managers',MANAGERS_KEY);}
@@ -2927,7 +2938,7 @@ function renderUsers(){
   if(roleKeys.includes(prevVal))sel.value=prevVal;
   byId('users-table-body').innerHTML=DB.users.filter(u=>!u._del).map(u=>
     '<tr><td>'+escape(u.name)+'</td><td class="mono">'+escape(u.login)+'</td><td>'+roleName(u.role)+'</td>'
-    +'<td><button class="btn btn-sm btn-danger" onclick="deleteUser(\''+u.id+'\')">Удалить</button></td></tr>'
+    +'<td><button class="btn btn-sm" onclick="resetUserPassword(\''+u.id+'\')">Сменить пароль</button> <button class="btn btn-sm btn-danger" onclick="deleteUser(\''+u.id+'\')">Удалить</button></td></tr>'
   ).join('');
   renderManagers();
   renderDivisions();
@@ -3325,6 +3336,28 @@ function createUser(){
   DB.users.push({id:uid('u'),name,login,password:pass,role:byId('uf-role').value});
   pushUsers(); byId('uf-name').value='';byId('uf-login').value='';byId('uf-pass').value='';
   renderUsers();
+}
+function resetUserPassword(id){
+  const u=DB.users.find(x=>x.id===id&&!x._del); if(!u)return;
+  const pass=prompt('Новый пароль для «'+u.name+'» (логин '+u.login+'):');
+  if(pass===null)return;
+  if(pass.trim().length<4){alert('Пароль слишком короткий — минимум 4 символа');return;}
+  u.password=pass.trim();
+  pushUsers();
+  alert('Пароль изменён. Сообщите его сотруднику лично.');
+}
+function changeOwnPassword(){
+  const old=prompt('Введите текущий пароль:');
+  if(old===null)return;
+  if(old!==currentUser.password){alert('Текущий пароль неверный');return;}
+  const pass=prompt('Введите новый пароль (минимум 4 символа):');
+  if(pass===null)return;
+  if(pass.trim().length<4){alert('Пароль слишком короткий — минимум 4 символа');return;}
+  const u=DB.users.find(x=>x.id===currentUser.id); if(!u)return;
+  u.password=pass.trim();
+  currentUser=u;
+  pushUsers();
+  alert('Пароль изменён');
 }
 function deleteUser(id){
   if(id===currentUser.id){alert('Нельзя удалить свою учётную запись');return;}
