@@ -204,7 +204,7 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     <div class="role" id="user-box-role"></div>
     <button class="logout-btn" onclick="logout()">Выйти</button>
   </div>
-  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-10-07.1</div>
+  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-10-07.2</div>
 </div>
 
 <div id="main" style="display:none">
@@ -369,7 +369,7 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     <div class="card-block">
       <div class="form-grid">
         <div class="field span2"><label>Название раздела</label><input id="scf-name" placeholder="напр. П. Раздел 13. ..."></div>
-        <div class="field"><label>Стадия</label><select id="scf-stage"><option value="pd">Проектная документация (ПД)</option><option value="rd">Рабочая документация (РД)</option></select></div>
+        <div class="field"><label>Стадия</label><select id="scf-stage"></select></div>
         <div class="field"><label>Группа (только для РД, необязательно)</label><input id="scf-group" placeholder="напр. Инженерные системы и сети (ИОС)"></div>
       </div>
       <div class="field" style="margin-top:8px">
@@ -548,7 +548,8 @@ function divisionKeys(){return (DB.divisions||[]).filter(d=>!d._del).map(d=>d.ke
 function assessorKeys(){return ['production'].concat(divisionKeys());}
 
 const SECTIONS_KEY='kptracker_sections';
-const STAGE_NAME_BY_KEY={pd:'Проектная документация (ПД)',rd:'Рабочая документация (РД)'};
+const STAGE_NAME_BY_KEY={pd:'Проектная документация (ПД)',rd:'Рабочая документация (РД)',iz:'Изыскания',ob:'Обследование',ls:'Линейные специалисты'};
+function stageOptionsHtml(selected){return Object.keys(STAGE_NAME_BY_KEY).map(function(k){return '<option value="'+k+'"'+(k===selected?' selected':'')+'>'+STAGE_NAME_BY_KEY[k]+'</option>';}).join('');}
 const SEED_SECTIONS=[
   {id:'sec-1',name:'П. Раздел 1. Пояснительная записка',rate1:582.52,rate2:459.46,rate3:null,stage:'pd'},
   {id:'sec-2',name:'П. Раздел 2. Схема планировочной организации земельного участка',rate1:906.15,rate2:710.07,rate3:null,stage:'pd'},
@@ -638,7 +639,7 @@ function areaTierLabel(area){
   return t==='rate1'?'50–500 м²':t==='rate2'?'500–1500 м²':t==='rate3'?'свыше 1500 м²':'—';
 }
 const ROLE_NAME={
-  admin:'Администратор', commercial:'Коммерческий отдел', production:'Производственный отдел'
+  admin:'Администратор', commercial:'Коммерческий отдел', production:'Производственный отдел', commercial_director:'Коммерческий директор'
 };
 function roleName(key){
   if(ROLE_NAME[key])return ROLE_NAME[key];
@@ -646,7 +647,7 @@ function roleName(key){
   return d?d.name:key;
 }
 const STAGE_NAME={
-  new:'Новая · на контроле', subdivisions:'У подразделений', decision:'Решение ПО',
+  new:'Новая · на контроле', subdivisions:'В расчёте', decision:'Решение ПО',
   accepted:'Принято в работу', rejected:'Отказ', returned:'Возврат в КО'
 };
 const SUB_STATUS_NAME={waiting:'Ожидает оценки', insufficient:'Недостаточно данных', done:'Оценено', not_involved:'Не привлекается', skipped:'Решение принято без ответа'};
@@ -876,7 +877,7 @@ function enterApp(){
   byId('nav-new').style.display=(currentUser.role==='commercial'||currentUser.role==='admin'||currentUser.role==='klientskiy_menedzher')?'flex':'none';
   byId('nav-prospects').style.display=(currentUser.role==='commercial'||currentUser.role==='admin'||currentUser.role==='klientskiy_menedzher')?'flex':'none';
   byId('nav-users').style.display=(currentUser.role==='admin')?'flex':'none';
-  byId('nav-analytics').style.display=(currentUser.role==='admin'||currentUser.role==='commercial'||currentUser.role==='production')?'flex':'none';
+  byId('nav-analytics').style.display=(currentUser.role==='admin'||currentUser.role==='commercial'||currentUser.role==='production'||currentUser.role==='commercial_director')?'flex':'none';
   showPage('dashboard');
 }
 
@@ -887,7 +888,7 @@ function allRequests(){
 function visibleRequests(){
   const role=currentUser.role;
   const all=allRequests();
-  if(role==='admin'||role==='commercial')return all;
+  if(role==='admin'||role==='commercial'||role==='commercial_director')return all;
   if(role==='production')return all;
   if(role==='klientskiy_menedzher'){
     return all.filter(r=>r.createdBy===currentUser.name);
@@ -902,6 +903,9 @@ function needsActionCount(){
   const all=allRequests();
   if(role==='production'){
     return all.filter(r=>r.stage==='new'||r.stage==='decision'||(r.stage==='subdivisions'&&Object.values(r.subs||{}).some(v=>v.status==='insufficient'))).length;
+  }
+  if(role==='commercial_director'){
+    return all.filter(r=>r.stage==='accepted'&&r.priceApproval&&r.priceApproval.status==='pending').length;
   }
   if(role==='klientskiy_menedzher'){
     return all.filter(r=>r.createdBy===currentUser.name&&(r.stage==='returned'||r.stage==='rejected'||r.stage==='accepted')).length;
@@ -965,7 +969,7 @@ function renderDashboard(){
   all.forEach(r=>counts[r.stage]=(counts[r.stage]||0)+1);
   const cards=[
     ['Новых заявок',counts.new,'accent'],
-    ['У подразделений',counts.subdivisions,''],
+    ['В расчёте',counts.subdivisions,''],
     ['На решении',counts.decision,'warn'],
     ['Принято в работу',counts.accepted,'success'],
     ['Отказы',counts.rejected,'danger']
@@ -975,13 +979,13 @@ function renderDashboard(){
   ).join('');
 
   const moneyWrap=byId('dash-money-wrap');
-  if(role==='admin'||role==='commercial'||role==='production'){
+  if(role==='admin'||role==='commercial'||role==='production'||role==='commercial_director'){
     moneyWrap.style.display='';
     const sum=(arr)=>arr.reduce((s,r)=>s+tonum(r.finalAmount||r.amount),0);
     const accepted=all.filter(r=>r.stage==='accepted');
     const moneyCards=[
       ['Новые заявки',sum(all.filter(r=>r.stage==='new')),'accent'],
-      ['В работе у подразделений',sum(all.filter(r=>r.stage==='subdivisions'||r.stage==='decision')),''],
+      ['В расчёте',sum(all.filter(r=>r.stage==='subdivisions'||r.stage==='decision')),''],
       ['Принято в работу',sum(accepted),'success'],
       ['из них договор на согласовании',sum(accepted.filter(r=>r.customerStatus==='contract_review')),'warn'],
       ['из них договор подписан',sum(accepted.filter(r=>r.customerStatus==='signed')),'success'],
@@ -997,6 +1001,8 @@ function renderDashboard(){
   let actionable=[];
   if(role==='production'){
     actionable=all.filter(r=>r.stage==='new'||r.stage==='decision'||(r.stage==='subdivisions'&&Object.values(r.subs||{}).some(v=>v.status==='insufficient')));
+  }else if(role==='commercial_director'){
+    actionable=all.filter(r=>r.stage==='accepted'&&r.priceApproval&&r.priceApproval.status==='pending');
   }else if(role==='klientskiy_menedzher'){
     actionable=all.filter(r=>r.createdBy===currentUser.name&&['returned','rejected','accepted'].includes(r.stage)).slice(0,6);
   }else if(divisionKeys().includes(role)){
@@ -1014,8 +1020,8 @@ function renderRequests(){
   const role=currentUser.role;
   byId('req-sub').textContent='Видимость по роли: '+roleName(role);
   const filters=[['all','Все']];
-  if(role==='admin'||role==='commercial'||role==='production'||role==='klientskiy_menedzher'){
-    filters.push(['new','Новые'],['subdivisions','У подразделений'],['decision','На решении'],['accepted','Принято'],['rejected','Отказ'],['returned','Возврат']);
+  if(role==='admin'||role==='commercial'||role==='production'||role==='klientskiy_menedzher'||role==='commercial_director'){
+    filters.push(['new','Новые'],['subdivisions','В расчёте'],['decision','На решении'],['accepted','Принято'],['rejected','Отказ'],['returned','Возврат']);
   }
   byId('req-filters').innerHTML=filters.map(f=>
     '<button class="filter-chip '+(reqFilter===f[0]?'active':'')+'" onclick="setReqFilter(\''+f[0]+'\')">'+f[1]+'</button>'
@@ -1130,6 +1136,10 @@ function renderReqCard(r){
     const insuf=involved.filter(s=>r.subs[s].status==='insufficient').length;
     subInfo='<span>Подразделения: '+done+'/'+involved.length+' готово'+(insuf?', '+insuf+' требуют уточнения':'')+'</span>';
   }
+  if(r.stage==='accepted'&&r.priceApproval&&r.priceApproval.status==='pending')subInfo+='<span style="color:#b45309">⏳ цена ждёт согласования директора</span>';
+  if(r.stage==='accepted'&&r.priceApproval&&r.priceApproval.status==='returned')subInfo+='<span style="color:#b91c1c">↩ цена возвращена директором</span>';
+  const crWait=calcWaitingCount(r);
+  if(crWait&&(r.stage==='subdivisions'||r.stage==='decision'))subInfo+='<span style="color:#b45309">⏳ ждём ответ по расчёту: '+crWait+'</span>';
   return '<div class="req-card" onclick="openDetail(\''+r.id+'\')">'
     +'<div class="rc-main">'
       +'<div class="rc-title">'+escape(r.customer)+' — '+escape(r.subject)+'</div>'
@@ -1410,6 +1420,7 @@ async function createRequest(){
     decision:null, rejectionReason:'',
     history:[{at:nowIso(),by:currentUser.name,action:'Заявка создана'+(attachments.length?' ('+attachments.length+' вложений)':'')}]
   };
+  if(req.comment)req.commentLog=[{at:req.createdAt,by:req.createdBy,text:req.comment}];
   DB.requests[id]=req;
   pushRequest(id);
   if(pendingProspectLink){
@@ -1540,6 +1551,9 @@ function buildKpBodyXml(req,amount,addressee,outNum,outDate,vatPct,kpStages,netA
 }
 async function generateKp(id){
   const req=DB.requests[id]; if(!req)return;
+  const approvalSt=priceApprovalState(req,true);
+  if(approvalSt.key!=='approved'){alert('КП можно сформировать только после согласования цены коммерческим директором');return;}
+  if(approvalSt.stale){alert('Цена изменилась после согласования — отправьте на согласование заново');return;}
   const agg=computeAggregateTotals(req);
   const usingAutoCalc=agg.costFinal>0;
   const addressee=(byId('kp-addressee').value||'').trim();
@@ -1550,8 +1564,7 @@ async function generateKp(id){
   if(usingAutoCalc){
     const netEl=byId('kp-net-amount');
     netAmount=netEl?tonum(netEl.value):agg.costFinal;
-    const pctEl=byId('kp-profit-pct');
-    profitPctUsed=pctEl?tonum(pctEl.value):0;
+    profitPctUsed=(netAmount/agg.costFinal-1)*100;
     const vatAmount=netAmount*tonum(vatPct)/100;
     amount=Math.round(netAmount+vatAmount);
   }else{
@@ -1613,6 +1626,130 @@ async function generateKp(id){
   openDetail(id);
 }
 
+/* ========================= СОГЛАСОВАНИЕ ЦЕНЫ (коммерческий директор) ========================= */
+function kpFieldVal(elId){const el=byId(elId);return el?el.value:null;}
+function kpPriceNow(req,live){
+  const agg=computeAggregateTotals(req);
+  if(agg.costFinal>0){
+    let net,pct,vat;
+    if(live&&byId('kp-net-amount')){
+      net=tonum(kpFieldVal('kp-net-amount'));
+      pct=(net/agg.costFinal-1)*100;
+      vat=tonum(kpFieldVal('kp-vat'));
+    }else{
+      const saved=req.kpMarginPct!=null&&req.kpMarginPct!==''?tonum(req.kpMarginPct):null;
+      pct=saved!=null?saved:computeProfit(agg.costFinal,agg.commFinal).pct;
+      net=agg.costFinal*(1+pct/100);
+      vat=tonum(req.kpVatPct);
+    }
+    return {auto:true,cost:agg.costFinal,profitPct:pct,net:net,vatPct:vat,amount:Math.round(net+net*vat/100)};
+  }
+  const fa=live?kpFieldVal('kp-final-amount'):null;
+  const vat=live&&byId('kp-vat')?tonum(kpFieldVal('kp-vat')):tonum(req.kpVatPct);
+  return {auto:false,cost:tonum(live&&byId('kp-cost')?kpFieldVal('kp-cost'):req.kpCost),profitPct:null,net:null,vatPct:vat,amount:Math.round(tonum(fa!=null?fa:(req.finalAmount||req.amount)))};
+}
+function priceApprovalState(req,live){
+  const pa=req.priceApproval;
+  if(!pa||!pa.status)return {key:'none',stale:false};
+  const stale=!!(pa.snapshot&&Math.round(pa.snapshot.amount)!==Math.round(kpPriceNow(req,live).amount));
+  return {key:pa.status,stale:stale};
+}
+function priceSnapshotHtml(sn){
+  let h='<div style="font-size:12.5px;line-height:1.7">';
+  if(sn.auto){
+    h+='Себестоимость: <b>'+fmtMoney(sn.cost)+'</b> · прибыль: <b>'+fmtMoney(sn.net-sn.cost)+' ('+tonum(sn.profitPct).toFixed(1)+'%)</b><br>'
+      +'Итого без НДС: <b>'+fmtMoney(sn.net)+'</b> · НДС '+tonum(sn.vatPct)+'%<br>';
+  }else if(sn.vatPct){
+    h+='НДС '+tonum(sn.vatPct)+'%<br>';
+  }
+  h+='<span style="font-size:15px;font-weight:800">Итого с НДС: '+fmtMoney(sn.amount)+'</span></div>';
+  return h;
+}
+function priceApprovalHtml(req,role){
+  if(req.stage!=='accepted')return '';
+  const st=priceApprovalState(req);
+  const pa=req.priceApproval;
+  const isDirector=role==='commercial_director'||role==='admin';
+  const canSend=role==='commercial'||role==='admin';
+  let h='<div class="card-block" style="padding:14px;margin-top:14px;background:var(--surface-2)">'
+    +'<div style="font-weight:700;font-size:13px;margin-bottom:8px">Согласование цены коммерческим директором</div>';
+  const sendForm=function(label){
+    return '<div class="field" style="margin-top:10px"><label>Комментарий директору (необязательно)</label><textarea id="pa-comment" placeholder="Пояснение к цене"></textarea></div>'
+      +'<div class="form-actions" style="justify-content:flex-start;margin-top:8px"><button type="button" class="btn btn-primary btn-sm" onclick="actionSendForApproval(\''+req.id+'\')">'+label+'</button></div>';
+  };
+  if(st.key==='none'){
+    h+='<div style="font-size:12.5px;color:var(--muted)">Цена ещё не согласована. Сформировать КП (Word) можно только после согласования.</div>';
+    if(canSend)h+=sendForm('Отправить на согласование');
+  }else{
+    if(st.key==='approved'&&!st.stale){
+      h+='<div class="hint-box" style="background:#dcfce7;border-color:#86efac;color:#14532d"><b>✓ Цена согласована: '+fmtMoney(pa.snapshot.amount)+' (с НДС)</b><br>'
+        +escape(pa.decidedBy)+' · '+fmtDate(pa.decidedAt)+(pa.directorComment?'<br>Комментарий: '+escape(pa.directorComment):'')+'</div>';
+      h+='<div style="margin-top:8px">'+priceSnapshotHtml(pa.snapshot)+'</div>';
+    }else if(st.key==='approved'&&st.stale){
+      h+='<div class="note-box"><b>Цена изменилась после согласования</b> (согласовано '+fmtMoney(pa.snapshot.amount)+', сейчас '+fmtMoney(kpPriceNow(req).amount)+'). Нужно согласовать заново.</div>';
+      if(canSend)h+=sendForm('Отправить на согласование заново');
+    }else if(st.key==='pending'){
+      h+='<div class="hint-box"><b>Ожидает решения директора</b> · отправил(а) '+escape(pa.requestedBy)+', '+fmtDate(pa.requestedAt)+(pa.comment?'<br>Комментарий: '+escape(pa.comment):'')+'</div>';
+      h+='<div style="margin-top:8px">'+priceSnapshotHtml(pa.snapshot)+'</div>';
+      if(st.stale){
+        h+='<div class="note-box" style="margin-top:8px">Цена в заявке изменилась после отправки (сейчас '+fmtMoney(kpPriceNow(req).amount)+'). Отправьте на согласование заново.</div>';
+        if(canSend)h+=sendForm('Отправить заново');
+      }else if(isDirector){
+        h+='<div class="field" style="margin-top:10px"><label>Комментарий (обязателен при возврате на доработку)</label><textarea id="pa-dir-comment" placeholder="Что нужно изменить в цене"></textarea></div>'
+          +'<div class="form-actions" style="justify-content:flex-start;margin-top:8px">'
+            +'<button type="button" class="btn btn-danger btn-sm" onclick="actionPriceDecision(\''+req.id+'\',\'returned\')">↩ Вернуть на доработку</button>'
+            +'<button type="button" class="btn btn-success btn-sm" onclick="actionPriceDecision(\''+req.id+'\',\'approved\')">✓ Согласовать</button>'
+          +'</div>';
+      }
+    }else if(st.key==='returned'){
+      h+='<div class="note-box"><b>Возвращено на доработку</b> · '+escape(pa.decidedBy)+', '+fmtDate(pa.decidedAt)+'<br>'+escape(pa.directorComment||'')+'</div>';
+      if(canSend)h+=sendForm('Отправить на согласование заново');
+    }
+    if(pa.log&&pa.log.length){
+      h+='<details style="margin-top:10px"><summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--muted)">Журнал согласования ('+pa.log.length+')</summary><div style="margin-top:6px">'
+        +pa.log.slice().reverse().map(function(e){
+          const lbl=e.action==='approved'?'согласовал(а)':e.action==='returned'?'вернул(а) на доработку':'отправил(а) на согласование';
+          return '<div class="history-item"><span class="h-time">'+fmtDate(e.at)+'</span><span>'+escape(e.by)+' — '+lbl+' · '+fmtMoney(e.amount)+(e.comment?': '+escape(e.comment):'')+'</span></div>';
+        }).join('')
+      +'</div></details>';
+    }
+  }
+  h+='</div>';
+  return h;
+}
+function actionSendForApproval(id){
+  const req=DB.requests[id]; if(!req)return;
+  const p=kpPriceNow(req,true);
+  if(!(p.amount>0)){alert('Сначала укажите итоговую сумму КП');return;}
+  const comment=(byId('pa-comment')&&byId('pa-comment').value.trim())||'';
+  if(p.auto){
+    req.kpMarginPct=p.profitPct;
+    if(byId('kp-vat'))req.kpVatPct=byId('kp-vat').value.trim();
+  }else{
+    req.finalAmount=p.amount;
+    if(byId('kp-vat'))req.kpVatPct=byId('kp-vat').value.trim();
+  }
+  const pa=req.priceApproval||{log:[]};
+  pa.status='pending'; pa.snapshot=p;
+  pa.requestedBy=currentUser.name; pa.requestedAt=nowIso(); pa.comment=comment;
+  pa.decidedBy=null; pa.decidedAt=null; pa.directorComment='';
+  pa.log=pa.log||[];
+  pa.log.push({at:nowIso(),by:currentUser.name,action:'sent',amount:p.amount,comment});
+  req.priceApproval=pa;
+  pushHistory(req,'Цена отправлена на согласование коммерческому директору: '+fmtMoney(p.amount));
+  pushRequest(id); openDetail(id); switchDetailTab('kp');
+}
+function actionPriceDecision(id,result){
+  const req=DB.requests[id]; if(!req)return;
+  const pa=req.priceApproval; if(!pa||pa.status!=='pending')return;
+  const comment=(byId('pa-dir-comment')&&byId('pa-dir-comment').value.trim())||'';
+  if(result==='returned'&&!comment){alert('Укажите, что нужно доработать');return;}
+  pa.status=result; pa.decidedBy=currentUser.name; pa.decidedAt=nowIso(); pa.directorComment=comment;
+  pa.log.push({at:nowIso(),by:currentUser.name,action:result,amount:pa.snapshot.amount,comment});
+  pushHistory(req,result==='approved'?'Цена согласована коммерческим директором: '+fmtMoney(pa.snapshot.amount):'Цена возвращена на доработку директором: '+comment);
+  pushRequest(id); openDetail(id); switchDetailTab('kp');
+}
+
 /* ========================= ХОД ПЕРЕГОВОРОВ С ЗАКАЗЧИКОМ ========================= */
 function addCustomerLogEntry(id){
   const req=DB.requests[id]; if(!req)return;
@@ -1656,13 +1793,10 @@ function actionInitialControlReject(id){
 }
 function actionInitialControlSend(id){
   const req=DB.requests[id]; if(!req)return;
-  const keys=assessorKeys();
-  const chosen=keys.filter(s=>byId('ic-'+s)&&byId('ic-'+s).checked);
-  if(!chosen.length){alert('Выберите хотя бы одного исполнителя (производственный отдел и/или подразделение)');return;}
   req.stage='subdivisions';
-  req.involvedSubs=chosen;
-  req.subs=Object.fromEntries(keys.map(s=>[s,{status:chosen.includes(s)?'waiting':'not_involved'}]));
-  pushHistory(req,'Первичный контроль пройден, отправлено в: '+chosen.map(subLabel).join(', '));
+  req.involvedSubs=['production'];
+  req.subs={production:{status:'waiting'}};
+  pushHistory(req,'Первичный контроль пройден, заявка взята в проработку производственным отделом');
   pushRequest(id); openDetail(id);
 }
 let pendingClarFiles={};
@@ -1728,7 +1862,7 @@ function actionDecision(id,result){
   const req=DB.requests[id]; if(!req)return;
   const involved=req.involvedSubs&&req.involvedSubs.length?req.involvedSubs:Object.keys(req.subs||{});
   if(result==='rework'){
-    const chosen=involved.filter(s=>byId('rw-'+s)&&byId('rw-'+s).checked);
+    const chosen=involved.length===1?involved.slice():involved.filter(s=>byId('rw-'+s)&&byId('rw-'+s).checked);
     if(!chosen.length){alert('Отметьте хотя бы одно подразделение для переработки');return;}
     chosen.forEach(s=>req.subs[s]={status:'waiting'});
     req.stage='subdivisions';
@@ -1764,9 +1898,180 @@ function saveDetailComment(id){
   const el=byId('detail-comment'); if(!el)return;
   const comment=el.value.trim();
   if(comment===(req.comment||''))return;
+  req.commentLog=req.commentLog||[];
+  if(!req.commentLog.length&&req.comment)req.commentLog.push({at:req.createdAt,by:req.createdBy,text:req.comment,legacy:true});
+  req.commentLog.push({at:nowIso(),by:currentUser.name,text:comment});
   req.comment=comment;
-  pushHistory(req,'Изменён комментарий к заявке');
+  pushHistory(req,comment?'Изменён комментарий к заявке':'Комментарий к заявке очищен');
   pushRequest(id); openDetail(id);
+}
+
+/* ========================= ЗАПРОСЫ НА РАСЧЁТ (учёт отправки/ответа) ========================= */
+let crDraftSections=[];
+let crEditId=null;
+function fmtDuration(ms){
+  if(!(ms>0))return '0 мин';
+  const m=Math.floor(ms/60000), d=Math.floor(m/1440), h=Math.floor((m%1440)/60), mm=m%60;
+  if(d>0)return d+' дн. '+h+' ч';
+  if(h>0)return h+' ч '+mm+' мин';
+  return mm+' мин';
+}
+function toLocalInput(iso){
+  const d=iso?new Date(iso):new Date();
+  const p=function(n){return String(n).padStart(2,'0');};
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes());
+}
+function fromLocalInput(v){return v?new Date(v).toISOString():null;}
+function calcWaitingCount(req){return (req.calcRequests||[]).filter(function(c){return !c.answeredAt;}).length;}
+function crCanEdit(req){
+  const role=currentUser.role;
+  return (role==='production'||role==='admin')&&(req.stage==='subdivisions'||req.stage==='decision');
+}
+function crReopen(id){openDetail(id);switchDetailTab('performers');}
+function crSectionSelectHtml(){
+  const used=crDraftSections.map(function(x){return x.id;});
+  const list=(DB.sections||[]).filter(function(s){return !s._del&&!used.includes(s.id);});
+  const keys=Object.keys(STAGE_NAME_BY_KEY);
+  list.forEach(function(s){const k=s.stage||'pd'; if(!keys.includes(k))keys.push(k);});
+  let h='<option value="">+ добавить раздел…</option>';
+  keys.forEach(function(k){
+    const items=list.filter(function(s){return (s.stage||'pd')===k;});
+    if(!items.length)return;
+    h+='<optgroup label="'+escape(STAGE_NAME_BY_KEY[k]||k)+'">'+items.map(function(s){return '<option value="'+s.id+'">'+escape(s.name.length>90?s.name.slice(0,90)+'…':s.name)+'</option>';}).join('')+'</optgroup>';
+  });
+  return h;
+}
+function crRenderDraft(){
+  const chips=byId('cr-draft-chips'); if(!chips)return;
+  chips.innerHTML=crDraftSections.map(function(x,i){
+    return '<span class="attach-chip" style="max-width:100%"><span class="ac-name" style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escape(x.name)+'">'+escape(x.name)+'</span><button type="button" class="ac-remove" onclick="crDraftRemove('+i+')">×</button></span>';
+  }).join('');
+  const sel=byId('cr-sec-add'); if(sel)sel.innerHTML=crSectionSelectHtml();
+}
+function crDraftAdd(){
+  const sel=byId('cr-sec-add'); if(!sel||!sel.value)return;
+  const s=(DB.sections||[]).find(function(x){return x.id===sel.value;}); if(!s)return;
+  crDraftSections.push({id:s.id,name:s.name});
+  crRenderDraft();
+}
+function crDraftRemove(i){crDraftSections.splice(i,1);crRenderDraft();}
+function crToggleNewExec(){
+  const sel=byId('cr-exec'), wrap=byId('cr-exec-new-wrap'); if(!sel||!wrap)return;
+  wrap.style.display=sel.value==='__new__'?'block':'none';
+}
+function calcRequestsHtml(req){
+  const list=req.calcRequests||[];
+  const editable=crCanEdit(req);
+  if(!editable&&!list.length)return '';
+  let h='<div class="divider"></div><h3 style="font-size:14px;font-weight:800;margin-bottom:6px">Запросы на расчёт</h3>';
+  if(list.length){
+    const waiting=list.filter(function(c){return !c.answeredAt;}).length;
+    const answered=list.filter(function(c){return c.answeredAt&&c.sentAt;});
+    const avg=answered.length?answered.reduce(function(sum,c){return sum+(new Date(c.answeredAt)-new Date(c.sentAt));},0)/answered.length:0;
+    h+='<div style="font-size:12px;color:var(--muted);margin-bottom:6px">Отправлено: <b>'+list.length+'</b> · ждём ответ: <b style="color:'+(waiting?'#b45309':'inherit')+'">'+waiting+'</b> · получено: <b>'+answered.length+'</b>'+(answered.length?' · среднее ожидание: <b>'+fmtDuration(avg)+'</b>':'')+'</div>';
+  }
+  list.forEach(function(c){
+    const waitMs=(c.answeredAt?new Date(c.answeredAt):new Date())-new Date(c.sentAt);
+    const chips=(c.sectionNames||[]).map(function(n){return '<span class="attach-chip" style="max-width:100%"><span class="ac-name" style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escape(n)+'">'+escape(n)+'</span></span>';}).join('');
+    h+='<div style="border:1px solid var(--border);border-radius:9px;padding:9px 11px;margin-top:6px;font-size:12.5px">'
+      +'<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline">'
+        +'<div><b>'+escape(c.executor)+'</b></div>'
+        +(c.answeredAt?'<span class="badge badge-done">Ответ получен</span>':'<span class="badge badge-new" style="background:#fef3c7;color:#92400e">Ждём ответ</span>')
+      +'</div>'
+      +(chips?'<div class="attach-list" style="margin-top:6px">'+chips+'</div>':'')
+      +(c.note?'<div style="margin-top:4px;color:var(--ink)">'+escape(c.note)+'</div>':'');
+    if(crEditId===c.id&&editable){
+      h+='<div class="form-grid" style="margin-top:8px">'
+        +'<div class="field"><label>Отправлено</label><input type="datetime-local" id="cr-e-sent-'+c.id+'" value="'+toLocalInput(c.sentAt)+'"></div>'
+        +'<div class="field"><label>Ответ получен (пусто — ещё ждём)</label><input type="datetime-local" id="cr-e-ans-'+c.id+'" value="'+(c.answeredAt?toLocalInput(c.answeredAt):'')+'"></div>'
+      +'</div>'
+      +'<div class="form-actions" style="justify-content:flex-start;margin-top:6px"><button type="button" class="btn btn-sm btn-primary" onclick="crSaveDates(\''+req.id+'\',\''+c.id+'\')">Сохранить</button><button type="button" class="btn btn-sm" onclick="crEditId=null;crReopen(\''+req.id+'\')">Отмена</button></div>';
+    }else{
+      h+='<div style="margin-top:6px;font-size:11.5px;color:var(--muted)">Отправлено: '+fmtDate(c.sentAt)+(c.answeredAt?' · ответ: '+fmtDate(c.answeredAt)+' · ждали <b>'+fmtDuration(waitMs)+'</b>':' · ждём уже <b style="color:#b45309">'+fmtDuration(waitMs)+'</b>')+'</div>';
+      if(editable){
+        h+='<div class="form-actions" style="justify-content:flex-start;margin-top:6px">'
+          +(c.answeredAt?'':'<button type="button" class="btn btn-sm btn-success" onclick="crAnswered(\''+req.id+'\',\''+c.id+'\')">Ответ получен</button>')
+          +'<button type="button" class="btn btn-sm" onclick="crEditId=\''+c.id+'\';crReopen(\''+req.id+'\')">Изменить даты</button>'
+          +'<button type="button" class="btn btn-sm btn-danger" onclick="crDelete(\''+req.id+'\',\''+c.id+'\')">Удалить</button>'
+        +'</div>';
+      }
+    }
+    h+='</div>';
+  });
+  if(editable){
+    const units=(DB.units||[]).filter(function(u){return !u._del;});
+    h+='<details style="margin-top:8px"'+(list.length?'':' open')+'><summary style="cursor:pointer;font-size:12.5px;font-weight:700;color:var(--accent-ink)">＋ Новый запрос на расчёт</summary>'
+      +'<div class="card-block" style="padding:12px;margin-top:6px">'
+        +'<div class="form-grid">'
+          +'<div class="field"><label>Исполнитель</label><select id="cr-exec" onchange="crToggleNewExec()"><option value="">— выберите —</option>'
+            +units.map(function(u){return '<option value="'+escape(u.name)+'">'+escape(u.name)+'</option>';}).join('')
+            +'<option value="__new__">➕ Добавить нового исполнителя…</option></select>'
+            +'<div id="cr-exec-new-wrap" style="display:none;margin-top:6px"><input id="cr-exec-new" placeholder="ФИО или название организации"></div></div>'
+          +'<div class="field"><label>Отправлено</label><input type="datetime-local" id="cr-sent" value="'+toLocalInput()+'"></div>'
+          +'<div class="field span2"><label>Разделы, по которым запрошен расчёт</label>'
+            +'<select id="cr-sec-add" onchange="crDraftAdd()">'+crSectionSelectHtml()+'</select>'
+            +'<div id="cr-draft-chips" class="attach-list"></div></div>'
+          +'<div class="field span2"><label>Что запросили (необязательно)</label><input id="cr-note" placeholder="напр. стоимость и срок по обследованию кровли"></div>'
+        +'</div>'
+        +'<div class="form-actions" style="justify-content:flex-start;margin-top:8px"><button type="button" class="btn btn-primary btn-sm" onclick="crSubmit(\''+req.id+'\')">Запрос отправлен</button></div>'
+      +'</div></details>';
+  }
+  return h;
+}
+function crSubmit(id){
+  const req=DB.requests[id]; if(!req)return;
+  let executor=byId('cr-exec').value;
+  if(executor==='__new__'){
+    executor=(byId('cr-exec-new').value||'').trim();
+    if(executor){
+      DB.units=DB.units||[];
+      if(!DB.units.some(function(u){return !u._del&&u.name.toLowerCase()===executor.toLowerCase();})){
+        DB.units.push({id:uid('unit'),name:executor});
+        pushUnits();
+      }
+    }
+  }
+  if(!executor){alert('Выберите исполнителя или добавьте нового');return;}
+  const sentAt=fromLocalInput(byId('cr-sent').value)||nowIso();
+  const entry={
+    id:uid('cr'),executor,
+    sectionIds:crDraftSections.map(function(x){return x.id;}),
+    sectionNames:crDraftSections.map(function(x){return x.name;}),
+    note:(byId('cr-note').value||'').trim(),
+    sentAt,answeredAt:null,createdBy:currentUser.name
+  };
+  req.calcRequests=req.calcRequests||[];
+  req.calcRequests.push(entry);
+  crDraftSections=[];
+  pushHistory(req,'Запрос на расчёт отправлен: '+executor+(entry.sectionNames.length?' ('+entry.sectionNames.length+' разд.)':''));
+  pushRequest(id); crReopen(id);
+}
+function crAnswered(id,crid){
+  const req=DB.requests[id]; if(!req)return;
+  const c=(req.calcRequests||[]).find(function(x){return x.id===crid;}); if(!c)return;
+  c.answeredAt=nowIso();
+  pushHistory(req,'Ответ по расчёту получен: '+c.executor+' (ждали '+fmtDuration(new Date(c.answeredAt)-new Date(c.sentAt))+')');
+  pushRequest(id); crReopen(id);
+}
+function crSaveDates(id,crid){
+  const req=DB.requests[id]; if(!req)return;
+  const c=(req.calcRequests||[]).find(function(x){return x.id===crid;}); if(!c)return;
+  const sent=fromLocalInput(byId('cr-e-sent-'+crid).value);
+  const ans=fromLocalInput(byId('cr-e-ans-'+crid).value);
+  if(!sent){alert('Укажите, когда отправлено');return;}
+  if(ans&&new Date(ans)<new Date(sent)){alert('Ответ не может прийти раньше отправки');return;}
+  c.sentAt=sent; c.answeredAt=ans;
+  crEditId=null;
+  pushHistory(req,'Скорректированы даты запроса на расчёт: '+c.executor);
+  pushRequest(id); crReopen(id);
+}
+function crDelete(id,crid){
+  const req=DB.requests[id]; if(!req)return;
+  const c=(req.calcRequests||[]).find(function(x){return x.id===crid;}); if(!c)return;
+  if(!confirm('Удалить запрос на расчёт («'+c.executor+'»)?'))return;
+  req.calcRequests=req.calcRequests.filter(function(x){return x.id!==crid;});
+  pushHistory(req,'Удалён запрос на расчёт: '+c.executor);
+  pushRequest(id); crReopen(id);
 }
 
 /* ========================= SUBDIVISION ACTIONS ========================= */
@@ -1852,6 +2157,7 @@ function closeModal(id){byId(id).classList.remove('open');}
 let currentDetailId=null;
 function openDetail(id){
   const req=DB.requests[id]; if(!req)return;
+  if(currentDetailId!==id){crDraftSections=[];crEditId=null;}
   currentDetailId=id;
   const role=currentUser.role;
   let html='';
@@ -1886,8 +2192,17 @@ function openDetail(id){
     +'<textarea id="detail-comment" placeholder="Любые заметки по заявке">'+escape(req.comment||'')+'</textarea>'
     +'<div class="form-actions" style="justify-content:flex-start;margin-top:6px"><button type="button" class="btn btn-sm" onclick="saveDetailComment(\''+id+'\')">Сохранить комментарий</button></div>'
   +'</div>';
+  if(req.commentLog&&req.commentLog.length){
+    html+='<details style="margin-top:8px"><summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--muted)">История комментария ('+req.commentLog.length+')</summary><div style="margin-top:6px">'
+      +req.commentLog.slice().reverse().map(function(e){
+        return '<div class="history-item" style="display:block"><div><span class="h-time">'+fmtDate(e.at)+'</span> <b>'+escape(e.by)+'</b>'+(e.legacy?' <span style="color:var(--muted)">(текст до введения журнала)</span>':'')+'</div>'
+          +'<div style="margin-top:2px;white-space:pre-wrap;font-size:12.5px">'+(e.text?escape(e.text):'<i style="color:var(--muted)">комментарий очищен</i>')+'</div></div>';
+      }).join('')
+    +'</div></details>';
+  }
 
   html+='<!--TAB:performers-->';
+  html+=calcRequestsHtml(req);
   // Subdivisions block
   if(req.stage==='subdivisions'||req.stage==='decision'||req.stage==='accepted'||req.stage==='rejected'){
     html+='<div class="divider"></div><h3 style="font-size:14px;font-weight:800;margin-bottom:6px">Исполнители</h3>';
@@ -2042,8 +2357,15 @@ function openDetail(id){
     if(kpAgg.costFinal<=0){
       html+='<div class="field" style="margin-top:14px"><label>Итоговая сумма КП, ₽</label><input id="kp-final-amount" type="number" min="0" step="1" value="'+escape(tonum(req.finalAmount||req.amount)||'')+'"></div>';
     }
+    html+=priceApprovalHtml(req,role);
+    const kpApprovalSt=priceApprovalState(req);
+    const kpApprovedOk=kpApprovalSt.key==='approved'&&!kpApprovalSt.stale;
     html+='<div class="form-actions" style="justify-content:flex-start;margin-top:10px">'
-      +'<button class="btn btn-primary" id="kp-generate-btn" onclick="generateKp(\''+id+'\')">'+(req.kpGenerated?'Сформировать заново (Word)':'Сформировать КП (Word)')+'</button></div>';
+      +'<button class="btn btn-primary" id="kp-generate-btn"'+(kpApprovedOk?'':' disabled title="Сначала нужно согласование цены коммерческим директором"')+' onclick="generateKp(\''+id+'\')">'+(req.kpGenerated?'Сформировать заново (Word)':'Сформировать КП (Word)')+'</button>'
+      +(kpApprovedOk?'':'<span style="font-size:11.5px;color:var(--muted);align-self:center">Доступно после согласования цены директором</span>')
+      +'</div>';
+  }else if(role==='commercial_director'&&req.stage==='accepted'){
+    html+='<div class="divider"></div>'+priceApprovalHtml(req,role);
   }
 
   // Customer follow-up log — visible to everyone once КП has been sent, editable by КО/admin
@@ -2075,17 +2397,11 @@ function openDetail(id){
   // ===== ROLE ACTIONS =====
   // Production: initial control
   if((role==='production'||role==='admin')&&req.stage==='new'){
-    html+='<div class="divider"></div><h3>Первичный контроль</h3><div class="hint-box">Идёт ли заявка в проработку? Если да — выберите, кто оценивает объём работ: сам производственный отдел и/или подразделения.</div>';
-    html+='<div class="field" style="margin:12px 0 0">';
-    assessorKeys().forEach(s=>{
-      const lbl=s==='production'?'Производственный отдел (рассчитать самостоятельно)':subLabel(s);
-      html+='<label style="display:flex;align-items:center;gap:5px;margin:4px 0;font-size:12.5px"><input type="checkbox" id="ic-'+s+'"> '+lbl+'</label>';
-    });
-    html+='</div>';
+    html+='<div class="divider"></div><h3>Первичный контроль</h3><div class="hint-box">Идёт ли заявка в проработку? Если да — производственный отдел считает её самостоятельно; запросы на расчёт у исполнителей фиксируются на вкладке «Исполнители».</div>';
     html+='<div class="field" style="margin-top:10px"><label>Комментарий (обязателен при возврате в КО)</label><textarea id="ic-comment" placeholder="Почему заявка возвращается / чего не хватает"></textarea></div>';
     html+='<div class="form-actions" style="justify-content:flex-start;margin-top:12px">'
       +'<button class="btn btn-danger" onclick="actionInitialControlReject(\''+id+'\')">Нет — вернуть в КО</button>'
-      +'<button class="btn btn-success" onclick="actionInitialControlSend(\''+id+'\')">Да — отправить выбранным</button>'
+      +'<button class="btn btn-success" onclick="actionInitialControlSend(\''+id+'\')">Да — взять в проработку</button>'
       +'</div>';
   }
   // Production: resend to a subdivision that flagged insufficient
@@ -2126,9 +2442,11 @@ function openDetail(id){
   if((role==='production'||role==='admin')&&req.stage==='decision'){
     html+='<div class="divider"></div><h3>Решение</h3>';
     const involvedForDecision=req.involvedSubs&&req.involvedSubs.length?req.involvedSubs:Object.keys(req.subs||{});
-    html+='<div class="field" style="margin-bottom:10px"><label>Переработка — выбрать подразделения (если требуется)</label>';
-    involvedForDecision.forEach(s=>{html+='<label style="display:inline-flex;align-items:center;gap:5px;margin:4px 10px 0 0;font-size:12.5px"><input type="checkbox" id="rw-'+s+'"> '+subLabel(s)+'</label>';});
-    html+='</div>';
+    if(involvedForDecision.length>1){
+      html+='<div class="field" style="margin-bottom:10px"><label>Переработка — выбрать подразделения (если требуется)</label>';
+      involvedForDecision.forEach(s=>{html+='<label style="display:inline-flex;align-items:center;gap:5px;margin:4px 10px 0 0;font-size:12.5px"><input type="checkbox" id="rw-'+s+'"> '+subLabel(s)+'</label>';});
+      html+='</div>';
+    }
     html+='<div class="field"><label>Обоснование отказа (если отказ)</label><textarea id="dec-reject-reason" placeholder="Причина отказа для коммерческого отдела"></textarea></div>';
     html+='<div class="form-actions" style="justify-content:flex-start;margin-top:14px">'
       +'<button class="btn" onclick="actionDecision(\''+id+'\',\'rework\')">↩ На переработку</button>'
@@ -2229,6 +2547,7 @@ function openDetail(id){
   openModal('modal-detail');
   if(byId('kp-calc-result'))updateKpCalc();
   if(byId('sub-sec-total-'+role))updateSectionsCalc(role);
+  if(byId('cr-draft-chips'))crRenderDraft();
 }
 const DETAIL_TAB_DEFS=[['overview','Обзор'],['performers','Исполнители'],['kp','КП'],['history','История']];
 function assembleDetailTabs(html){
@@ -2461,7 +2780,7 @@ function buildSectionsPickerHtml(req,role,region){
     +'</div>';
   };
   const list=(DB.sections||[]).filter(s=>!s._del);
-  const stageKeys=[];
+  const stageKeys=Object.keys(STAGE_NAME_BY_KEY);
   list.forEach(function(s){const k=s.stage||'pd'; if(!stageKeys.includes(k))stageKeys.push(k);});
   const stageTabPrefix='sec-stagetab-'+role+'-';
   html+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">'
@@ -2476,6 +2795,7 @@ function buildSectionsPickerHtml(req,role,region){
   stageKeys.forEach(function(stageKey,stageIdx){
     const stageItems=list.filter(s=>(s.stage||'pd')===stageKey);
     html+='<div id="'+stageTabPrefix+stageIdx+'" style="display:'+(stageIdx===0?'':'none')+';margin-top:10px">';
+    if(!stageItems.length)html+='<div style="font-size:12px;color:var(--muted)">В этой стадии пока нет разделов — их можно добавить в «Настройках» → «Разделы работ».</div>';
     const groups=[];
     stageItems.forEach(function(s){const g=s.group||''; if(!groups.includes(g))groups.push(g);});
     groups.forEach(function(g,groupIdx){
@@ -2750,13 +3070,15 @@ function toggleSectionPriceTypeUI(prefix){
 }
 let editingSectionId=null;
 function renderSections(){
+  const stSel=byId('scf-stage');
+  if(stSel){const prevStage=stSel.value; stSel.innerHTML=stageOptionsHtml(prevStage||'pd');}
   const list=(DB.sections||[]).filter(s=>!s._del);
   byId('sections-table-body').innerHTML=list.length?list.map(s=>{
     if(s.id===editingSectionId){
       const pt=sectionPriceType(s);
       return '<tr>'
         +'<td><input id="sce-name-'+s.id+'" value="'+escape(s.name)+'" style="width:100%"></td>'
-        +'<td><select id="sce-stage-'+s.id+'"><option value="pd"'+((s.stage||'pd')==='pd'?' selected':'')+'>ПД</option><option value="rd"'+(s.stage==='rd'?' selected':'')+'>РД</option></select>'
+        +'<td><select id="sce-stage-'+s.id+'">'+stageOptionsHtml(s.stage||'pd')+'</select>'
           +'<input id="sce-group-'+s.id+'" placeholder="группа (РД)" value="'+escape(s.group||'')+'" style="width:100%;margin-top:4px"></td>'
         +'<td colspan="2">'
           +'<div style="display:flex;gap:10px;margin-bottom:6px">'
