@@ -202,10 +202,9 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
   <div class="user-box">
     <div class="name" id="user-box-name"></div>
     <div class="role" id="user-box-role"></div>
-    <button class="logout-btn" onclick="changeOwnPassword()">Сменить пароль</button>
-    <button class="logout-btn" style="margin-left:10px" onclick="logout()">Выйти</button>
+    <button class="logout-btn" onclick="logout()">Выйти</button>
   </div>
-  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-10-07.4</div>
+  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-10-07.5</div>
 </div>
 
 <div id="main" style="display:none">
@@ -3345,19 +3344,6 @@ function resetUserPassword(id){
   u.password=pass.trim();
   pushUsers();
   alert('Пароль изменён. Сообщите его сотруднику лично.');
-}
-function changeOwnPassword(){
-  const old=prompt('Введите текущий пароль:');
-  if(old===null)return;
-  if(old!==currentUser.password){alert('Текущий пароль неверный');return;}
-  const pass=prompt('Введите новый пароль (минимум 4 символа):');
-  if(pass===null)return;
-  if(pass.trim().length<4){alert('Пароль слишком короткий — минимум 4 символа');return;}
-  const u=DB.users.find(x=>x.id===currentUser.id); if(!u)return;
-  u.password=pass.trim();
-  currentUser=u;
-  pushUsers();
-  alert('Пароль изменён');
 }
 function deleteUser(id){
   if(id===currentUser.id){alert('Нельзя удалить свою учётную запись');return;}
