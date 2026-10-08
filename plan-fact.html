@@ -279,6 +279,32 @@ var planning={};
 try{planning=JSON.parse(localStorage.getItem('vpk_plan')||'{}');}catch(e){}
 function savePlan(){try{localStorage.setItem('vpk_plan',JSON.stringify(planning));}catch(e){}}
 
+// Auto-planning from contracts registry (Supabase vpk_contracts_v3)
+var autoPlanning={};
+function buildAutoPlanning(contracts){
+  var ap={};
+  contracts.forEach(function(c){
+    if(EXCLUDED.indexOf(c.sign_status||'')>=0) return;
+    var obj=(c.object||'').trim();
+    if(!obj) return;
+    (c.payments||[]).forEach(function(p){
+      var w=String(p.week||'').trim();
+      if(!w) return;
+      if(/^\d$/.test(w)) w='0'+w; // pad single-digit weeks
+      var amt=parseFloat(p.pay_amount)||0;
+      if(amt<=0) return;
+      if(!ap[obj]) ap[obj]={};
+      ap[obj][w]=(ap[obj][w]||0)+amt;
+    });
+  });
+  return ap;
+}
+// helper: effective plan value for a future cell (auto-plan or manual)
+function planVal(objName,week){
+  return (autoPlanning[objName]&&autoPlanning[objName][week])||
+         (planning[objName]&&planning[objName][week])||0;
+}
+
 // no collapse state — matrix is always fully expanded like Excel
 
 // Object priority — 'exp' | 'urg' | 'nor' (default)
@@ -442,7 +468,7 @@ function renderMatrix(){
   function monthTotals(d,m){
     var mP=0,mF=0;
     m.wks.forEach(function(w){
-      if(m.future){mP+=((planning[d.n]&&planning[d.n][w])||0);}
+      if(m.future){mP+=planVal(d.n,w);}
       else{var wd=d.w[w];if(wd){mP+=wd[0];mF+=wd[1];}}
     });
     return{p:mP,f:mF};
@@ -530,8 +556,9 @@ function renderMatrix(){
           var isL=wi===m.wks.length-1;
           var bdr=isL?'border-right:2px solid var(--bdr)':'';
           if(isFut){
-            var pVal=(planning[d.n]&&planning[d.n][w])||0;
-            rows+='<td style="'+CS+FC+';font-weight:'+(pVal?'600':'400')+';color:'+(pVal?'#1d4ed8':'var(--tx3)')+'">'+(pVal?n(pVal):'—')+'</td>';
+            var pVal=planVal(d.n,w);
+            var isAuto=!!(autoPlanning[d.n]&&autoPlanning[d.n][w]);
+            rows+='<td title="'+(isAuto?'📌 Из реестра договоров':'Ручной план')+'" style="'+CS+FC+';font-weight:'+(pVal?'600':'400')+';color:'+(pVal?'#1d4ed8':'var(--tx3)')+'">'+(pVal?n(pVal):'—')+'</td>';
             rows+='<td style="'+CS+'background:rgba(37,99,235,.05);color:var(--tx3)">—</td>';
             rows+='<td style="'+CS+'background:rgba(37,99,235,.04);color:var(--tx3);'+bdr+'">—</td>';
           } else {
@@ -574,7 +601,7 @@ function renderMatrix(){
         var bdr=isL?'border-right:2px solid var(--bdr)':'';
         var CS2='font-size:10px;text-align:right;padding:4px 6px;';
         if(isFut){
-          var tp=0;DATA.forEach(function(d){tp+=((planning[d.n]&&planning[d.n][w])||0);});
+          var tp=0;DATA.forEach(function(d){tp+=planVal(d.n,w);});
           rows+='<td style="'+CS2+FC+'">'+(tp?n(tp):'—')+'</td>';
           rows+='<td style="'+CS2+'background:rgba(37,99,235,.05)">—</td>';
           rows+='<td style="'+CS2+'background:rgba(37,99,235,.04);'+bdr+'">—</td>';
@@ -868,7 +895,10 @@ fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.vpk_contracts_v3',{
   headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}
 }).then(function(r){return r.json();}).then(function(data){
   if(data&&data[0]&&data[0].value){
-    ctrMap=buildCtrMap(JSON.parse(data[0].value));
+    var contracts=JSON.parse(data[0].value);
+    ctrMap=buildCtrMap(contracts);
+    autoPlanning=buildAutoPlanning(contracts);
+    renderPlanFact(); // refresh matrix with auto-plan values
   }
   renderPriorityStep();
   if(distStep===2) renderDist();
