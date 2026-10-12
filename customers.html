@@ -49,6 +49,9 @@ tr:hover td{background:#f8fafc}
 tr:hover .col-num{background:#f8fafc}
 thead th.col-num{background:var(--navy);z-index:11}
 
+/* Spacer row after group separator so first data row is never behind sticky thead */
+.group-spacer td{height:30px;padding:0;border:none;background:var(--surf)}
+
 .badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:600;white-space:nowrap}
 .b-signed{background:var(--grn-bg);color:var(--grn)}
 .b-nosign{background:var(--red-bg);color:var(--red)}
@@ -411,6 +414,7 @@ function render(){
        ' дог'+(rows.length===1?'овор':'оворов')+
        (custSum?'<span style="float:right;color:#1d4ed8;font-weight:700">'+Math.round(custSum).toLocaleString('ru-RU')+' ₽</span>':'')+
        '</td></tr>';
+    h+='<tr class="group-spacer"><td colspan="16"></td></tr>';
 
     rows.forEach(function(d){
       var sv=sums[d.id]||'';
