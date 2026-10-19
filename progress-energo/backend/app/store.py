@@ -9,7 +9,7 @@ import threading
 import uuid
 from pathlib import Path
 
-from .seed import build_seed
+from .seed import build_seed, load_local_examples, merge_example
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 DB_FILE = DATA_DIR / "db.json"
@@ -39,6 +39,8 @@ class Store:
                     a["volumes"] = seed_aosr.get(a["id"], {}).get("volumes", [])
                     if a["id"] in seed_aosr:
                         a["source"] = seed_aosr[a["id"]].get("source")
+            for ex in load_local_examples():
+                added += ["example"] if merge_example(self.db, ex) else []
             if added:
                 self.save()
         else:

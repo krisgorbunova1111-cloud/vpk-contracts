@@ -55,9 +55,10 @@ def registry(db, folder) -> list[dict]:
     pids = [r["people"].get(x["id"]) for x in AOSR_ROLES] + r["people"].get("others", [])
     for pid in dict.fromkeys(p for p in pids if p):
         p = person(db, pid)
-        if p:
+        if p and p.get("order_no"):  # без распорядительного документа в реестр не попадает
             f = p["fio"].split()
-            rows.append({"name": f"Приказ от {ru_date(p.get('order_date'))} — {f[0]} {''.join(x[0] + '.' for x in f[1:])}", "no": p.get("order_no") or "—", "sheets": 1, "kind": "order"})
+            kind = (p.get("order_kind") or "приказ").capitalize()
+            rows.append({"name": f"{kind} от {ru_date(p.get('order_date'))} — {f[0]} {''.join(x[0] + '.' for x in f[1:])}", "no": p.get("order_no") or "—", "sheets": 1, "kind": "order"})
     da = folder.get("defect_act")
     if da:
         rows.append({"name": f"Дефектный акт от {ru_date(da['date'])}", "no": da["no"], "sheets": da.get("sheets", 1)})
@@ -72,7 +73,8 @@ def registry(db, folder) -> list[dict]:
     if mats:
         rows.append({"name": "Реестр документов, подтверждающих качество", "no": "б/н", "sheets": 1, "kind": "quality"})
         for m in mats:
-            rows.append({"name": f"Сертификат соответствия до {ru_date(m['cert_until'])} — {m['name']}", "no": m["cert_no"], "sheets": m.get("cert_sheets", 1)})
+            doc_name = f"Сертификат соответствия до {ru_date(m['cert_until'])}" if m.get("cert_until") else "Документ о качестве"
+            rows.append({"name": f"{doc_name} — {m['name']}", "no": m.get("cert_no") or "уточнить", "sheets": m.get("cert_sheets", 1)})
             if m.get("passport"):
                 rows.append({"name": f"Технический паспорт изделия — {m['name']}", "no": "б/н", "sheets": m.get("passport_sheets", 1)})
     for e in folder.get("extra", []) + folder.get("journals", []):
@@ -111,24 +113,33 @@ def check_folder(db, folder) -> list[dict]:
     aosrs = folder_aosr(db, folder["id"])
     if not aosrs:
         add("bad", "В папке нет ни одного АОСР")
-    nos = [a["no"] for a in aosrs]
+    nos = [a["no"] for a in aosrs if a["no"] not in ("", "б/н")]
     for n in {n for n in nos if nos.count(n) > 1}:
         add("bad", f"Повторяется номер АОСР {n}")
+    unnumbered = len(aosrs) - len(nos)
+    if unnumbered:
+        add("warn", f"АОСР без номера: {unnumbered} — присвойте номера по журналу")
     for a in aosrs:
         tag = f"АОСР № {a['no']}"
         if not (a.get("scheme") or {}).get("no"):
             add("bad", f"{tag}: нет исполнительной схемы")
         if a["start"] and a["end"] and a["start"] > a["end"]:
             add("bad", f"{tag}: дата начала позже даты окончания")
-        if a["end"] and a["date"] < a["end"]:
+        if not a["date"]:
+            add("warn", f"{tag}: не указана дата акта")
+        elif a["end"] and a["date"] < a["end"]:
             add("warn", f"{tag}: акт датирован раньше окончания работ")
         if not a["materials"] and "демонтаж" not in a["works"].lower():
             add("warn", f"{tag}: не указаны применённые материалы")
         for mid in a["materials"]:
             m = next((x for x in db["materials"] if x["id"] == mid), None)
-            if m and a["start"] and m["cert_until"] < a["start"]:
+            if m and not m.get("cert_no"):
+                add("warn", f"{tag}: нет реквизитов документа о качестве «{m['name']}»")
+            elif not m or not m.get("cert_until"):
+                continue
+            elif a["start"] and m["cert_until"] < a["start"]:
                 add("bad", f"{tag}: сертификат «{m['name']}» истёк {ru_date(m['cert_until'])} — до начала работ")
-            elif m and a["end"] and m["cert_until"] < a["end"]:
+            elif a["end"] and m["cert_until"] < a["end"]:
                 add("warn", f"{tag}: сертификат «{m['name']}» истёк в период работ ({ru_date(m['cert_until'])})")
     have = {t["name"] for t in folder.get("tests", [])}
     for t in EXPECTED_TESTS.get(folder["section"], []):
@@ -241,7 +252,12 @@ def build_from_defect(db, obj, new_id) -> dict:
     for r in da["rows"]:
         by_section.setdefault(r["section"], []).append(r)
     folders = [f for f in db["id_folders"] if f["object_id"] == obj["id"]]
+    stats["skipped"] = []
     for sec, rows in by_section.items():
+        sec_folders = {x["id"] for x in folders if x["section"] == sec}
+        if any(a["folder_id"] in sec_folders and not a.get("source") for a in db["aosr"]):
+            stats["skipped"].append(sec)  # там уже есть АОСР, введённые вручную, — не задваиваем
+            continue
         what, verb = SECTION_TITLE.get(sec, (sec.lower(), "Монтаж"))
         f = next((x for x in folders if x["section"] == sec), None)
         if not f:

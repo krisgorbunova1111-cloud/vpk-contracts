@@ -28,7 +28,8 @@ export default function DefectAct({ obj, sections, onBuilt, toast }) {
   const build = async () => {
     if (dirty) await save()
     const r = await api.post(`/defect/${obj.id}/build`)
-    toast(`Готово: новых папок ${r.folders_created}, новых АОСР ${r.aosr_created}, обновлено ${r.aosr_updated}`)
+    const skipped = r.skipped?.length ? `. Не тронуты (там АОСР уже введены вручную): ${r.skipped.join(', ')}` : ''
+    toast(`Готово: новых папок ${r.folders_created}, новых АОСР ${r.aosr_created}, обновлено ${r.aosr_updated}${skipped}`)
     onBuilt()
   }
 

@@ -254,7 +254,7 @@ function ScanTab({ obj, toast, onAI, reload }) {
     xhr.upload.onprogress = (e) => setProgress(Math.round((e.loaded / e.total) * 100))
     xhr.onload = () => {
       setProgress(null)
-      if (xhr.status === 200) { toast(`Облако «${file.name}» загружено в систему`); reload() }
+      if (xhr.status === 200) { toast(`Скан «${file.name}» загружен в систему`); reload() }
       else alert(JSON.parse(xhr.responseText).detail)
     }
     xhr.send(fd)
@@ -293,11 +293,11 @@ function ScanTab({ obj, toast, onAI, reload }) {
             ? <div className="btn scan-btn rec" style={{ cursor: 'default' }}>● Идёт сканирование {mm}:{ss}</div>
             : <button className="btn dark scan-btn" onClick={startScan}>▶ Старт сканирования</button>}
           <label className="btn primary scan-btn" style={{ cursor: 'pointer' }}>
-            ⇪ Загрузить облако точек
+            ⇪ Загрузить файл сканирования
             <input type="file" accept=".las,.laz,.e57,.ptx" hidden onChange={(e) => upload(e.target.files[0])} />
           </label>
           {progress !== null && <div className="hint-box">Загрузка: {progress}%</div>}
-          <div className="muted small">Форматы: .las, .laz, .e57, .ptx. Файл сразу уходит в облако системы и встаёт в очередь на векторизацию.</div>
+          <div className="muted small">Форматы: .las, .laz, .e57, .ptx. Файл сразу уходит в систему и встаёт в очередь на обработку (построение обмерного плана).</div>
         </div>
         <div className="card stack">
           <h3 style={{ fontSize: 17 }}>Промпт-сканер (ИИ-помощник)</h3>

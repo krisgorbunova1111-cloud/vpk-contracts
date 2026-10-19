@@ -3,12 +3,14 @@
 Всё, что здесь лежит, — выдуманные примеры, чтобы приложение можно было
 «пощупать». При первом запуске они копируются в data/db.json.
 """
+import json
 from datetime import date, timedelta
+from pathlib import Path
 
 STAGES = [
     {"id": "plan", "name": "Планирование"},
     {"id": "field", "name": "Выезд"},
-    {"id": "cloud", "name": "Облако точек"},
+    {"id": "cloud", "name": "Лазерное сканирование"},
     {"id": "office", "name": "Камералка (ИД)"},
     {"id": "design", "name": "РД и смета"},
     {"id": "print", "name": "Печать и подпись"},
@@ -200,12 +202,45 @@ def build_seed() -> dict:
         m.setdefault("cert_sheets", 1)
         m.setdefault("passport_sheets", 4 if m["passport"] else 0)
 
-    return {
+    db = {
         "specialists": specialists, "objects": objects, "visits": visits, "access": access,
         "materials": materials, "nodes": nodes, "checklists": checklists,
         "lab_tickets": lab_tickets, "pointclouds": pointclouds, "tags": tags, "scan_sessions": [],
         **seed_id(d),
     }
+    for ex in load_local_examples():
+        merge_example(db, ex)
+    return db
+
+
+# ---------------- Реальные примеры заказчика (только на этом компьютере) ----------------
+# Файлы local_examples/*.json содержат реальные организации и ФИО, поэтому лежат вне git.
+LOCAL_EXAMPLES = Path(__file__).parent / "local_examples"
+
+
+def load_local_examples() -> list[dict]:
+    if not LOCAL_EXAMPLES.exists():
+        return []
+    return [json.loads(p.read_text(encoding="utf-8")) for p in sorted(LOCAL_EXAMPLES.glob("*.json"))]
+
+
+def merge_example(db: dict, ex: dict) -> bool:
+    """Добавляет в базу записи примера, которых в ней ещё нет. Объекты примера — в начало списка."""
+    changed = False
+    for key, val in ex.items():
+        if isinstance(val, list):
+            have = {x["id"] for x in db.setdefault(key, [])}
+            new = [x for x in val if x["id"] not in have]
+            if new:
+                db[key] = new + db[key] if key == "objects" else db[key] + new
+                changed = True
+        elif isinstance(val, dict):
+            target = db.setdefault(key, {})
+            for k, v in val.items():
+                if k not in target:
+                    target[k] = v
+                    changed = True
+    return changed
 
 
 # ---------------- Исполнительная документация (по образцам заказчика) ----------------

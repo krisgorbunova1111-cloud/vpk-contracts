@@ -32,7 +32,7 @@ const NAV = [
   { group: 'Документы', items: [
     { to: '/id', num: 'ИД', label: 'Исполнительная документация' },
     { to: '/docs', num: 'РД', label: 'Генератор РД' },
-    { to: '/clouds', num: '3D', label: 'Облака точек' },
+    { to: '/clouds', num: 'ЛС', label: 'Лазерное сканирование' },
   ] },
   { group: 'Сметы', items: [
     { to: '/estimate', num: '₽', label: 'Сметы и выгрузки' },

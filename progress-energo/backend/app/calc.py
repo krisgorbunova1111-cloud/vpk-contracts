@@ -63,7 +63,7 @@ ID_PRICE = 3500.0  # за том исполнительной документа
 
 def estimate(obj: dict, checklist: dict) -> dict:
     area = obj["area"]
-    age_k = 1.15 if obj["year"] < 1970 else 1.0
+    age_k = 1.15 if obj.get("year") and obj["year"] < 1970 else 1.0
     floors_k = 1.1 if obj["floors"] > 9 else 1.0
     k = round(age_k * floors_k * TYPE_K.get(obj["building_type"], 1.0), 3)
     lines = []
@@ -90,7 +90,7 @@ def estimate(obj: dict, checklist: dict) -> dict:
     total = round(sum(l["sum"] for l in lines), 2)
     return {
         "object_id": obj["id"], "k": k,
-        "k_explain": f"Год постройки {obj['year']} (×{age_k}) · этажность {obj['floors']} (×{floors_k}) · тип здания (×{TYPE_K.get(obj['building_type'], 1.0)})",
+        "k_explain": f"Год постройки {obj.get('year') or 'не установлен'} (×{age_k}) · этажность {obj['floors']} (×{floors_k}) · тип здания (×{TYPE_K.get(obj['building_type'], 1.0)})",
         "lines": lines, "total": total, "vat": round(total * VAT, 2),
         "total_vat": round(total * (1 + VAT), 2), "vat_rate": VAT,
     }

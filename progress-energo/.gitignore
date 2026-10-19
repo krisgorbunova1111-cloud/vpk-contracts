@@ -3,3 +3,4 @@ backend/data/
 __pycache__/
 Информационная документация/
 Образцы ИД/
+backend/app/local_examples/

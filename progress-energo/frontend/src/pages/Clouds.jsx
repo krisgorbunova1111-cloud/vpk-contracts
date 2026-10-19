@@ -19,20 +19,20 @@ export default function Clouds() {
     await new Promise((r) => setTimeout(r, 1200)) // имитация обработки
     const r = await api.post(`/pointclouds/${p.id}/process`)
     setBusy(null); await load(); await reload()
-    toast(r.status === 'vectorized' ? 'Обмерный план построен из облака точек' : 'Облако проиндексировано')
+    toast(r.status === 'vectorized' ? 'Обмерный план построен по данным сканирования' : 'Скан проиндексирован')
   }
 
   return (
     <>
       <div className="page-head">
         <div>
-          <h1>Облака точек и ИИ-векторизация</h1>
+          <h1>Лазерное сканирование</h1>
           <div className="muted">Хранилище сканов → индексация → автоматический 2D-план → привязка отметок с планшета</div>
         </div>
       </div>
 
       <div className="card" style={{ marginBottom: 16 }}>
-        <h2>Хранилище облаков точек</h2>
+        <h2>Файлы лазерного сканирования</h2>
         <table className="t">
           <thead><tr><th>Файл</th><th>Объект</th><th className="num">Размер</th><th className="num">Точек</th><th>Загружен</th><th>Статус</th><th></th></tr></thead>
           <tbody>
@@ -51,7 +51,7 @@ export default function Clouds() {
             ))}
           </tbody>
         </table>
-        <p className="muted small" style={{ marginBottom: 0 }}>Загрузка новых облаков — с планшета (вкладка «Сканер и ИИ»). Векторизация в прототипе имитируется; в боевой версии здесь подключается внешний сервис (PointCab / Autodesk ReCap / собственная ML-модель).</p>
+        <p className="muted small" style={{ marginBottom: 0 }}>Загрузка новых сканов — с планшета (вкладка «Сканер и ИИ»). Векторизация в прототипе имитируется; в боевой версии здесь подключается внешний сервис (PointCab / Autodesk ReCap / собственная ML-модель).</p>
       </div>
 
       <div className="card">
@@ -76,7 +76,7 @@ export function PlanView({ obj, toast, readOnly = false }) {
   }, [obj.id])
 
   if (!plan) return null
-  if (!plan.ready) return <div className="hint-box">Для этого объекта ещё нет векторизованного облака точек. Загрузите облако с планшета и запустите обработку в таблице выше.</div>
+  if (!plan.ready) return <div className="hint-box">Для этого объекта ещё нет обработанного скана. Загрузите файл сканирования с планшета и запустите обработку в таблице выше.</div>
 
   const place = async (e) => {
     if (readOnly) return
@@ -120,7 +120,7 @@ export function PlanView({ obj, toast, readOnly = false }) {
       </div>
       {!readOnly && (
         <div className="stack">
-          <div className="hint-box">Выберите тип отметки и нажмите на план — отметка из чек-листа привяжется к координатам облака точек.</div>
+          <div className="hint-box">Выберите тип отметки и нажмите на план — отметка из чек-листа привяжется к координатам скана.</div>
           <div className="row">
             <button className={'btn sm ' + (kind === 'node' ? 'primary' : '')} onClick={() => setKind('node')}>Узел / оборудование</button>
             <button className={'btn sm ' + (kind === 'defect' ? 'primary' : '')} onClick={() => setKind('defect')}>Дефект</button>

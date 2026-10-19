@@ -52,7 +52,7 @@ def _person_line(db, pid):
     if p.get("nrs"):
         s += f", идентификационный номер в НРС {p['nrs']}"
     if p.get("order_no"):
-        s += f", приказ № {p['order_no']} от {ru_date(p.get('order_date'))}"
+        s += f", {p.get('order_kind') or 'приказ'} № {p['order_no']} от {ru_date(p.get('order_date'))}"
     return s
 
 
@@ -349,6 +349,8 @@ def add_test(doc, db, obj, folder, t):
     p = doc.add_paragraph()
     p.add_run("Решение комиссии: ").bold = True
     p.add_run(form["result"])
+    if t.get("note"):
+        doc.add_paragraph(f"Фактические данные: {t['note']}.")
     doc.add_paragraph(f"Основание: {form['basis']}.").runs[0].font.size = Pt(9)
     for key in ("customer_control", "builder_control", "executor"):
         pid = r["people"].get(key)

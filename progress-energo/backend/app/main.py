@@ -284,7 +284,7 @@ async def upload_cloud(object_id: str = Form(...), file: UploadFile = File(...))
 @app.post("/api/pointclouds/{pid}/process")
 def process_cloud(pid: str):
     """Следующий шаг обработки: загружено → проиндексировано → векторизовано."""
-    p = next((x for x in store.db["pointclouds"] if x["id"] == pid), None) or _404("Облако")
+    p = next((x for x in store.db["pointclouds"] if x["id"] == pid), None) or _404("Скан")
     p["status"] = {"uploaded": "indexed", "indexed": "vectorized"}.get(p["status"], p["status"])
     if p["status"] == "vectorized":
         o = store.obj(p["object_id"])
@@ -369,7 +369,7 @@ def readiness(oid: str):
     expired = [m["name"] for m in mats if m["cert_until"] < date.today().isoformat()]
     return [
         {"item": "Чек-лист с планшета", "ok": bool(cl), "hint": "Заполнить на выезде"},
-        {"item": "Обмерный план из облака точек", "ok": pl["ready"], "hint": "Запустить векторизацию в модуле «Облака точек»"},
+        {"item": "Обмерный план по данным сканирования", "ok": pl["ready"], "hint": "Запустить обработку в модуле «Лазерное сканирование»"},
         {"item": "Материалы выбраны", "ok": bool(mats), "hint": "Отметить материалы в чек-листе"},
         {"item": "Сертификаты действуют", "ok": bool(mats) and not expired,
          "hint": ("Просрочены: " + ", ".join(expired)) if expired else "Нет материалов"},
