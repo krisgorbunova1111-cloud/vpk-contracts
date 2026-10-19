@@ -190,7 +190,7 @@ table.t { width: 100%; border-collapse: collapse; }
 .tablet .btn { padding: 14px 20px; font-size: 16px; border-radius: 12px; min-height: 52px; }
 .tablet input, .tablet select, .tablet textarea { font-size: 17px; padding: 14px; border-radius: 12px; }
 .tablet-body { padding: 20px; max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
-.big-tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.big-tabs { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
 .big-tabs button { padding: 16px 8px; border-radius: 12px; border: 2px solid var(--line); background: var(--surface); color: var(--text); font: inherit; font-weight: 700; font-size: 15px; cursor: pointer; }
 .big-tabs button.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
 .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
@@ -230,3 +230,19 @@ table.t { width: 100%; border-collapse: collapse; }
   .big-tabs { grid-template-columns: repeat(2, 1fr); }
   .seg { grid-template-columns: 1fr; }
 }
+
+/* ===== Исполнительная документация ===== */
+.folder-btn { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font: inherit; cursor: pointer; }
+.folder-btn:hover { border-color: var(--muted); }
+.folder-btn.on { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--surface)); }
+.aosr-row { display: flex; gap: 12px; align-items: center; padding: 10px; border-bottom: 1px solid var(--line); cursor: pointer; border-radius: 8px; }
+.aosr-row:hover { background: var(--surface-2); }
+.aosr-form { border: 1px solid var(--accent); border-radius: 12px; padding: 14px; margin: 8px 0; background: color-mix(in srgb, var(--accent) 4%, var(--surface)); }
+.doc-line { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+.doc-line input { padding: 6px 8px; }
+.t.edit td { padding: 4px 6px; vertical-align: middle; }
+.t.edit input { padding: 6px 8px; min-width: 70px; }
+.res-line { display: grid; grid-template-columns: 160px 1fr; gap: 10px; align-items: center; }
+.insp:not(.big) .seg button { min-height: 40px; padding: 8px 6px; font-size: 13px; }
+.insp.big .t.edit input { font-size: 17px; padding: 12px; }
+@media (max-width: 860px) { .res-line { grid-template-columns: 1fr; } .big-tabs { grid-template-columns: repeat(2, 1fr); } }

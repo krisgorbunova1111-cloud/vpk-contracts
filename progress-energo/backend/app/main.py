@@ -13,11 +13,12 @@ from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import calc, docgen
+from . import calc, docgen, routes_id
 from .seed import BUILDING_TYPES, ROLES, STAGES, SYSTEMS
 from .store import UPLOADS, store
 
-app = FastAPI(title="ВПК Платформа — ВПК «Прогресс Энерго»", version="0.1-прототип")
+app = FastAPI(title="ВПК Платформа — ВПК «Прогресс Энерго»", version="0.2-прототип")
+app.include_router(routes_id.router)
 
 DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 CLOUD_FORMATS = {"las", "laz", "e57", "ptx"}

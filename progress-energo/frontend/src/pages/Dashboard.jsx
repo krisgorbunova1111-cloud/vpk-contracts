@@ -3,7 +3,7 @@ import { useApp } from '../App.jsx'
 import { api, fmtDate, PRIORITY } from '../api.js'
 
 // Где по объекту продолжать работу на каждом этапе
-const STAGE_LINK = { plan: '/planning', field: '/tablet', cloud: '/clouds', office: '/docs', design: '/estimate', print: '/docs', done: '/docs' }
+const STAGE_LINK = { plan: '/planning', field: '/tablet', cloud: '/clouds', office: '/id', design: '/estimate', print: '/id', done: '/id' }
 
 export default function Dashboard() {
   const { meta, objects, reload, toast } = useApp()

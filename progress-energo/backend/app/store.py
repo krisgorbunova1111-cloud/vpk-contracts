@@ -23,6 +23,18 @@ class Store:
         UPLOADS.mkdir(exist_ok=True)
         if DB_FILE.exists():
             self.db = json.loads(DB_FILE.read_text(encoding="utf-8"))
+            # новые разделы базы, появившиеся в обновлениях, — дополняем из демо-данных
+            seed = build_seed()
+            added = [k for k in seed if k not in self.db]
+            for k in added:
+                self.db[k] = seed[k]
+            known = {m["id"] for m in self.db["materials"]}
+            self.db["materials"] += [m for m in seed["materials"] if m["id"] not in known]
+            for m in self.db["materials"]:
+                m.setdefault("cert_sheets", 1)
+                m.setdefault("passport_sheets", 4 if m.get("passport") else 0)
+            if added:
+                self.save()
         else:
             self.reset()
 

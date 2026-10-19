@@ -10,6 +10,9 @@ import Docs from './pages/Docs.jsx'
 import Estimate from './pages/Estimate.jsx'
 import Lab from './pages/Lab.jsx'
 import Catalog from './pages/Catalog.jsx'
+import IdFolders from './pages/IdFolders.jsx'
+import Participants from './pages/Participants.jsx'
+import Checks from './pages/Checks.jsx'
 
 // Общие данные приложения (справочники, объекты, роль, тема, уведомления)
 const Ctx = createContext(null)
@@ -21,13 +24,16 @@ const NAV = [
   { to: '/planning', num: '1', label: 'Планирование', roles: ['dispatcher'] },
   { to: '/tablet', num: '2', label: 'Планшет (выезд)', roles: ['scanner', 'dispatcher'] },
   { to: '/clouds', num: '3', label: 'Облака точек и ИИ', roles: ['engineer', 'scanner'] },
-  { to: '/docs', num: '4', label: 'Генератор ИД и РД', roles: ['engineer', 'designer', 'archivist'] },
+  { to: '/id', num: '4', label: 'Исполнительная документация', roles: ['engineer', 'archivist'] },
+  { to: '/checks', num: 'П', label: 'Проверка работ', roles: ['engineer', 'dispatcher', 'scanner'] },
+  { to: '/docs', num: 'Р', label: 'Генератор РД', roles: ['designer', 'engineer'] },
   { to: '/estimate', num: '5', label: 'Сметы и выгрузки', roles: ['designer', 'dispatcher'] },
   { to: '/lab', num: 'Л', label: 'Лаборатория', roles: ['engineer', 'dispatcher'] },
+  { to: '/participants', num: 'У', label: 'Участники', roles: ['engineer', 'archivist'] },
   { to: '/catalog', num: 'С', label: 'Справочники', roles: ['engineer', 'designer', 'archivist'] },
 ]
 
-const ROLE_HOME = { dispatcher: '/', scanner: '/tablet', engineer: '/clouds', designer: '/estimate', archivist: '/docs' }
+const ROLE_HOME = { dispatcher: '/', scanner: '/tablet', engineer: '/clouds', designer: '/estimate', archivist: '/id' }
 
 function useStored(key, initial) {
   const [v, setV] = useState(() => {
@@ -117,6 +123,9 @@ export default function App() {
                 <Route path="/estimate" element={<Estimate />} />
                 <Route path="/lab" element={<Lab />} />
                 <Route path="/catalog" element={<Catalog />} />
+                <Route path="/id" element={<IdFolders />} />
+                <Route path="/participants" element={<Participants />} />
+                <Route path="/checks" element={<Checks />} />
                 <Route path="*" element={<Navigate to="/" />} />
               </Routes>
             </main>

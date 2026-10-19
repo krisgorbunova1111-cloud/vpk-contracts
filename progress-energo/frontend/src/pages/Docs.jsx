@@ -1,12 +1,8 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { ObjectSelect, useApp, useSelectedObject } from '../App.jsx'
 import { api, fileUrl, fmtDate } from '../api.js'
 
-// Порядок комплектования тома ИД (упрощённо по РД-11-02-2006)
-const ID_ORDER = [
-  'Титульный лист', 'Опись документов тома', 'Акт технического обследования', 'Ведомость инженерных систем и узлов',
-  'Обмерные планы (из облака точек)', 'Ведомость применённых материалов', 'Сертификаты и паспорта (автоподстановка)', 'Протоколы лабораторных испытаний',
-]
 const RD_NAMES = { AR: 'Архитектурные решения', KR: 'Конструктивные решения', OV: 'Отопление и вентиляция', VK: 'Водоснабжение и канализация', EOM: 'Электроснабжение', TS: 'Теплоснабжение' }
 const PRINT_STEPS = ['Печать', 'Сшивка и нумерация', 'Подпись ответственных лиц', 'Передача заказчику']
 
@@ -41,7 +37,7 @@ export default function Docs() {
     <>
       <div className="page-head">
         <div>
-          <h1>Генератор ИД и РД</h1>
+          <h1>Генератор РД</h1>
           <div className="muted">Данные чек-листа + обмерные планы + справочник сертификатов → готовые тома в Word</div>
         </div>
         <div className="spacer" />
@@ -65,11 +61,9 @@ export default function Docs() {
         </div>
 
         <div className="card">
-          <h2>Том исполнительной документации</h2>
-          <ol style={{ margin: '0 0 14px', paddingLeft: 20 }}>
-            {ID_ORDER.map((d) => <li key={d} style={{ padding: '2px 0' }}>{d}</li>)}
-          </ol>
-          <a className="btn primary" href={fileUrl(`/docs/${obj.id}/id.docx`)} onClick={() => toast('Том ИД собран — файл Word скачивается')}>⬇ Собрать том ИД (Word)</a>
+          <h2>Исполнительная документация</h2>
+          <p className="muted" style={{ marginTop: 0 }}>ИД собирается папками по видам работ — как в ваших образцах: реестр формы 1.1, приказы, дефектный акт, АОСР с исполнительными схемами, акты испытаний, документы о качестве.</p>
+          <Link className="btn primary" to={`/id?o=${obj.id}`}>Открыть папки ИД →</Link>
         </div>
       </div>
 

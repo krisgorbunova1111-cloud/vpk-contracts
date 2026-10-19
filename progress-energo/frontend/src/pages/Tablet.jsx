@@ -3,10 +3,11 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useApp } from '../App.jsx'
 import { api } from '../api.js'
 import { LogoMark } from '../components/Logo.jsx'
+import { InspectionsPanel } from '../components/Inspections.jsx'
 
 const STATES = [['satisfactory', 'Работоспособное'], ['limited', 'Ограниченно'], ['emergency', 'Аварийное']]
 const CONSTR = [['foundation', 'Фундаменты / подвал'], ['walls', 'Стены'], ['slabs', 'Перекрытия'], ['roof', 'Кровля / чердак']]
-const TABS = [['constr', 'Конструкции'], ['systems', 'Инж. системы'], ['nodes', 'Узлы и материалы'], ['works', 'Работы и лаб.'], ['scan', 'Сканер и ИИ']]
+const TABS = [['constr', 'Конструкции'], ['systems', 'Инж. системы'], ['nodes', 'Узлы и материалы'], ['works', 'Работы и лаб.'], ['scan', 'Сканер и ИИ'], ['check', 'Проверка работ']]
 
 export default function Tablet() {
   const { objects, theme, setTheme, toast, meta, reload } = useApp()
@@ -199,9 +200,11 @@ function Checklist({ obj, toast, meta, reload }) {
 
       {tab === 'scan' && <ScanTab obj={obj} toast={toast} onAI={applyAI} reload={reload} />}
 
-      <button className="btn primary scan-btn" style={{ position: 'sticky', bottom: 14, boxShadow: '0 8px 24px rgba(62,99,221,.35)' }} onClick={save}>
+      {tab === 'check' && <InspectionsPanel obj={obj} toast={toast} big />}
+
+      {tab !== 'check' && <button className="btn primary scan-btn" style={{ position: 'sticky', bottom: 14, boxShadow: '0 8px 24px rgba(62,99,221,.35)' }} onClick={save}>
         {dirty ? '💾 Сохранить и отправить в офис' : '✓ Сохранено'}
-      </button>
+      </button>}
     </div>
   )
 }
