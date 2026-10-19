@@ -205,6 +205,9 @@ def build_folder(db, obj, folder) -> bytes:
         if row.get("kind") == "aosr":
             doc.add_page_break()
             add_aosr(doc, db, obj, folder, aosr_by_id[row["id"]])
+        elif row.get("kind") == "test" and test_form(folder["tests"][row["idx"]]["name"]):
+            doc.add_page_break()
+            add_test(doc, db, obj, folder, folder["tests"][row["idx"]])
         elif row.get("kind") == "quality":
             doc.add_page_break()
             _center(doc, "РЕЕСТР документов, подтверждающих качество", 12, True)
@@ -272,3 +275,88 @@ def _place(i):
     parts = [f"подъезд {p['entrance']}" if p["entrance"] else "", f"этаж {p['floor']}" if p["floor"] else "",
              f"кв. {p['apt']}" if p["apt"] else "", p["axes"]]
     return ", ".join(x for x in parts if x) or "—"
+
+
+# ---------------- Акты испытаний (формы по СП 73.13330.2016) ----------------
+
+TEST_FORMS = {
+    "hydro": {
+        "match": ("гидростатическ", "манометрическ", "опрессовк"),
+        "title": "АКТ\nо проведении гидростатического (манометрического) испытания на герметичность",
+        "body": [
+            "Систему испытывали гидростатическим (манометрическим) методом давлением ______ МПа "
+            "(рабочее давление ______ МПа) в течение ______ мин.",
+            "Падение давления за время испытания составило ______ МПа "
+            "(допускается: для систем отопления — не более 0,02 МПа, для систем водоснабжения — не более 0,05 МПа; "
+            "испытательное давление — не менее 1,5 рабочего, но не менее 0,2 МПа в нижней точке системы).",
+            "Признаков разрыва, течи и капель в сварных швах, резьбовых соединениях, арматуре "
+            "и нагревательных приборах не обнаружено.",
+        ],
+        "result": "Система признаётся выдержавшей испытание давлением на герметичность.",
+        "basis": "СП 73.13330.2016, п. 7.3",
+    },
+    "flush": {
+        "match": ("промывк", "продувк"),
+        "title": "АКТ\nо проведении промывки (продувки) трубопроводов",
+        "body": [
+            "Произведена промывка (продувка) трубопроводов системы ______________________ "
+            "водой (воздухом) до выхода чистой воды (воздуха) без механических взвесей.",
+            "Продолжительность промывки ______ ч, скорость движения воды ______ м/с.",
+        ],
+        "result": "Промывка (продувка) выполнена в соответствии с требованиями нормативной документации.",
+        "basis": "СП 73.13330.2016, п. 7.1",
+    },
+    "heat": {
+        "match": ("равномерность прогрева", "индивидуальн"),
+        "title": "АКТ\nиспытания системы отопления на равномерность прогрева отопительных приборов",
+        "body": [
+            "Испытание проведено при температуре теплоносителя в подающей магистрали ______ °С, "
+            "в обратной ______ °С, температуре наружного воздуха ______ °С, в течение ______ ч.",
+            "Все отопительные приборы прогреваются равномерно. Перекрытие циркуляции и непрогрев "
+            "отдельных приборов не выявлены.",
+        ],
+        "result": "Система отопления признаётся выдержавшей испытание на равномерность прогрева.",
+        "basis": "СП 73.13330.2016, п. 7.2",
+    },
+}
+
+
+def test_form(name: str):
+    low = name.lower()
+    return next((k for k, f in TEST_FORMS.items() if any(m in low for m in f["match"])), None)
+
+
+def add_test(doc, db, obj, folder, t):
+    form = TEST_FORMS[test_form(t["name"])]
+    r = roles_of(db, obj["id"])
+    for line in form["title"].split("\n"):
+        _center(doc, line, 13 if line == "АКТ" else 12, True, 0)
+    tb = doc.add_table(rows=1, cols=2)
+    tb.rows[0].cells[0].text = obj["address"]
+    tb.rows[0].cells[1].text = _date_words(t.get("date"))
+    tb.rows[0].cells[1].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    doc.add_paragraph()
+    _field(doc, f"{obj['name']}, {obj['address']}", "наименование объекта", "Объект:")
+    _field(doc, folder["title"], "наименование системы, участок", "Система:")
+    doc.add_paragraph("Комиссия в составе:")
+    for key in ("customer_control", "builder_control", "executor"):
+        pid = r["people"].get(key)
+        if pid:
+            doc.add_paragraph(_person_line(db, pid), style="List Bullet")
+    doc.add_paragraph("произвела осмотр и проверку качества монтажа и составила настоящий акт о нижеследующем:")
+    for i, line in enumerate(form["body"], 1):
+        doc.add_paragraph(f"{i}. {line}")
+    p = doc.add_paragraph()
+    p.add_run("Решение комиссии: ").bold = True
+    p.add_run(form["result"])
+    doc.add_paragraph(f"Основание: {form['basis']}.").runs[0].font.size = Pt(9)
+    for key in ("customer_control", "builder_control", "executor"):
+        pid = r["people"].get(key)
+        if pid:
+            doc.add_paragraph(f"\n{_short_fio(db, pid)}  ____________________ (подпись)")
+
+
+def build_test(db, obj, folder, t) -> bytes:
+    doc = _doc()
+    add_test(doc, db, obj, folder, t)
+    return _save(doc)

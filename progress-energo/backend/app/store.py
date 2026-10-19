@@ -33,6 +33,12 @@ class Store:
             for m in self.db["materials"]:
                 m.setdefault("cert_sheets", 1)
                 m.setdefault("passport_sheets", 4 if m.get("passport") else 0)
+            seed_aosr = {a["id"]: a for a in seed["aosr"]}
+            for a in self.db["aosr"]:
+                if "volumes" not in a:
+                    a["volumes"] = seed_aosr.get(a["id"], {}).get("volumes", [])
+                    if a["id"] in seed_aosr:
+                        a["source"] = seed_aosr[a["id"]].get("source")
             if added:
                 self.save()
         else:

@@ -18,22 +18,30 @@ import Checks from './pages/Checks.jsx'
 const Ctx = createContext(null)
 export const useApp = () => useContext(Ctx)
 
-// Пункты меню; roles — для кого пункт «свой» (показывается в верхней группе)
+// Меню сгруппировано по ходу работы над объектом
 const NAV = [
-  { to: '/', num: '★', label: 'Объекты по этапам', roles: ['dispatcher', 'engineer', 'designer', 'archivist'] },
-  { to: '/planning', num: '1', label: 'Планирование', roles: ['dispatcher'] },
-  { to: '/tablet', num: '2', label: 'Планшет (выезд)', roles: ['scanner', 'dispatcher'] },
-  { to: '/clouds', num: '3', label: 'Облака точек и ИИ', roles: ['engineer', 'scanner'] },
-  { to: '/id', num: '4', label: 'Исполнительная документация', roles: ['engineer', 'archivist'] },
-  { to: '/checks', num: 'П', label: 'Проверка работ', roles: ['engineer', 'dispatcher', 'scanner'] },
-  { to: '/docs', num: 'Р', label: 'Генератор РД', roles: ['designer', 'engineer'] },
-  { to: '/estimate', num: '5', label: 'Сметы и выгрузки', roles: ['designer', 'dispatcher'] },
-  { to: '/lab', num: 'Л', label: 'Лаборатория', roles: ['engineer', 'dispatcher'] },
-  { to: '/participants', num: 'У', label: 'Участники', roles: ['engineer', 'archivist'] },
-  { to: '/catalog', num: 'С', label: 'Справочники', roles: ['engineer', 'designer', 'archivist'] },
+  { group: 'Объекты', items: [
+    { to: '/', num: '★', label: 'Объекты по этапам' },
+    { to: '/planning', num: '1', label: 'Планирование выездов' },
+  ] },
+  { group: 'На объекте', items: [
+    { to: '/tablet', num: '2', label: 'Планшет (выезд)' },
+    { to: '/checks', num: '✓', label: 'Проверка работ' },
+    { to: '/lab', num: 'Л', label: 'Лаборатория' },
+  ] },
+  { group: 'Документы', items: [
+    { to: '/id', num: 'ИД', label: 'Исполнительная документация' },
+    { to: '/docs', num: 'РД', label: 'Генератор РД' },
+    { to: '/clouds', num: '3D', label: 'Облака точек' },
+  ] },
+  { group: 'Сметы', items: [
+    { to: '/estimate', num: '₽', label: 'Сметы и выгрузки' },
+  ] },
+  { group: 'Справочники', items: [
+    { to: '/participants', num: 'У', label: 'Участники' },
+    { to: '/catalog', num: 'М', label: 'Материалы и узлы' },
+  ] },
 ]
-
-const ROLE_HOME = { dispatcher: '/', scanner: '/tablet', engineer: '/clouds', designer: '/estimate', archivist: '/id' }
 
 function useStored(key, initial) {
   const [v, setV] = useState(() => {
@@ -47,11 +55,9 @@ export default function App() {
   const [meta, setMeta] = useState(null)
   const [objects, setObjects] = useState([])
   const [error, setError] = useState('')
-  const [role, setRole] = useStored('pe-role', 'dispatcher')
   const [theme, setTheme] = useStored('pe-theme', 'light')
   const [toastMsg, setToastMsg] = useState('')
   const loc = useLocation()
-  const nav = useNavigate()
 
   const reload = useCallback(async () => {
     try {
@@ -71,14 +77,12 @@ export default function App() {
     window.__peToast = setTimeout(() => setToastMsg(''), 4200)
   }, [])
 
-  const ctx = { meta, objects, reload, role, theme, setTheme, toast }
+  const ctx = { meta, objects, reload, theme, setTheme, toast }
 
   if (error) return <div className="content"><div className="card"><h2>Нет связи с сервером</h2><p className="muted">{error}</p><button className="btn primary" onClick={reload}>Повторить</button></div></div>
   if (!meta) return <div className="empty">Загрузка…</div>
 
   const tabletMode = loc.pathname.startsWith('/tablet')
-  const mine = NAV.filter((n) => n.roles.includes(role))
-  const other = NAV.filter((n) => !n.roles.includes(role))
 
   return (
     <Ctx.Provider value={ctx}>
@@ -89,22 +93,16 @@ export default function App() {
           <aside className="sidebar">
             <Logo />
             <div className="app-name">{APP_NAME.split(' ')[1].toUpperCase()}</div>
-            <div className="nav-group">Мои модули</div>
-            <nav className="nav">
-              {mine.map((n) => <NavItem key={n.to} {...n} />)}
-            </nav>
-            {other.length > 0 && <div className="nav-group">Остальные</div>}
-            <nav className="nav">
-              {other.map((n) => <NavItem key={n.to} {...n} />)}
-            </nav>
-            <div className="sidebar-foot">ООО ВПК «Прогресс Энерго»<br />{APP_NAME} · прототип v0.1</div>
+            {NAV.map((g) => (
+              <div key={g.group} className="nav-wrap">
+                <div className="nav-group">{g.group}</div>
+                <nav className="nav">{g.items.map((n) => <NavItem key={n.to} {...n} />)}</nav>
+              </div>
+            ))}
+            <div className="sidebar-foot">ООО ВПК «Прогресс Энерго»<br />{APP_NAME} · прототип v0.3</div>
           </aside>
           <div className="main">
             <header className="topbar">
-              <span className="muted small">Роль:</span>
-              <select style={{ width: 260 }} value={role} onChange={(e) => { setRole(e.target.value); nav(ROLE_HOME[e.target.value]) }}>
-                {meta.roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-              </select>
               <div className="spacer" />
               <button className="btn ghost" title="Сбросить демо-данные" onClick={async () => {
                 if (!confirm('Вернуть демо-данные в исходное состояние? Все изменения будут потеряны.')) return

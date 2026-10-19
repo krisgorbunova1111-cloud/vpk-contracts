@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useApp } from '../App.jsx'
 import { api, fmtDate, PRIORITY } from '../api.js'
@@ -7,6 +8,8 @@ const STAGE_LINK = { plan: '/planning', field: '/tablet', cloud: '/clouds', offi
 
 export default function Dashboard() {
   const { meta, objects, reload, toast } = useApp()
+  const [idSum, setIdSum] = useState([])
+  useEffect(() => { api.get('/id/summary').then(setIdSum) }, [objects])
   const stages = meta.stages
   const idx = Object.fromEntries(stages.map((s, i) => [s.id, i]))
 
@@ -37,6 +40,8 @@ export default function Dashboard() {
         <div className="card kpi"><b>{Math.round(hours)} ч</b><span>трудозатрат осталось (расчёт)</span></div>
         <div className="card kpi"><b style={{ color: overdue.length ? 'var(--bad)' : 'var(--ok)' }}>{overdue.length}</b><span>просрочено по сроку</span></div>
       </div>
+
+      <IdSummary rows={idSum} objects={objects} />
 
       <div className="pipeline">
         {stages.map((s, i) => {
@@ -72,5 +77,39 @@ export default function Dashboard() {
         Цвет полоски слева — приоритет: красный — высокий, жёлтый — средний, серый — низкий. Внутри колонки объекты отсортированы по приоритету — в таком порядке их берёт в работу офис.
       </p>
     </>
+  )
+}
+
+function IdSummary({ rows, objects }) {
+  const byId = Object.fromEntries(objects.map((o) => [o.id, o]))
+  const list = rows.filter((r) => r.folders || r.checks || r.has_defect_act)
+  if (!list.length) return null
+  return (
+    <div className="card" style={{ marginBottom: 20 }}>
+      <h2>Исполнительная документация и проверки</h2>
+      <table className="t">
+        <thead><tr><th>Объект</th><th className="num">Папок ИД</th><th className="num">Готовы</th><th className="num">АОСР</th><th>Ошибки / замечания</th><th>Проверки работ</th><th></th></tr></thead>
+        <tbody>
+          {list.map((r) => (
+            <tr key={r.object_id}>
+              <td><b>{byId[r.object_id]?.name}</b><div className="muted small">{byId[r.object_id]?.code}</div></td>
+              <td className="num">{r.folders}</td>
+              <td className="num">{r.ready} из {r.folders}</td>
+              <td className="num">{r.aosr}</td>
+              <td>
+                {r.bad > 0 && <span className="badge bad" style={{ marginRight: 4 }}>ошибки: {r.bad}</span>}
+                {r.warn > 0 && <span className="badge warn">замечания: {r.warn}</span>}
+                {!r.bad && !r.warn && r.folders > 0 && <span className="badge ok">всё в порядке</span>}
+                {!r.folders && <span className="muted small">папки не созданы</span>}
+              </td>
+              <td>
+                {r.checks ? <>{r.checks} бланков {r.open_remarks > 0 && <span className="badge bad">открыто: {r.open_remarks}</span>}</> : <span className="muted small">не проводились</span>}
+              </td>
+              <td><Link className="btn sm" to={`/id?o=${r.object_id}`}>Открыть</Link></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
 }

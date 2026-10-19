@@ -118,7 +118,7 @@ def del_folder(fid: str):
     return {"ok": True}
 
 
-AOSR_FIELDS = ("no", "date", "works", "basis", "materials", "scheme", "start", "end", "norms", "next_works", "extra_info", "copies")
+AOSR_FIELDS = ("no", "date", "works", "volumes", "basis", "materials", "scheme", "start", "end", "norms", "next_works", "extra_info", "copies")
 
 
 @router.post("/aosr")
@@ -129,7 +129,8 @@ def add_aosr(data: dict):
     suffix = "".join(ch for ch in obj["name"].split(",")[-1] if ch.isalnum()) if obj else ""
     a = {"id": store.new_id("a"), "folder_id": f["id"], "no": f"{n}/д.{suffix}" if suffix else str(n), "date": "", "works": "",
          "basis": "", "materials": [], "scheme": {"no": str(n), "date": "", "sheets": 1}, "start": "", "end": "",
-         "norms": NORMS.get(f["section"], DEFAULT_NORMS)[:3], "next_works": "", "extra_info": "нет", "copies": 4}
+         "norms": NORMS.get(f["section"], DEFAULT_NORMS)[:3], "next_works": "", "extra_info": "нет", "copies": 4,
+         "volumes": []}
     a.update({k: v for k, v in data.items() if k in AOSR_FIELDS})
     store.db["aosr"].append(a)
     store.save()
@@ -214,3 +215,49 @@ def inspections_report(oid: str):
     if not items:
         raise HTTPException(400, "По объекту ещё нет заполненных бланков")
     return _docx(docgen_id.build_inspections(store.db, o, items), f"{o['code']}_proverka_rabot.docx")
+
+
+# ---------------- Дефектный акт ----------------
+
+@router.get("/defect/{oid}")
+def get_defect(oid: str):
+    _obj(oid)
+    return store.db["defect_acts"].get(oid) or {"no": "", "date": "", "sheets": 1, "rows": []}
+
+
+@router.put("/defect/{oid}")
+def put_defect(oid: str, data: dict):
+    _obj(oid)
+    rows = [{"id": r.get("id") or store.new_id("r"), "section": r.get("section") or id_docs.guess_section(r.get("name", "")),
+             "name": r.get("name", ""), "unit": r.get("unit", ""), "qty": r.get("qty", "")} for r in data.get("rows", []) if r.get("name")]
+    store.db["defect_acts"][oid] = {"no": data.get("no", ""), "date": data.get("date", ""), "sheets": data.get("sheets", 1), "rows": rows}
+    store.save()
+    return store.db["defect_acts"][oid]
+
+
+@router.post("/defect/parse")
+def parse_defect(data: dict):
+    return id_docs.parse_defect_text(data.get("text", ""))
+
+
+@router.post("/defect/{oid}/build")
+def build_defect(oid: str):
+    res = id_docs.build_from_defect(store.db, _obj(oid), store.new_id)
+    if "error" in res:
+        raise HTTPException(400, res["error"])
+    store.save()
+    return res
+
+
+@router.get("/id/summary")
+def id_summary():
+    return id_docs.summary(store.db)
+
+
+@router.get("/folders/{fid}/tests/{idx}/docx")
+def test_docx(fid: str, idx: int):
+    f = _find("id_folders", fid, "Папка")
+    if idx >= len(f["tests"]) or not docgen_id.test_form(f["tests"][idx]["name"]):
+        raise HTTPException(404, "Для этого документа нет формы")
+    o = _obj(f["object_id"])
+    return _docx(docgen_id.build_test(store.db, o, f, f["tests"][idx]), f"{o['code']}_akt_ispytaniya_{idx + 1}.docx")

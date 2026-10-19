@@ -52,11 +52,11 @@ h3 { font-size: 14px; margin: 0 0 8px; font-weight: 700; }
 .app { display: grid; grid-template-columns: 248px 1fr; min-height: 100%; }
 .sidebar {
   background: var(--brand-grad); color: #fff; padding: 18px 12px;
-  display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100vh;
+  display: flex; flex-direction: column; gap: 2px; position: sticky; top: 0; height: 100vh; overflow-y: auto;
 }
 .sidebar .logo { padding: 6px 8px 4px; }
 .app-name { margin: 10px 8px 6px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.12); font-size: 11px; letter-spacing: .32em; font-weight: 300; color: var(--steel); }
-.nav-group { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; opacity: .5; padding: 14px 10px 6px; }
+.nav-group { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; opacity: .5; padding: 12px 10px 4px; }
 .nav a {
   display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 9px;
   text-decoration: none; color: rgba(255,255,255,.78); font-weight: 600;
@@ -223,7 +223,8 @@ table.t { width: 100%; border-collapse: collapse; }
   .app { grid-template-columns: 1fr; }
   .sidebar { position: static; height: auto; flex-direction: row; flex-wrap: wrap; padding: 10px; }
   .sidebar .logo { padding: 0 8px 0 0; }
-  .nav-group, .sidebar-foot { display: none; }
+  .nav-group, .sidebar-foot, .app-name { display: none; }
+  .sidebar .nav-wrap { display: contents; }
   .nav { display: flex; flex-wrap: wrap; gap: 2px; }
   .g2 { grid-template-columns: 1fr; }
   .content { padding: 16px; }
@@ -246,3 +247,5 @@ table.t { width: 100%; border-collapse: collapse; }
 .insp:not(.big) .seg button { min-height: 40px; padding: 8px 6px; font-size: 13px; }
 .insp.big .t.edit input { font-size: 17px; padding: 12px; }
 @media (max-width: 860px) { .res-line { grid-template-columns: 1fr; } .big-tabs { grid-template-columns: repeat(2, 1fr); } }
+.t.edit input.gap { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 8%, var(--surface)); color: var(--bad); font-weight: 700; }
+.t.edit select.pick { width: 44px; min-width: 44px; padding: 6px 4px; }

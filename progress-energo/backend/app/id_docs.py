@@ -6,10 +6,11 @@
 документов о качестве + сертификаты/паспорта → прочие акты → журналы.
 """
 import json
+import re
 from datetime import date
 from pathlib import Path
 
-from .seed import AOSR_ROLES, EXPECTED_TESTS
+from .seed import AOSR_ROLES, DEFAULT_NORMS, EXPECTED_TESTS, NORMS
 
 BLANKS = json.loads((Path(__file__).parent / "check_blanks.json").read_text(encoding="utf-8"))
 BLANKS_BY_ID = {b["id"]: b for b in BLANKS}
@@ -65,8 +66,8 @@ def registry(db, folder) -> list[dict]:
         s = a.get("scheme") or {}
         if s.get("no"):
             rows.append({"name": f"Исполнительная схема. {short(a['works'])}", "no": s["no"], "sheets": s.get("sheets", 1)})
-    for t in folder.get("tests", []):
-        rows.append({"name": t["name"], "no": t.get("no", "б/н"), "sheets": t.get("sheets", 1)})
+    for i, t in enumerate(folder.get("tests", [])):
+        rows.append({"name": t["name"], "no": t.get("no", "б/н"), "sheets": t.get("sheets", 1), "kind": "test", "idx": i})
     mats = folder_materials(db, folder["id"])
     if mats:
         rows.append({"name": "Реестр документов, подтверждающих качество", "no": "б/н", "sheets": 1, "kind": "quality"})
@@ -164,3 +165,134 @@ def new_inspection(blank_id: str, object_id: str) -> dict:
 
 def has_discrepancy(insp: dict) -> bool:
     return any(v == "diff" for v in insp["results"].values())
+
+
+# ---------------- Дефектный акт → папки и черновики АОСР ----------------
+
+SECTION_WORDS = [
+    ("Отопление", r"отоплен|радиатор|элеватор|конвектор|терморегул|термоголов"),
+    ("Электроснабжение", r"кабел|провод|щит|светильник|автомат|электр|вру|розетк|выключател|освещ"),
+    ("Водоснабжение и канализация", r"канализ|водопровод|хвс|гвс|водоснаб|водоотвед|ливнев|стояк|сантех|унитаз|смесител"),
+    ("Кровля", r"кровл|крыш|стропил|обрешет|водосто|снегозадерж|парапет|слухов"),
+    ("Окна и двери", r"окон|окна|двер|откос|подоконн|отлив|люк|доводчик"),
+    ("Фасад и отмостка", r"фасад|отмост|цокол|козыр"),
+    ("Места общего пользования", r"подъезд|моп|лестни|штукатур|окраск|шпатлев|побелк|перил|поручн|почтов"),
+    ("Конструктив", r"стен|плит|кладк|балкон|перекрыт|трещин|перегородк"),
+]
+SECTION_TITLE = {
+    "Отопление": ("системы отопления", "Монтаж"),
+    "Водоснабжение и канализация": ("систем водоснабжения и канализации", "Монтаж"),
+    "Электроснабжение": ("внутренних систем электроснабжения", "Монтаж"),
+    "Кровля": ("кровли", "Устройство"),
+    "Окна и двери": ("оконных и дверных блоков", "Монтаж"),
+    "Фасад и отмостка": ("фасада и отмостки", "Ремонт"),
+    "Места общего пользования": ("отделки мест общего пользования", "Ремонт"),
+    "Конструктив": ("конструктивных элементов", "Ремонт"),
+}
+DEMOLITION = r"^\s*(демонтаж|разборк|снятие|вырубк|расчистк)"
+
+
+def guess_section(name: str) -> str:
+    low = name.lower()
+    for sec, pat in SECTION_WORDS:
+        if re.search(pat, low):
+            return sec
+    return "Конструктив"
+
+
+def parse_defect_text(text: str) -> list[dict]:
+    """Строки, скопированные из Excel/Word: «наименование ⇥ ед. ⇥ количество» (номер п/п в начале допускается)."""
+    rows = []
+    for line in text.splitlines():
+        cells = [c.strip() for c in re.split(r"\t|;", line) if c.strip()]
+        if cells and re.fullmatch(r"\d+\.?", cells[0]):
+            cells = cells[1:]
+        if not cells:
+            continue
+        name = cells[0]
+        unit = cells[1] if len(cells) > 1 else ""
+        qty_s = cells[2] if len(cells) > 2 else ""
+        try:
+            qty = float(qty_s.replace(" ", "").replace(",", "."))
+            qty = int(qty) if qty == int(qty) else qty
+        except ValueError:
+            qty = qty_s
+        rows.append({"section": guess_section(name), "name": name, "unit": unit, "qty": qty})
+    return rows
+
+
+def fmt_qty(q) -> str:
+    return str(q).replace(".", ",")
+
+
+def works_text(title: str, volumes: list[dict]) -> str:
+    return f"{title}: " + "; ".join(f"{v['name'].lower() if i else v['name']} — {fmt_qty(v['qty'])} {v['unit']}".strip()
+                                     for i, v in enumerate(volumes)) if volumes else title
+
+
+def build_from_defect(db, obj, new_id) -> dict:
+    """Раскладывает строки дефектного акта по папкам (разделам) и создаёт/обновляет черновики АОСР:
+    отдельно демонтаж и монтаж — как в образцах заказчика."""
+    da = db["defect_acts"].get(obj["id"])
+    if not da or not da["rows"]:
+        return {"error": "Дефектный акт пуст"}
+    stats = {"folders_created": 0, "aosr_created": 0, "aosr_updated": 0, "sections": []}
+    by_section: dict[str, list] = {}
+    for r in da["rows"]:
+        by_section.setdefault(r["section"], []).append(r)
+    folders = [f for f in db["id_folders"] if f["object_id"] == obj["id"]]
+    for sec, rows in by_section.items():
+        what, verb = SECTION_TITLE.get(sec, (sec.lower(), "Монтаж"))
+        f = next((x for x in folders if x["section"] == sec), None)
+        if not f:
+            f = {"id": new_id("f"), "object_id": obj["id"], "no": max([x["no"] for x in folders], default=0) + 1,
+                 "title": f"Демонтаж-{verb.lower()} {what}" if verb == "Монтаж" else f"{verb} {what}", "section": sec,
+                 "tests": [], "journals": [{"name": "Общий журнал работ", "no": "", "sheets": 1}], "extra": []}
+            db["id_folders"].append(f)
+            folders.append(f)
+            stats["folders_created"] += 1
+        f["defect_act"] = {"no": da["no"], "date": da["date"], "sheets": da.get("sheets", 1)}
+        stats["sections"].append(sec)
+        dem = [r for r in rows if re.search(DEMOLITION, r["name"].lower())]
+        mon = [r for r in rows if r not in dem]
+        for kind, part, title in (("dem", dem, f"Демонтаж {what}"), ("mon", mon, f"{verb} {what}")):
+            if not part:
+                continue
+            vols = [{"name": r["name"], "unit": r["unit"], "qty": r["qty"]} for r in part]
+            src = f"da:{sec}:{kind}"
+            a = next((x for x in db["aosr"] if x["folder_id"] == f["id"] and x.get("source") == src), None)
+            if a:
+                # текст, поправленный вручную, не трогаем — обновляем только объёмы
+                if not a["works"] or a["works"] == works_text(title, a.get("volumes", [])):
+                    a["works"] = works_text(title, vols)
+                a["volumes"] = vols
+                stats["aosr_updated"] += 1
+                continue
+            n = len([x for x in db["aosr"] if x["folder_id"] == f["id"]]) + 1
+            house = "".join(ch for ch in obj["name"].split(",")[-1] if ch.isalnum())
+            db["aosr"].append({
+                "id": new_id("a"), "folder_id": f["id"], "source": src, "no": f"{n}/д.{house}" if house else str(n),
+                "date": "", "works": works_text(title, vols), "volumes": vols, "basis": "", "materials": [],
+                "scheme": {"no": str(n), "date": "", "sheets": 1}, "start": "", "end": "",
+                "norms": NORMS.get(sec, DEFAULT_NORMS)[:3], "next_works": "", "extra_info": "нет", "copies": 4})
+            stats["aosr_created"] += 1
+    return stats
+
+
+def summary(db) -> list[dict]:
+    """Сводка по объектам: папки ИД, ошибки, открытые замечания проверок."""
+    out = []
+    for o in db["objects"]:
+        fs = [f for f in db["id_folders"] if f["object_id"] == o["id"]]
+        ins = [i for i in db["inspections"] if i["object_id"] == o["id"]]
+        bad = warn = ready = 0
+        for f in fs:
+            lv = [x["level"] for x in check_folder(db, f)]
+            bad += lv.count("bad")
+            warn += lv.count("warn")
+            ready += lv == ["ok"]
+        out.append({"object_id": o["id"], "folders": len(fs), "ready": ready, "bad": bad, "warn": warn,
+                    "aosr": sum(1 for a in db["aosr"] if any(a["folder_id"] == f["id"] for f in fs)),
+                    "checks": len(ins), "open_remarks": sum(1 for i in ins if has_discrepancy(i) and i.get("status") != "closed"),
+                    "has_defect_act": bool((db.get("defect_acts") or {}).get(o["id"], {}).get("rows"))})
+    return out

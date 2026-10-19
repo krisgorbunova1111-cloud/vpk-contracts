@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ObjectSelect, useApp, useSelectedObject } from '../App.jsx'
 import { api, fileUrl, fmtDate } from '../api.js'
+import DefectAct from '../components/DefectAct.jsx'
+
+const TEST_FORM = /гидростатическ|манометрическ|опрессовк|промывк|продувк|равномерность прогрева/i
 
 const LEVEL = { bad: ['!', 'var(--bad)'], warn: ['!', 'var(--warn)'], ok: ['✓', 'var(--ok)'] }
 
@@ -12,6 +15,7 @@ export default function IdFolders() {
   const [sel, setSel] = useState(null)
   const [meta, setMeta] = useState(null)
   const [mats, setMats] = useState([])
+  const [version, setVersion] = useState(0) // после раскладки дефектного акта перечитываем редактор папки
 
   const load = async (keep) => {
     const f = await api.get(`/folders?object_id=${obj.id}`)
@@ -40,6 +44,8 @@ export default function IdFolders() {
         <ObjectSelect value={obj.id} onChange={select} />
       </div>
 
+      <DefectAct key={obj.id} obj={obj} sections={meta.sections} toast={toast} onBuilt={async () => { await load(sel); setVersion((v) => v + 1) }} />
+
       <div className="grid" style={{ gridTemplateColumns: 'minmax(230px, 300px) minmax(0, 1fr)', alignItems: 'start' }}>
         <div className="card stack" style={{ gap: 8 }}>
           <h2 style={{ margin: 0 }}>Папки</h2>
@@ -65,7 +71,7 @@ export default function IdFolders() {
         </div>
 
         {folder
-          ? <FolderEditor key={folder.id} folder={folder} meta={meta} mats={mats} reload={() => load(folder.id)} toast={toast} />
+          ? <FolderEditor key={folder.id + ':' + version} folder={folder} meta={meta} mats={mats} reload={() => load(folder.id)} toast={toast} />
           : <div className="card empty">Создайте первую папку — по одной на каждый вид работ из дефектного акта</div>}
       </div>
     </>
@@ -145,7 +151,8 @@ function FolderEditor({ folder, meta, mats, reload, toast }) {
       </div>
 
       <div className="grid g2">
-        <DocList title="Акты испытаний" items={f.tests} onChange={(v) => set('tests', v)} withDate />
+        <DocList title="Акты испытаний" items={f.tests} onChange={(v) => set('tests', v)} withDate
+          formUrl={(x, i) => (TEST_FORM.test(x.name) && folder.tests[i]?.name === x.name ? fileUrl(`/folders/${folder.id}/tests/${i}/docx`) : null)} />
         <div className="stack" style={{ gap: 16 }}>
           <DocList title="Журналы" items={f.journals} onChange={(v) => set('journals', v)} />
           <DocList title="Прочие документы" items={f.extra} onChange={(v) => set('extra', v)} />
@@ -177,7 +184,7 @@ function FolderEditor({ folder, meta, mats, reload, toast }) {
 
 const pick = (f) => ({ title: f.title, section: f.section, defect_act: f.defect_act, tests: f.tests, journals: f.journals, extra: f.extra })
 
-function DocList({ title, items, onChange, withDate }) {
+function DocList({ title, items, onChange, withDate, formUrl }) {
   const upd = (i, k, v) => onChange(items.map((x, j) => (j === i ? { ...x, [k]: v } : x)))
   return (
     <div className="card">
@@ -192,6 +199,7 @@ function DocList({ title, items, onChange, withDate }) {
           <input placeholder="№" value={x.no} onChange={(e) => upd(i, 'no', e.target.value)} style={{ width: 80 }} />
           {withDate && <input type="date" value={x.date || ''} onChange={(e) => upd(i, 'date', e.target.value)} style={{ width: 140 }} />}
           <input type="number" min="1" title="листов" value={x.sheets} onChange={(e) => upd(i, 'sheets', +e.target.value)} style={{ width: 64 }} />
+          {formUrl?.(x, i) && <a className="btn sm" title="Бланк акта в Word" href={formUrl(x, i)}>⬇</a>}
           <button className="btn sm ghost" title="Удалить" onClick={() => onChange(items.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
@@ -217,6 +225,7 @@ function AosrForm({ a: initial, mats, meta, section, onClose, reload, toast }) {
       </div>
       <label className="field" style={{ marginTop: 10 }}>1. Предъявленные работы (наименование и объёмы)
         <textarea rows={3} value={a.works} onChange={(e) => set('works', e.target.value)} placeholder="Монтаж системы отопления с 1-го по 9-й этаж: монтаж радиаторов — 214 шт., труб Ø25 — 790 м.п." /></label>
+      <Volumes a={a} setA={setA} />
       <label className="field" style={{ marginTop: 10 }}>2. Работы выполнены по (если пусто — дефектный акт папки)
         <input value={a.basis} onChange={(e) => set('basis', e.target.value)} placeholder="Дефектный акт № 1 от …" /></label>
       <div className="field" style={{ marginTop: 10 }}>3. Применённые материалы (сертификаты попадут в реестр папки)
@@ -251,6 +260,33 @@ function AosrForm({ a: initial, mats, meta, section, onClose, reload, toast }) {
         <button className="btn" onClick={onClose}>Свернуть</button>
         <div style={{ flex: 1 }} />
         <button className="btn ghost" onClick={del}>Удалить акт</button>
+      </div>
+    </div>
+  )
+}
+
+// Объёмы работ АОСР (из дефектного акта). Используются в п. 1 акта и при сверке в бланках проверки
+function Volumes({ a, setA }) {
+  const vols = a.volumes || []
+  const setV = (v) => setA({ ...a, volumes: v })
+  const upd = (i, k, v) => setV(vols.map((x, j) => (j === i ? { ...x, [k]: v } : x)))
+  const rebuild = () => {
+    const head = (a.works.split(':')[0] || 'Работы').trim()
+    setA({ ...a, works: head + ': ' + vols.map((v, i) => `${i ? v.name.toLowerCase() : v.name} — ${String(v.qty).replace('.', ',')} ${v.unit}`).join('; ') })
+  }
+  return (
+    <div className="field" style={{ marginTop: 10 }}>Объёмы работ (для п. 1 и для сверки при проверке)
+      {vols.map((v, i) => (
+        <div key={i} className="doc-line">
+          <input value={v.name} onChange={(e) => upd(i, 'name', e.target.value)} />
+          <input value={v.qty} onChange={(e) => upd(i, 'qty', e.target.value)} style={{ width: 90 }} />
+          <input value={v.unit} onChange={(e) => upd(i, 'unit', e.target.value)} style={{ width: 70 }} />
+          <button className="btn sm ghost" onClick={() => setV(vols.filter((_, j) => j !== i))}>✕</button>
+        </div>
+      ))}
+      <div className="row">
+        <button className="btn sm" onClick={() => setV([...vols, { name: '', unit: '', qty: '' }])}>+ объём</button>
+        {vols.length > 0 && <button className="btn sm" onClick={rebuild}>Пересобрать текст п. 1 из объёмов</button>}
       </div>
     </div>
   )

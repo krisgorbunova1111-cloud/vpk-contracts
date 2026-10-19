@@ -105,6 +105,12 @@ function InspectionForm({ insp, blank, meta, aosr, onSave, onClose, onDelete, bi
   const set = (k, v) => setX({ ...x, [k]: v })
   const setRow = (i, k, v) => set('rows', x.rows.map((r, j) => (j === i ? { ...r, [k]: v } : r)))
   const hasDiff = Object.values(x.results).includes('diff')
+  const linked = aosr.find((a) => a.id === x.aosr_id)
+  const vols = linked?.volumes || []
+  const num = (v) => { const m = String(v ?? '').replace(/\s/g, '').replace(',', '.').match(/^-?\d+(\.\d+)?/); return m ? parseFloat(m[0]) : null }
+  // расхождение «по документам» и «итог» больше 3 % — подсвечиваем
+  const gap = (r) => { const d = num(r.doc), t = num(r.total); return d && t !== null && Math.abs(t - d) / Math.abs(d) > 0.03 ? Math.round(((t - d) / d) * 100) : null }
+  const gaps = x.rows.filter((r) => gap(r) !== null).length
 
   // «Итог» = среднее двух замеров, пока пользователь не вписал своё значение
   const avg = (r) => {
@@ -157,7 +163,7 @@ function InspectionForm({ insp, blank, meta, aosr, onSave, onClose, onDelete, bi
             </div>
           </div>
         </div>
-        {x.aosr_id && <div className="hint-box" style={{ marginTop: 10 }}>По АОСР: {aosr.find((a) => a.id === x.aosr_id)?.works}</div>}
+        {linked && <div className="hint-box" style={{ marginTop: 10 }}>По АОСР № {linked.no}: {linked.works}{vols.length > 0 && ' — объёмы можно подставить в графу «По документам» кнопкой ↓ в таблице замеров.'}</div>}
       </div>
 
       <div className="card">
@@ -170,15 +176,31 @@ function InspectionForm({ insp, blank, meta, aosr, onSave, onClose, onDelete, bi
                 <tr key={i}>
                   <td>{r.name}</td>
                   <td className="muted small">{r.unit}</td>
-                  <td><input value={r.doc} onChange={(e) => setRow(i, 'doc', e.target.value)} /></td>
+                  <td>
+                    <div className="row" style={{ gap: 4, flexWrap: 'nowrap' }}>
+                      <input value={r.doc} onChange={(e) => setRow(i, 'doc', e.target.value)} />
+                      {vols.length > 0 && (
+                        <select className="pick" title="Подставить объём из АОСР" value="" onChange={(e) => e.target.value !== '' && setRow(i, 'doc', `${String(vols[e.target.value].qty).replace('.', ',')} ${vols[e.target.value].unit}`)}>
+                          <option value="">↓</option>
+                          {vols.map((v, k) => <option key={k} value={k}>{v.name} — {v.qty} {v.unit}</option>)}
+                        </select>
+                      )}
+                    </div>
+                  </td>
                   <td><input inputMode="decimal" value={r.m1} onChange={(e) => setMeasure(i, 'm1', e.target.value)} /></td>
                   <td><input inputMode="decimal" value={r.m2} onChange={(e) => setMeasure(i, 'm2', e.target.value)} /></td>
-                  <td><input value={r.total} onChange={(e) => setRow(i, 'total', e.target.value)} /></td>
+                  <td><input className={gap(r) !== null ? 'gap' : ''} title={gap(r) !== null ? `Отличается от документов на ${gap(r)} %` : ''} value={r.total} onChange={(e) => setRow(i, 'total', e.target.value)} /></td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        {gaps > 0 && (
+          <div className="hint-box" style={{ marginTop: 10, borderColor: 'var(--bad)', color: 'var(--bad)' }}>
+            Итог отличается от документов более чем на 3 % в строках: {gaps}.{' '}
+            {x.results.volumes !== 'diff' && <button className="btn sm" onClick={() => set('results', { ...x.results, volumes: 'diff' })}>Отметить «Объемы: расхождение»</button>}
+          </div>
+        )}
         <p className="muted small" style={{ marginBottom: 0 }}>Если оба замера — числа, «Итог» заполнится средним (можно исправить). Не измерено — пишите «не измерено» и источник, а не ноль.</p>
       </div>
 
