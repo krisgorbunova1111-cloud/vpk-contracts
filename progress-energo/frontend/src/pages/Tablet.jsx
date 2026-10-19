@@ -21,7 +21,7 @@ export default function Tablet() {
         <LogoMark size={36} />
         <div>
           <div style={{ fontWeight: 800 }}>{obj ? obj.name : 'Выезд на объект'}</div>
-          <div style={{ fontSize: 13, opacity: .7 }}>{obj ? obj.address : 'Прогресс Энерго · планшет'}</div>
+          <div style={{ fontSize: 13, opacity: .7 }}>{obj ? obj.address : 'ВПК Платформа · планшет'}</div>
         </div>
         <div className="spacer" />
         {obj && <button className="btn" onClick={() => nav('/tablet')}>Сменить объект</button>}
@@ -199,7 +199,7 @@ function Checklist({ obj, toast, meta, reload }) {
 
       {tab === 'scan' && <ScanTab obj={obj} toast={toast} onAI={applyAI} reload={reload} />}
 
-      <button className="btn primary scan-btn" style={{ position: 'sticky', bottom: 14, boxShadow: '0 8px 24px rgba(242,107,29,.35)' }} onClick={save}>
+      <button className="btn primary scan-btn" style={{ position: 'sticky', bottom: 14, boxShadow: '0 8px 24px rgba(62,99,221,.35)' }} onClick={save}>
         {dirty ? '💾 Сохранить и отправить в офис' : '✓ Сохранено'}
       </button>
     </div>

@@ -1,9 +1,11 @@
-/* ===== Фирменный стиль «Прогресс Энерго» ===== */
+/* ===== Фирменный стиль ВПК «Прогресс Энерго» (по логотипу) ===== */
 :root {
-  --brand: #0B2545;        /* глубокий синий — инженерия */
-  --brand-2: #13315C;
-  --accent: #F26B1D;       /* энергия — оранжевый */
-  --accent-2: #FFB020;
+  --brand: #121A36;        /* тёмно-синий из логотипа */
+  --brand-2: #22356E;
+  --brand-grad: linear-gradient(165deg, #22356E 0%, #131A33 45%, #090B14 100%);
+  --accent: #3E63DD;       /* холодный синий акцент */
+  --accent-2: #8EA6F0;
+  --steel: #A7ADBA;        /* серый надписи «ПРОГРЕСС ЭНЕРГО» */
   --bg: #F3F5F9;
   --surface: #FFFFFF;
   --surface-2: #F7F8FB;
@@ -19,8 +21,9 @@
   color-scheme: light;
 }
 :root[data-theme='dark'] {
-  --brand: #1E3A66;
-  --brand-2: #274A80;
+  --brand: #1A2650;
+  --brand-2: #2A3F80;
+  --accent: #5B7FF0;
   --bg: #0B1220;
   --surface: #111A2E;
   --surface-2: #16213A;
@@ -35,11 +38,11 @@
 html, body, #root { height: 100%; }
 body {
   margin: 0; background: var(--bg); color: var(--text);
-  font-family: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: 'Roboto', system-ui, -apple-system, 'Segoe UI', sans-serif;
   font-size: 14px; line-height: 1.45;
 }
 a { color: inherit; }
-h1 { font-size: 22px; margin: 0 0 4px; font-weight: 800; letter-spacing: -.01em; }
+h1 { font-size: 24px; margin: 0 0 4px; font-weight: 400; letter-spacing: -.01em; }
 h2 { font-size: 16px; margin: 0 0 12px; font-weight: 700; }
 h3 { font-size: 14px; margin: 0 0 8px; font-weight: 700; }
 .muted { color: var(--muted); }
@@ -48,17 +51,18 @@ h3 { font-size: 14px; margin: 0 0 8px; font-weight: 700; }
 /* ===== Каркас ===== */
 .app { display: grid; grid-template-columns: 248px 1fr; min-height: 100%; }
 .sidebar {
-  background: var(--brand); color: #fff; padding: 18px 12px;
+  background: var(--brand-grad); color: #fff; padding: 18px 12px;
   display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100vh;
 }
-.sidebar .logo { padding: 2px 8px 18px; }
+.sidebar .logo { padding: 6px 8px 4px; }
+.app-name { margin: 10px 8px 6px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.12); font-size: 11px; letter-spacing: .32em; font-weight: 300; color: var(--steel); }
 .nav-group { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; opacity: .5; padding: 14px 10px 6px; }
 .nav a {
   display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 9px;
   text-decoration: none; color: rgba(255,255,255,.78); font-weight: 600;
 }
 .nav a:hover { background: rgba(255,255,255,.07); color: #fff; }
-.nav a.active { background: rgba(255,255,255,.12); color: #fff; box-shadow: inset 3px 0 0 var(--accent); }
+.nav a.active { background: rgba(255,255,255,.12); color: #fff; box-shadow: inset 3px 0 0 var(--accent-2); }
 .nav .num {
   font-size: 10px; min-width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center;
   background: rgba(255,255,255,.1); font-weight: 800;
@@ -77,10 +81,9 @@ h3 { font-size: 14px; margin: 0 0 8px; font-weight: 700; }
 .page-head .spacer { flex: 1; }
 
 /* ===== Логотип ===== */
-.logo { display: flex; align-items: center; gap: 10px; }
-.logo-name { font-weight: 800; font-size: 15px; letter-spacing: .04em; line-height: 1.05; }
-.logo-name span { display: block; color: var(--accent); }
-.logo-sub { font-size: 10.5px; opacity: .65; letter-spacing: .05em; margin-top: 3px; }
+.logo { display: flex; align-items: center; gap: 6px; color: #fff; }
+.logo-vpk { font-size: 31px; font-weight: 300; letter-spacing: .02em; line-height: 1; margin-right: 4px; }
+.logo-name { font-size: 12.5px; font-weight: 300; letter-spacing: .06em; line-height: 1.12; color: var(--steel); }
 
 /* ===== Элементы ===== */
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; }
@@ -138,12 +141,12 @@ table.t { width: 100%; border-collapse: collapse; }
 .toast {
   position: fixed; right: 20px; bottom: 20px; background: var(--brand); color: #fff; padding: 12px 16px;
   border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,.25); z-index: 50; max-width: 420px;
-  border-left: 4px solid var(--accent);
+  border-left: 4px solid var(--accent-2);
 }
 .empty { padding: 30px; text-align: center; color: var(--muted); }
 .hint-box { background: var(--surface-2); border: 1px dashed var(--line); border-radius: 10px; padding: 12px 14px; color: var(--muted); font-size: 13px; }
 
-/* ===== Конвейер (дашборд) ===== */
+/* ===== Объекты по этапам (дашборд) ===== */
 .pipeline { display: grid; grid-template-columns: repeat(7, minmax(170px, 1fr)); gap: 10px; overflow-x: auto; padding-bottom: 6px; }
 .lane { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; min-height: 260px; }
 .lane-head { display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 12.5px; margin-bottom: 10px; }
@@ -182,7 +185,7 @@ table.t { width: 100%; border-collapse: collapse; }
 
 /* ===== Планшет ===== */
 .tablet { min-height: 100vh; background: var(--bg); font-size: 17px; }
-.tablet-top { display: flex; align-items: center; gap: 14px; padding: 14px 20px; background: var(--brand); color: #fff; position: sticky; top: 0; z-index: 5; }
+.tablet-top { display: flex; align-items: center; gap: 14px; padding: 14px 20px; background: var(--brand-grad); color: #fff; position: sticky; top: 0; z-index: 5; }
 .tablet-top .spacer { flex: 1; }
 .tablet .btn { padding: 14px 20px; font-size: 16px; border-radius: 12px; min-height: 52px; }
 .tablet input, .tablet select, .tablet textarea { font-size: 17px; padding: 14px; border-radius: 12px; }

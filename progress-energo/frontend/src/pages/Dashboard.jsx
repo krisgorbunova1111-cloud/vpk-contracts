@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useApp } from '../App.jsx'
 import { api, fmtDate, PRIORITY } from '../api.js'
 
-// Где по объекту продолжать работу на каждом этапе конвейера
+// Где по объекту продолжать работу на каждом этапе
 const STAGE_LINK = { plan: '/planning', field: '/tablet', cloud: '/clouds', office: '/docs', design: '/estimate', print: '/docs', done: '/docs' }
 
 export default function Dashboard() {
@@ -26,7 +26,7 @@ export default function Dashboard() {
     <>
       <div className="page-head">
         <div>
-          <h1>Конвейер объектов</h1>
+          <h1>Объекты по этапам</h1>
           <div className="muted">От выезда до готового тома: каждый объект движется по одним и тем же шагам</div>
         </div>
       </div>

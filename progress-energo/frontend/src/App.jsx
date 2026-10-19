@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { api } from './api.js'
-import Logo from './components/Logo.jsx'
+import Logo, { APP_NAME } from './components/Logo.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import Planning from './pages/Planning.jsx'
 import Tablet from './pages/Tablet.jsx'
@@ -17,7 +17,7 @@ export const useApp = () => useContext(Ctx)
 
 // Пункты меню; roles — для кого пункт «свой» (показывается в верхней группе)
 const NAV = [
-  { to: '/', num: '★', label: 'Конвейер объектов', roles: ['dispatcher', 'engineer', 'designer', 'archivist'] },
+  { to: '/', num: '★', label: 'Объекты по этапам', roles: ['dispatcher', 'engineer', 'designer', 'archivist'] },
   { to: '/planning', num: '1', label: 'Планирование', roles: ['dispatcher'] },
   { to: '/tablet', num: '2', label: 'Планшет (выезд)', roles: ['scanner', 'dispatcher'] },
   { to: '/clouds', num: '3', label: 'Облака точек и ИИ', roles: ['engineer', 'scanner'] },
@@ -82,6 +82,7 @@ export default function App() {
         <div className="app">
           <aside className="sidebar">
             <Logo />
+            <div className="app-name">{APP_NAME.split(' ')[1].toUpperCase()}</div>
             <div className="nav-group">Мои модули</div>
             <nav className="nav">
               {mine.map((n) => <NavItem key={n.to} {...n} />)}
@@ -90,7 +91,7 @@ export default function App() {
             <nav className="nav">
               {other.map((n) => <NavItem key={n.to} {...n} />)}
             </nav>
-            <div className="sidebar-foot">ООО ВПК «Прогресс Энерго»<br />Прототип v0.1 · демо-данные</div>
+            <div className="sidebar-foot">ООО ВПК «Прогресс Энерго»<br />{APP_NAME} · прототип v0.1</div>
           </aside>
           <div className="main">
             <header className="topbar">

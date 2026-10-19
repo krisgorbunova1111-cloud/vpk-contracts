@@ -1,4 +1,4 @@
-"""API «Конвейер ИД» — ООО ВПК «Прогресс Энерго».
+"""API «ВПК Платформа» — ООО ВПК «Прогресс Энерго».
 
 Запуск:  python -m uvicorn app.main:app --port 8010   (из папки backend)
 Документация API появляется автоматически: http://localhost:8010/docs
@@ -17,7 +17,7 @@ from . import calc, docgen
 from .seed import BUILDING_TYPES, ROLES, STAGES, SYSTEMS
 from .store import UPLOADS, store
 
-app = FastAPI(title="Конвейер ИД — Прогресс Энерго", version="0.1-прототип")
+app = FastAPI(title="ВПК Платформа — ВПК «Прогресс Энерго»", version="0.1-прототип")
 
 DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 CLOUD_FORMATS = {"las", "laz", "e57", "ptx"}
@@ -413,7 +413,7 @@ def export_grand(oid: str):
         f'Basis="{escape(l["basis"])}"/>'
         for i, l in enumerate(e["lines"]))
     xml = (f'<?xml version="1.0" encoding="UTF-8"?>\n'
-           f'<Document Program="ProgressEnergo-Konveyer" Version="0.1">\n'
+           f'<Document Program="VPK-Platforma" Version="0.1">\n'
            f'  <Properties Caption="Смета на ПИР: {escape(o["name"])}" Address="{escape(o["address"])}" '
            f'Code="{o["code"]}" VAT="{int(e["vat_rate"] * 100)}"/>\n'
            f'  <Chapter Caption="Проектно-изыскательские работы">\n{rows}\n  </Chapter>\n'
@@ -426,7 +426,7 @@ def export_grand(oid: str):
 def export_axon(oid: str):
     """Пакет данных для «Аксон» (СОУ/РД). Формат-заглушка до получения API Аксона."""
     o = _obj(oid)
-    payload = {"source": "ProgressEnergo-Konveyer", "object": o, "checklist": store.checklist(oid),
+    payload = {"source": "VPK-Platforma", "object": o, "checklist": store.checklist(oid),
                "plan": calc.floor_plan(o),
                "tags": [t for t in store.db["tags"] if t["object_id"] == oid]}
     return _attachment(json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8"),
