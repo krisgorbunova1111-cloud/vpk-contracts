@@ -118,7 +118,7 @@ def del_folder(fid: str):
     return {"ok": True}
 
 
-AOSR_FIELDS = ("no", "date", "works", "volumes", "basis", "materials", "scheme", "start", "end", "norms", "next_works", "extra_info", "copies")
+AOSR_FIELDS = ("signers", "no", "date", "works", "volumes", "basis", "materials", "scheme", "start", "end", "norms", "next_works", "extra_info", "copies")
 
 
 @router.post("/aosr")

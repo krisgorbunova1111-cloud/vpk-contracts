@@ -225,21 +225,35 @@ def load_local_examples() -> list[dict]:
 
 
 def merge_example(db: dict, ex: dict) -> bool:
-    """Добавляет в базу записи примера, которых в ней ещё нет. Объекты примера — в начало списка."""
-    changed = False
+    """Подмешивает пример в базу. Объекты примера — в начало списка.
+
+    Если у примера новая версия (_meta.version), его записи заменяют прежние
+    (правки, сделанные в самих записях примера, при этом сбрасываются).
+    Иначе добавляются только недостающие записи."""
+    meta = ex.get("_meta") or {}
+    versions = db.setdefault("_examples", {})
+    replace = bool(meta) and versions.get(meta.get("name")) != meta.get("version")
+    changed = replace
     for key, val in ex.items():
+        if key == "_meta":
+            continue
         if isinstance(val, list):
-            have = {x["id"] for x in db.setdefault(key, [])}
+            ids = {x["id"] for x in val}
+            cur = db.setdefault(key, [])
+            if replace:
+                cur = [x for x in cur if x["id"] not in ids]
+            have = {x["id"] for x in cur}
             new = [x for x in val if x["id"] not in have]
-            if new:
-                db[key] = new + db[key] if key == "objects" else db[key] + new
-                changed = True
+            changed = changed or bool(new)
+            db[key] = new + cur if key == "objects" else cur + new
         elif isinstance(val, dict):
             target = db.setdefault(key, {})
             for k, v in val.items():
-                if k not in target:
+                if replace or k not in target:
+                    changed = changed or target.get(k) != v
                     target[k] = v
-                    changed = True
+    if meta:
+        versions[meta.get("name")] = meta.get("version")
     return changed
 
 
