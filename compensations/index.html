@@ -177,6 +177,8 @@ body.locked>header,body.locked>.stats,body.locked>main,body.locked>#modal-root{d
 .login-title{font-size:19px;font-weight:700;margin-bottom:4px;}
 .login-sub{font-size:12.5px;color:var(--muted);margin-bottom:18px;}
 .login-err{min-height:18px;font-size:12.5px;color:var(--red);margin-bottom:10px;}
+.login-link{display:block;text-align:center;margin-top:12px;font-size:12px;color:var(--muted);text-decoration:none;}
+.login-link:hover{color:var(--text);}
 .who{font-size:11px;color:var(--muted2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 </style>
 </head>
@@ -188,6 +190,7 @@ body.locked>header,body.locked>.stats,body.locked>main,body.locked>#modal-root{d
     <div class="sync">
       <span class="dot" id="sync-dot"></span><span id="sync-text">Загрузка…</span>
       <span class="who" id="who"></span>
+      <button class="theme-btn" id="admin-btn" onclick="openUsers()" title="Пользователи сайта" style="display:none">👤</button>
       <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Тема">🌙</button>
       <button class="theme-btn" id="logout-btn" onclick="logout()" title="Выйти">🚪</button>
     </div>
@@ -394,31 +397,124 @@ function showLogin(msg){
   document.body.classList.add('locked');
   const who=document.getElementById('who');
   if(who)who.textContent='';
+  const ab=document.getElementById('admin-btn');
+  if(ab)ab.style.display='none';
   const saved=(()=>{try{return localStorage.getItem(EMAIL_KEY)||'';}catch(e){return '';}})();
   document.getElementById('login-root').innerHTML=`
   <div class="login-wrap">
     <form class="login-card" onsubmit="return doLogin(event)">
       <div class="login-title">💰 Компенсации сотрудникам</div>
       <div class="login-sub">Вход только для сотрудников</div>
-      <div class="field"><label>Логин (email)</label><input type="email" id="login-email" autocomplete="username" required value="${esc(saved)}"></div>
+      <div class="field"><label>Логин</label><input type="text" id="login-email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required value="${esc(saved)}"></div>
       <div class="field"><label>Пароль</label><input type="password" id="login-pass" autocomplete="current-password" required></div>
       <label class="remember"><input type="checkbox" id="login-remember"> Запомнить меня на этом компьютере</label>
       <div class="login-err" id="login-err"></div>
       <button class="btn primary" id="login-btn" type="submit" style="width:100%">Войти</button>
+      <a href="#" class="login-link" onclick="return showBootstrap()">Первый запуск? Создать администратора</a>
     </form>
   </div>`;
   document.getElementById('login-err').textContent=msg||'';
   setTimeout(()=>{const el=document.getElementById(saved?'login-pass':'login-email');if(el)el.focus();},50);
 }
+// Users sign in with a plain login ("ivanov"); Supabase Auth wants an email, so it is "ivanov@comp.local" behind the scenes.
+const LOGIN_DOMAIN='comp.local';
+const ID_RE=/^[0-9a-f-]{36}$/;
+function loginToEmail(v){
+  v=String(v||'').trim();
+  return v.includes('@')?v:v.toLowerCase()+'@'+LOGIN_DOMAIN;
+}
+function loginOfEmail(e){
+  e=String(e||'');
+  return e.endsWith('@'+LOGIN_DOMAIN)?e.slice(0,-(LOGIN_DOMAIN.length+1)):e;
+}
+// UI only (shows/hides the admin button); the server re-checks the admin role on every admin call
+function jwtClaims(t){
+  try{
+    let p=String(t).split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+    p+='='.repeat((4-p.length%4)%4);
+    return JSON.parse(atob(p));
+  }catch(e){return {};}
+}
+function isAdminSession(){
+  if(!session)return false;
+  const m=jwtClaims(session.access_token).app_metadata||{};
+  return m.role==='admin'&&m.comp_access===true;
+}
 function hideLogin(){
   document.body.classList.remove('locked');
   document.getElementById('login-root').innerHTML='';
   const who=document.getElementById('who');
-  if(who)who.textContent=(session&&session.email)||'';
+  if(who)who.textContent=session?loginOfEmail(session.email):'';
+  const ab=document.getElementById('admin-btn');
+  if(ab)ab.style.display=isAdminSession()?'':'none';
+}
+function finishLogin(s,remember,loginName){
+  s.remember=remember;
+  saveSession(s);
+  try{localStorage.setItem(EMAIL_KEY,loginName);}catch(e){}
+  hideLogin();
+  render();
+  syncAndRender().catch(()=>{}); // a data-load failure must not be reported as a failed sign-in
+}
+async function adminCall(action,payload,noAuth){
+  const token=noAuth?SUPABASE_KEY:await accessToken();
+  const r=await fetch(SUPABASE_URL+'/functions/v1/comp-admin',{
+    method:'POST',
+    headers:{'Content-Type':'application/json',apikey:SUPABASE_KEY,Authorization:'Bearer '+token},
+    body:JSON.stringify(Object.assign({action},payload||{}))
+  });
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.error||('Ошибка '+r.status));
+  return d;
+}
+function showBootstrap(){
+  document.getElementById('login-root').innerHTML=`
+  <div class="login-wrap">
+    <form class="login-card" onsubmit="return doBootstrap(event)" autocomplete="off">
+      <div class="login-title">Первый запуск</div>
+      <div class="login-sub">Создайте администратора — он будет выдавать логины и пароли сотрудникам.</div>
+      <div class="field"><label>Код настройки</label><input type="text" id="bs-code" autocomplete="off" autocapitalize="none" spellcheck="false" required></div>
+      <div class="field"><label>Логин администратора (латиницей)</label><input type="text" id="bs-login" autocomplete="off" autocapitalize="none" spellcheck="false" required></div>
+      <div class="field"><label>Пароль (от 8 символов)</label><input type="password" id="bs-pass" autocomplete="new-password" required></div>
+      <div class="field"><label>Повторите пароль</label><input type="password" id="bs-pass2" autocomplete="new-password" required></div>
+      <div class="login-err" id="login-err"></div>
+      <button class="btn primary" id="bs-btn" type="submit" style="width:100%">Создать и войти</button>
+      <a href="#" class="login-link" onclick="return backToLogin()">← Назад ко входу</a>
+    </form>
+  </div>`;
+  return false;
+}
+function backToLogin(){showLogin();return false;}
+function doBootstrap(ev){
+  ev.preventDefault();
+  const code=document.getElementById('bs-code').value.trim();
+  const login=document.getElementById('bs-login').value.trim();
+  const p1=document.getElementById('bs-pass').value;
+  const p2=document.getElementById('bs-pass2').value;
+  const err=document.getElementById('login-err');
+  const btn=document.getElementById('bs-btn');
+  err.textContent='';
+  if(!/^[A-Za-z0-9._-]{3,32}$/.test(login)){err.textContent='Логин: 3–32 символа, латиница, цифры, . _ -';return false;}
+  if(p1.length<8){err.textContent='Пароль — не короче 8 символов';return false;}
+  if(p1!==p2){err.textContent='Пароли не совпадают';return false;}
+  btn.disabled=true;btn.textContent='Создаём…';
+  adminCall('bootstrap',{setup_code:code,login,password:p1},true)
+    .then(()=>authToken('password',{email:loginToEmail(login),password:p1}).then(s=>finishLogin(s,false,login),()=>{
+      throw new Error('Администратор создан. Вернитесь ко входу и войдите с этим логином и паролем.');
+    }))
+    .catch(e=>{
+      const el=document.getElementById('login-err');
+      if(!el)return;
+      el.textContent=e.message||'Не удалось создать администратора';
+      const b=document.getElementById('bs-btn');
+      if(b){b.disabled=false;b.textContent='Создать и войти';}
+    });
+  return false;
 }
 function doLogin(ev){
   ev.preventDefault();
-  const email=document.getElementById('login-email').value.trim();
+  const login=document.getElementById('login-email').value.trim();
+  const email=loginToEmail(login);
   const pass=document.getElementById('login-pass').value;
   const remember=document.getElementById('login-remember').checked;
   const btn=document.getElementById('login-btn');
@@ -426,14 +522,7 @@ function doLogin(ev){
   err.textContent='';
   btn.disabled=true;btn.textContent='Входим…';
   authToken('password',{email,password:pass})
-    .then(s=>{
-      s.remember=remember;
-      saveSession(s);
-      try{localStorage.setItem(EMAIL_KEY,email);}catch(e){}
-      hideLogin();
-      render();
-      syncAndRender().catch(()=>{}); // a data-load failure must not be reported as a failed sign-in
-    })
+    .then(s=>finishLogin(s,remember,login))
     .catch(e=>{
       const el=document.getElementById('login-err');
       if(!el)return; // already signed in and the form is gone
@@ -455,6 +544,121 @@ async function logout(){
     // best effort: revoke this device's refresh token only (scope=local), so a shared account isn't signed out everywhere
     try{await fetch(AUTH+'logout?scope=local',{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+token}});}catch(e){}
   }
+}
+
+// ---- site users (administrator only; the server re-checks the role on every call) ----
+let usersCache=[];
+function genPassword(){
+  const abc='abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const a=new Uint32Array(12);
+  crypto.getRandomValues(a);
+  return Array.from(a,x=>abc[x%abc.length]).join('');
+}
+function usersMsg(text,ok){
+  const el=document.getElementById('users-msg');
+  if(!el)return;
+  el.textContent=text||'';
+  el.style.color=ok?'var(--green)':'var(--red)';
+}
+async function openUsers(){
+  if(!session||!isAdminSession())return;
+  document.getElementById('modal-root').innerHTML=`
+  <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal" style="max-width:560px">
+      <h3>Пользователи сайта</h3>
+      <div class="note" style="margin-bottom:10px">Здесь вы выдаёте логины и пароли сотрудникам. Пароль потом посмотреть нельзя — только задать новый.</div>
+      <div id="users-msg" class="login-err"></div>
+      <div id="users-list"><div class="pay-empty">Загрузка…</div></div>
+      <div class="form-section-title">Добавить пользователя</div>
+      <div class="row2">
+        <div class="field"><label>Логин (латиницей)</label><input type="text" id="nu-login" autocomplete="off" autocapitalize="none" spellcheck="false"></div>
+        <div class="field"><label>Пароль (от 8 символов)</label>
+          <div style="display:flex;gap:6px"><input type="text" id="nu-pass" autocomplete="off" style="flex:1;min-width:0"><button type="button" class="icon-btn" style="width:36px;height:auto" title="Сгенерировать пароль" onclick="document.getElementById('nu-pass').value=genPassword()">🎲</button></div>
+        </div>
+      </div>
+      <label class="remember"><input type="checkbox" id="nu-admin"> Администратор (может выдавать доступ другим)</label>
+      <div class="modal-actions">
+        <button class="btn ghost" onclick="closeModal()">Закрыть</button>
+        <button class="btn primary" onclick="createSiteUser()">Добавить</button>
+      </div>
+    </div>
+  </div>`;
+  await refreshUsers();
+}
+async function refreshUsers(){
+  try{
+    const d=await adminCall('list',{});
+    usersCache=d.users||[];
+    renderUsers();
+  }catch(e){
+    const box=document.getElementById('users-list');
+    if(box)box.textContent='Не удалось загрузить список: '+e.message;
+  }
+}
+function renderUsers(){
+  const box=document.getElementById('users-list');
+  if(!box||!session)return;
+  const myLogin=loginOfEmail(session.email);
+  const rows=usersCache.filter(u=>ID_RE.test(String(u.id))).map(u=>{
+    const me=u.login===myLogin;
+    const seen=u.last_sign_in_at?('последний вход '+new Date(u.last_sign_in_at).toLocaleDateString('ru-RU')):'ещё не входил(а)';
+    return `<div class="emp-row"><div style="min-width:0;flex:1">
+      <div class="emp-row-name">${esc(u.login)}${u.role==='admin'?' <span class="badge muted">админ</span>':''}${me?' <span class="badge muted">это вы</span>':''}</div>
+      <div class="note">${esc(seen)}</div>
+      <div id="pw-${u.id}"></div></div>
+      <div class="card-actions">
+        <button class="icon-btn" title="Сменить пароль" onclick="showPwForm('${u.id}')">🔑</button>
+        ${me?'':`<button class="icon-btn danger" title="Удалить" onclick="deleteSiteUser('${u.id}')">🗑</button>`}
+      </div></div>`;
+  });
+  box.innerHTML=rows.join('')||'<div class="pay-empty">Пользователей нет</div>';
+}
+function showPwForm(id){
+  if(!ID_RE.test(id))return;
+  const box=document.getElementById('pw-'+id);
+  if(!box)return;
+  box.innerHTML=`<div style="display:flex;gap:6px;margin-top:6px">
+    <input type="text" id="pwv-${id}" placeholder="Новый пароль" autocomplete="off" style="flex:1;min-width:0;padding:7px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-size:12.5px;outline:none">
+    <button type="button" class="icon-btn" style="width:30px" title="Сгенерировать пароль" onclick="document.getElementById('pwv-${id}').value=genPassword()">🎲</button>
+    <button type="button" class="btn-sm" onclick="saveSitePw('${id}')">Сохранить</button></div>`;
+}
+async function saveSitePw(id){
+  if(!ID_RE.test(id))return;
+  const el=document.getElementById('pwv-'+id);
+  const pw=el?el.value:'';
+  const u=usersCache.find(x=>x.id===id);
+  if(pw.length<8){usersMsg('Пароль — не короче 8 символов',false);return;}
+  try{
+    await adminCall('set_password',{id,password:pw});
+    usersMsg('Пароль для «'+(u?u.login:'')+'» изменён. Новый пароль: '+pw+' — передайте его человеку.',true);
+    const box=document.getElementById('pw-'+id);
+    if(box)box.innerHTML='';
+  }catch(e){usersMsg(e.message,false);}
+}
+async function createSiteUser(){
+  const login=document.getElementById('nu-login').value.trim();
+  const pw=document.getElementById('nu-pass').value;
+  const admin=document.getElementById('nu-admin').checked;
+  if(!/^[A-Za-z0-9._-]{3,32}$/.test(login)){usersMsg('Логин: 3–32 символа, латиница, цифры, . _ -',false);return;}
+  if(pw.length<8){usersMsg('Пароль — не короче 8 символов',false);return;}
+  try{
+    const d=await adminCall('create',{login,password:pw,role:admin?'admin':'user'});
+    usersMsg('Создан: логин '+d.user.login+', пароль '+pw+' — передайте это человеку.',true);
+    document.getElementById('nu-login').value='';
+    document.getElementById('nu-pass').value='';
+    document.getElementById('nu-admin').checked=false;
+    await refreshUsers();
+  }catch(e){usersMsg(e.message,false);}
+}
+async function deleteSiteUser(id){
+  if(!ID_RE.test(id))return;
+  const u=usersCache.find(x=>x.id===id);
+  if(!confirm('Удалить пользователя «'+(u?u.login:'')+'»? Он больше не сможет войти.'))return;
+  try{
+    await adminCall('delete',{id});
+    usersMsg('Пользователь удалён.',true);
+    await refreshUsers();
+  }catch(e){usersMsg(e.message,false);}
 }
 
 // ---- data access (every request carries the signed-in user's token) ----
