@@ -139,7 +139,7 @@ main{max-width:1200px;margin:0 auto;padding:16px;}
 .modal h3{margin:0 0 14px;font-size:17px;color:var(--text);}
 .field{margin-bottom:12px;}
 .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;}
-.field input[type=text],.field input[type=number],.field input[type=date],.field textarea,.field select{width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-size:14px;outline:none;font-family:inherit;}
+.field input[type=text],.field input[type=number],.field input[type=date],.field input[type=email],.field input[type=password],.field textarea,.field select{width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-size:14px;outline:none;font-family:inherit;}
 .field input:focus,.field textarea:focus,.field select:focus{border-color:var(--pink);}
 .field textarea{resize:vertical;min-height:50px;}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
@@ -168,6 +168,16 @@ main{max-width:1200px;margin:0 auto;padding:16px;}
 .emp-row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
 .emp-row:last-child{border-bottom:none;}
 .emp-row-name{font-weight:700;font-size:14px;}
+
+body.locked>header,body.locked>.stats,body.locked>main,body.locked>#modal-root{display:none;}
+.remember{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);margin:2px 0 10px;cursor:pointer;}
+.remember input{width:auto;margin:0;}
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;}
+.login-card{width:100%;max-width:360px;background:var(--modal-bg);border:1px solid var(--border);border-radius:16px;padding:24px;box-shadow:var(--shadow);}
+.login-title{font-size:19px;font-weight:700;margin-bottom:4px;}
+.login-sub{font-size:12.5px;color:var(--muted);margin-bottom:18px;}
+.login-err{min-height:18px;font-size:12.5px;color:var(--red);margin-bottom:10px;}
+.who{font-size:11px;color:var(--muted2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 </style>
 </head>
 <body>
@@ -177,7 +187,9 @@ main{max-width:1200px;margin:0 auto;padding:16px;}
     <div class="title"><span>💰</span> Компенсации сотрудникам</div>
     <div class="sync">
       <span class="dot" id="sync-dot"></span><span id="sync-text">Загрузка…</span>
+      <span class="who" id="who"></span>
       <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Тема">🌙</button>
+      <button class="theme-btn" id="logout-btn" onclick="logout()" title="Выйти">🚪</button>
     </div>
   </div>
   <div class="toolbar">
@@ -205,6 +217,7 @@ main{max-width:1200px;margin:0 auto;padding:16px;}
 </main>
 
 <div id="modal-root"></div>
+<div id="login-root"></div>
 
 <script>
 const SUPABASE_URL='https://urfnpjumxkewyizaxgns.supabase.co';
@@ -245,44 +258,243 @@ function setSyncStatus(kind,msg){
   txt.textContent=msg;
 }
 
+// ---- authentication (Supabase Auth, email + password) ----
+// Data access is enforced by the database (RLS: authenticated users only), not by this screen.
+const AUTH=SUPABASE_URL+'/auth/v1/';
+const SESSION_KEY='comp_session_v1';
+const EMAIL_KEY='comp_login_email';
+let session=null;
+let refreshing=null;
+
+// By default the session lives in sessionStorage (cleared when the tab closes). The "remember" checkbox
+// keeps it in localStorage instead -- convenient, but readable by every page on this github.io origin.
+function storageOf(remember){
+  try{return remember?window.localStorage:window.sessionStorage;}catch(e){return null;}
+}
+function loadSession(){
+  for(const rem of [false,true]){
+    const st=storageOf(rem);
+    if(!st)continue;
+    try{
+      const s=JSON.parse(st.getItem(SESSION_KEY)||'null');
+      if(s&&s.refresh_token&&s.access_token&&Number.isFinite(s.expires_at)){s.remember=rem;return s;}
+    }catch(e){}
+  }
+  return null;
+}
+function saveSession(s){
+  session=s;
+  [true,false].forEach(rem=>{
+    const st=storageOf(rem);
+    if(st){try{st.removeItem(SESSION_KEY);}catch(e){}}
+  });
+  if(s){
+    const st=storageOf(!!s.remember);
+    if(st){try{st.setItem(SESSION_KEY,JSON.stringify(s));}catch(e){}}
+  }
+}
+// another tab signed out / refreshed the shared (remembered) session
+window.addEventListener('storage',e=>{
+  if(e.key!==SESSION_KEY||!session||!session.remember)return;
+  if(!e.newValue){session=null;showLogin('Вы вышли в другой вкладке');return;}
+  try{
+    const s=JSON.parse(e.newValue);
+    if(s&&s.refresh_token&&s.access_token){s.remember=true;session=s;}
+  }catch(x){}
+});
+async function authToken(grant,body){
+  const r=await fetch(AUTH+'token?grant_type='+grant,{
+    method:'POST',
+    headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},
+    body:JSON.stringify(body)
+  });
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok||!data.access_token){
+    const err=new Error(data.error_description||data.msg||('auth '+r.status));
+    err.status=r.status;
+    throw err;
+  }
+  return {
+    access_token:data.access_token,
+    refresh_token:data.refresh_token,
+    expires_at:data.expires_at||(Math.floor(Date.now()/1000)+(data.expires_in||3600)),
+    email:(data.user&&data.user.email)||(session&&session.email)||''
+  };
+}
+async function refreshSession(){
+  if(!session)throw new Error('no session');
+  if(session.remember){
+    // refresh tokens are single-use: if another tab already rotated it, adopt that fresher session instead
+    const stored=loadSession();
+    if(stored&&stored.remember&&stored.refresh_token!==session.refresh_token&&stored.expires_at-60>Math.floor(Date.now()/1000)){
+      session=stored;
+      return;
+    }
+  }
+  if(!refreshing){
+    const rt=session.refresh_token;
+    refreshing=authToken('refresh_token',{refresh_token:rt})
+      .then(s=>{
+        // ignore a late refresh result if the user signed out (or signed in as someone else) meanwhile
+        if(session&&session.refresh_token===rt){s.remember=!!session.remember;saveSession(s);}
+      })
+      .catch(e=>{
+        // only drop the session when the server says the token is no longer valid, not on network errors
+        if((e.status===400||e.status===401||e.status===403)&&session&&session.refresh_token===rt)saveSession(null);
+        throw e;
+      })
+      .finally(()=>{refreshing=null;});
+  }
+  return refreshing;
+}
+async function accessToken(){
+  if(!session)throw new Error('not signed in');
+  if(session.expires_at-60<Math.floor(Date.now()/1000))await refreshSession();
+  return session.access_token;
+}
+async function restFetch(url,opts){
+  opts=opts||{};
+  const send=async()=>{
+    const token=await accessToken();
+    return fetch(url,Object.assign({},opts,{
+      headers:Object.assign({},opts.headers||{},{apikey:SUPABASE_KEY,Authorization:'Bearer '+token})
+    }));
+  };
+  let r;
+  try{r=await send();}
+  catch(e){
+    // session is gone (refresh token rejected / signed out): back to the login screen instead of a vague error
+    if(!session&&!document.body.classList.contains('locked'))showLogin('Сессия истекла, войдите снова');
+    throw e;
+  }
+  if(r.status===401){
+    // token rejected (revoked / clock skew): one refresh attempt, then back to the login screen
+    try{await refreshSession();}
+    catch(e){
+      // a network error keeps the session (and just reports the failure); an auth rejection already cleared it
+      if(!session&&!document.body.classList.contains('locked'))showLogin('Сессия истекла, войдите снова');
+      throw e;
+    }
+    r=await send();
+    if(r.status===401){saveSession(null);showLogin('Сессия истекла, войдите снова');}
+  }
+  return r;
+}
+
+function showLogin(msg){
+  if(document.body.classList.contains('locked')&&document.getElementById('login-email')){
+    // form already on screen (e.g. several parallel requests failed): just update the message, keep what's typed
+    const el=document.getElementById('login-err');
+    if(msg&&el)el.textContent=msg;
+    return;
+  }
+  closeModal();
+  employees=[];items=[];
+  render(); // wipe cards/stats from the DOM, not just hide them
+  document.body.classList.add('locked');
+  const who=document.getElementById('who');
+  if(who)who.textContent='';
+  const saved=(()=>{try{return localStorage.getItem(EMAIL_KEY)||'';}catch(e){return '';}})();
+  document.getElementById('login-root').innerHTML=`
+  <div class="login-wrap">
+    <form class="login-card" onsubmit="return doLogin(event)">
+      <div class="login-title">💰 Компенсации сотрудникам</div>
+      <div class="login-sub">Вход только для сотрудников</div>
+      <div class="field"><label>Логин (email)</label><input type="email" id="login-email" autocomplete="username" required value="${esc(saved)}"></div>
+      <div class="field"><label>Пароль</label><input type="password" id="login-pass" autocomplete="current-password" required></div>
+      <label class="remember"><input type="checkbox" id="login-remember"> Запомнить меня на этом компьютере</label>
+      <div class="login-err" id="login-err"></div>
+      <button class="btn primary" id="login-btn" type="submit" style="width:100%">Войти</button>
+    </form>
+  </div>`;
+  document.getElementById('login-err').textContent=msg||'';
+  setTimeout(()=>{const el=document.getElementById(saved?'login-pass':'login-email');if(el)el.focus();},50);
+}
+function hideLogin(){
+  document.body.classList.remove('locked');
+  document.getElementById('login-root').innerHTML='';
+  const who=document.getElementById('who');
+  if(who)who.textContent=(session&&session.email)||'';
+}
+function doLogin(ev){
+  ev.preventDefault();
+  const email=document.getElementById('login-email').value.trim();
+  const pass=document.getElementById('login-pass').value;
+  const remember=document.getElementById('login-remember').checked;
+  const btn=document.getElementById('login-btn');
+  const err=document.getElementById('login-err');
+  err.textContent='';
+  btn.disabled=true;btn.textContent='Входим…';
+  authToken('password',{email,password:pass})
+    .then(s=>{
+      s.remember=remember;
+      saveSession(s);
+      try{localStorage.setItem(EMAIL_KEY,email);}catch(e){}
+      hideLogin();
+      render();
+      syncAndRender().catch(()=>{}); // a data-load failure must not be reported as a failed sign-in
+    })
+    .catch(e=>{
+      const el=document.getElementById('login-err');
+      if(!el)return; // already signed in and the form is gone
+      if(e.status===400||e.status===401)el.textContent='Неверный логин или пароль';
+      else if(e.status===429)el.textContent='Слишком много попыток — подождите минуту';
+      else el.textContent='Не удалось войти. Проверьте соединение.';
+      const b=document.getElementById('login-btn');
+      if(b){b.disabled=false;b.textContent='Войти';}
+      const p=document.getElementById('login-pass');
+      if(p){p.value='';p.focus();}
+    });
+  return false;
+}
+async function logout(){
+  const token=session&&session.access_token;
+  saveSession(null);
+  showLogin();
+  if(token){
+    // best effort: revoke this device's refresh token only (scope=local), so a shared account isn't signed out everywhere
+    try{await fetch(AUTH+'logout?scope=local',{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+token}});}catch(e){}
+  }
+}
+
+// ---- data access (every request carries the signed-in user's token) ----
 const REST=SUPABASE_URL+'/rest/v1/';
-const REST_HEADERS={apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY};
 
 async function apiGet(table){
-  const r=await fetch(REST+table+'?select=*',{headers:REST_HEADERS});
+  const r=await restFetch(REST+table+'?select=*');
   if(!r.ok)throw new Error('GET '+table+' — '+r.status);
   return r.json();
 }
 async function apiInsert(table,row){
-  const r=await fetch(REST+table,{
+  const r=await restFetch(REST+table,{
     method:'POST',
-    headers:Object.assign({'Content-Type':'application/json',Prefer:'return=representation'},REST_HEADERS),
+    headers:{'Content-Type':'application/json',Prefer:'return=representation'},
     body:JSON.stringify(row)
   });
   if(!r.ok)throw new Error('INSERT '+table+' — '+r.status);
   return r.json();
 }
 async function apiUpdate(table,id,patch){
-  const r=await fetch(REST+table+'?id=eq.'+id,{
+  const r=await restFetch(REST+table+'?id=eq.'+id,{
     method:'PATCH',
-    headers:Object.assign({'Content-Type':'application/json',Prefer:'return=minimal'},REST_HEADERS),
+    headers:{'Content-Type':'application/json',Prefer:'return=minimal'},
     body:JSON.stringify(patch)
   });
   if(!r.ok)throw new Error('UPDATE '+table+' — '+r.status);
 }
 async function apiDelete(table,col,id){
-  const r=await fetch(REST+table+'?'+col+'=eq.'+id,{method:'DELETE',headers:REST_HEADERS});
+  const r=await restFetch(REST+table+'?'+col+'=eq.'+id,{method:'DELETE'});
   if(!r.ok)throw new Error('DELETE '+table+' — '+r.status);
 }
 async function apiQuery(table,query){
-  const r=await fetch(REST+table+'?'+query,{headers:REST_HEADERS});
+  const r=await restFetch(REST+table+'?'+query);
   if(!r.ok)throw new Error('GET '+table+' — '+r.status);
   return r.json();
 }
 async function apiRpc(fn,args){
-  const r=await fetch(REST+'rpc/'+fn,{
+  const r=await restFetch(REST+'rpc/'+fn,{
     method:'POST',
-    headers:Object.assign({'Content-Type':'application/json'},REST_HEADERS),
+    headers:{'Content-Type':'application/json'},
     body:JSON.stringify(args)
   });
   if(!r.ok)throw new Error('RPC '+fn+' — '+r.status);
@@ -292,6 +504,7 @@ async function syncAndRender(){
   setSyncStatus('busy','Синхронизация…');
   try{
     const [emps,recs,pays]=await Promise.all([apiGet('comp_employees'),apiGet('comp_records'),apiGet('comp_payments')]);
+    if(!session)return; // signed out while the request was in flight: don't repaint data behind the login screen
     employees=emps.map(e=>({id:e.id,name:e.name,address:e.address||''}));
     const payByRecord={};
     pays.forEach(p=>{
@@ -311,11 +524,17 @@ async function syncAndRender(){
 
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function money(n){return Math.round(Number(n)||0).toLocaleString('ru-RU')+' ₽';}
+// result is used inside HTML strings (cards, print windows), so it is always escaped
 function fmtDate(d){
   if(!d)return '';
-  const [y,m,day]=d.split('-');
-  if(!y||!m||!day)return d;
-  return day+'.'+m+'.'+y;
+  const [y,m,day]=String(d).split('-');
+  if(!y||!m||!day)return esc(d);
+  return esc(day+'.'+m+'.'+y);
+}
+// no popup when the failure was a lost session: the login screen already explains it
+function failAlert(msg){
+  if(document.body.classList.contains('locked'))return;
+  alert(msg);
 }
 function recordsWord(n){
   n=Math.abs(n)%100;
@@ -455,6 +674,7 @@ function render(){
 
 // ---- detail view (per employee) ----
 function openDetail(empId){
+  if(!session)return; // signed out meanwhile: never paint data over the login screen
   const emp=findEmployee(empId); if(!emp)return;
   const recs=employeeRecords(empId).slice().sort((a,b)=>balanceOf(b)-balanceOf(a));
   const amount=empAmount(empId),paid=empPaid(empId),bal=empBalance(empId),status=empStatus(empId);
@@ -517,12 +737,13 @@ async function deleteRecord(id){
     if(findEmployee(empId))openDetail(empId); else closeModal();
   }catch(e){
     setSyncStatus('err','Ошибка удаления');
-    alert('Не удалось удалить запись. Проверьте соединение.');
+    failAlert('Не удалось удалить запись. Проверьте соединение.');
   }
 }
 
 // ---- employee registry ----
 function openEmployeeRegistry(){
+  if(!session)return;
   const list=employees.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'','ru'));
   document.getElementById('modal-root').innerHTML=`
   <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
@@ -585,7 +806,7 @@ async function saveEmployee(editId){
     openEmployeeRegistry();
   }catch(e){
     setSyncStatus('err','Ошибка сохранения');
-    alert('Не удалось сохранить сотрудника. Проверьте соединение.');
+    failAlert('Не удалось сохранить сотрудника. Проверьте соединение.');
   }
 }
 async function deleteEmployee(id){
@@ -596,7 +817,7 @@ async function deleteEmployee(id){
     setSyncStatus('ok','Синхронизировано');
   }catch(e){
     setSyncStatus('err','Нет соединения');
-    alert('Не удалось проверить записи сотрудника. Проверьте соединение и попробуйте ещё раз.');
+    failAlert('Не удалось проверить записи сотрудника. Проверьте соединение и попробуйте ещё раз.');
     return;
   }
   if(fresh.length>0){alert('У сотрудника «'+employeeName(id)+'» есть '+fresh.length+' '+recordsWord(fresh.length)+' о задолженности. Сначала удалите или перенесите их.');return;}
@@ -608,12 +829,13 @@ async function deleteEmployee(id){
     openEmployeeRegistry();
   }catch(e){
     setSyncStatus('err','Ошибка удаления');
-    alert('Не удалось удалить сотрудника. Проверьте соединение.');
+    failAlert('Не удалось удалить сотрудника. Проверьте соединение.');
   }
 }
 
 // ---- add/edit compensation record ----
 function openModal(id,presetEmployeeId){
+  if(!session)return;
   const it=id?findItem(id):null;
   const data=it||{id:uid(),employeeId:presetEmployeeId||'',purpose:'',amount:0,note:'',payments:[],created:Date.now()};
   window._modalPayments=JSON.parse(JSON.stringify(data.payments||[]));
@@ -752,7 +974,7 @@ async function saveModal(existingId){
     openDetail(employeeId);
   }catch(e){
     setSyncStatus('err','Ошибка сохранения');
-    alert('Не удалось сохранить запись. Проверьте соединение.');
+    failAlert('Не удалось сохранить запись. Проверьте соединение.');
   }
 }
 
@@ -819,6 +1041,9 @@ function printAll(){
 
 function init(){
   initTheme();
+  session=loadSession();
+  if(!session){showLogin();return;}
+  hideLogin();
   render();
   syncAndRender().catch(()=>{});
 }
