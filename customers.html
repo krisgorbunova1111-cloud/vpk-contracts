@@ -296,7 +296,7 @@ html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div>
           <label class="mf-lbl">Заказчик</label>
-          <select name="cust" class="mf-inp" style="cursor:pointer">
+          <select name="cust" class="mf-inp" style="cursor:pointer" onchange="toggleCustName(this.value)">
             <option>ЕКС</option><option>Стройресурс</option>
             <option>ООО 495 ССУ</option><option>ООО «РСА»</option><option>Прочие</option>
           </select>
@@ -305,6 +305,14 @@ html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--
           <label class="mf-lbl">№ Договора</label>
           <input name="num" class="mf-inp" placeholder="напр. 123/24-ПИР">
         </div>
+      </div>
+      <div id="mf-custname-wrap" hidden>
+        <label class="mf-lbl">Наименование заказчика (юр. лицо)</label>
+        <input name="custname" class="mf-inp" placeholder="ООО «Ромашка»">
+      </div>
+      <div>
+        <label class="mf-lbl">Сумма договора, ₽</label>
+        <input name="sumval" type="number" class="mf-inp" placeholder="Необязательно — можно добавить при редактировании">
       </div>
       <div>
         <label class="mf-lbl">Объект</label>
@@ -489,6 +497,7 @@ function allData(){
     var ev=edits[d.id]||{};
     return {
       id:d.id,num:ev.num!==undefined?ev.num:d.num,cust:ev.cust||d.cust,
+      custname:ev.custname!==undefined?ev.custname:(d.custname||''),
       obj:ev.obj!==undefined?ev.obj:d.obj,subj:ev.subj!==undefined?ev.subj:d.subj,
       dt:ev.dt!==undefined?ev.dt:d.dt,end:ev.end!==undefined?ev.end:d.end,
       sign:ev.sign||d.sign,tz:ev.tz!==undefined?ev.tz:(d.tz||''),
@@ -593,7 +602,7 @@ function renderList(){
         '<div class="ci-body">'+
           '<div class="ci-num">'+d.num+'</div>'+
           '<div class="ci-obj">'+d.obj+'</div>'+
-          '<div class="ci-sub">'+d.subj+(d.dt&&d.dt!=='—'?' · '+d.dt:'')+'</div>'+
+          '<div class="ci-sub">'+(d.cust==='Прочие'&&d.custname?'<strong>'+d.custname+'</strong> · ':'')+d.subj+(d.dt&&d.dt!=='—'?' · '+d.dt:'')+'</div>'+
           (badges?'<div class="ci-badges">'+badges+'</div>':'')+
           sumLine+
         '</div>'+
@@ -621,6 +630,7 @@ function renderDetail(d){
   dv.hidden=false;
   var id=d.id;
   var ex=extra[id]||{};
+  var dsYes=ex.ds==='да';
   var sv=parseFloat(sums[id])||0;
   var rv=totalRecv(id);
   var rem=sv-rv;
@@ -631,7 +641,7 @@ function renderDetail(d){
     '<button class="back-btn" onclick="document.getElementById(\'left-panel\').classList.remove(\'mob-hidden\')">← Назад</button>'+
     '<div class="dh-main">'+
       '<div class="dh-num">'+d.num+'</div>'+
-      '<div class="dh-meta"><span>'+d.cust+'</span><span>·</span><span>'+d.obj+'</span>'+
+      '<div class="dh-meta"><span>'+(d.cust==='Прочие'&&d.custname?d.custname:d.cust)+'</span><span>·</span><span>'+d.obj+'</span>'+
         (d.sign==='подписан'?'<span>· <span style="color:#86efac">✓ Подписан</span></span>':'<span>· <span style="color:#fca5a5">⏳ Не подписан</span></span>')+
       '</div>'+
     '</div>'+
@@ -730,7 +740,9 @@ function renderDetail(d){
 
   /* --- ОСНОВНОЕ --- */
   html+='<div class="card"><div class="card-hd">📋 Основное</div>'+
-    fld('Сумма, ₽','<input class="inp-sum-d'+(sv?' has-val':'')+'" type="number" placeholder="Введите сумму" value="'+(sv||'')+'" oninput="onSumInput(\''+id+'\',this)">',false)+
+    fld('Сумма, ₽',sv?'<span style="font-weight:600;color:var(--blue)">'+n(sv)+'</span>':'<span class="no-date">не указана</span>',false)+
+    fld('ДС к договору','<button class="badge b-btn '+(dsYes?'b-yes':'b-no')+'" onclick="toggleBadge(\''+id+'\',\'ds\',this)">'+(dsYes?'✓ есть':'—')+'</button>',false)+
+    (d.cust==='Прочие'?fld('Заказчик',d.custname||'<span class="no-date">не указано — редактировать</span>',false):'')+
     fld('Предмет',d.subj||'<span class="no-date">—</span>',false)+
     fld('Дата',d.dt&&d.dt!=='—'?d.dt:'<span class="no-date">не указана</span>',false)+
     fld('Срок',endStr(d.end),false)+
@@ -742,9 +754,7 @@ function renderDetail(d){
   /* --- ЭКСПЕРТИЗА --- */
   var ggeStatus=ex.gge_status||'';
   var exonStatus=ex.exon_status||'';
-  var dsYes=ex.ds==='да';
   html+='<div class="card"><div class="card-hd">🏛 Экспертиза</div>'+
-    fld('ДС к договору','<button class="badge b-btn '+(dsYes?'b-yes':'b-no')+'" onclick="toggleBadge(\''+id+'\',\'ds\',this)">'+(dsYes?'✓ есть':'—')+'</button>',false)+
     fld('Статус ГГЭ',
       '<select class="sel-sm" onchange="onExtraChange(\''+id+'\',\'gge_status\',this.value)">'+
         '<option value=""'+(ggeStatus===''?' selected':'')+'>—</option>'+
@@ -898,9 +908,13 @@ function deleteContract(id,name){
 var modalId=null;
 function openAddModal(){modalId=null;_fillModal(null);document.getElementById('modal-title').textContent='Новый договор';document.getElementById('modal-overlay').style.display='flex';}
 function openEditModal(id){modalId=id;var d=allData().find(function(x){return x.id===id;});if(!d)return;_fillModal(d);document.getElementById('modal-title').textContent='Редактировать договор';document.getElementById('modal-overlay').style.display='flex';}
+function toggleCustName(val){
+  document.getElementById('mf-custname-wrap').hidden=(val!=='Прочие');
+}
 function _fillModal(d){
   var f=document.getElementById('modal-form');
-  f.querySelector('[name=cust]').value=d?d.cust:'ЕКС';
+  var custVal=d?d.cust:'ЕКС';
+  f.querySelector('[name=cust]').value=custVal;
   f.querySelector('[name=num]').value=d?d.num:'';
   f.querySelector('[name=obj]').value=d?d.obj:'';
   f.querySelector('[name=subj]').value=d?d.subj:'';
@@ -909,14 +923,20 @@ function _fillModal(d){
   f.querySelector('[name=sign]').value=d?(d.sign||'не подписан'):'не подписан';
   f.querySelector('[name=tz]').value=d?d.tz:'';
   f.querySelector('[name=link]').value=d?d.link:'';
+  f.querySelector('[name=custname]').value=d?(d.custname||''):'';
+  f.querySelector('[name=sumval]').value=d?(sums[d.id]||''):'';
+  toggleCustName(custVal);
 }
 function closeModal(){document.getElementById('modal-overlay').style.display='none';}
 function saveModal(){
   var f=document.getElementById('modal-form');
-  var data={num:f.querySelector('[name=num]').value.trim(),cust:f.querySelector('[name=cust]').value,obj:f.querySelector('[name=obj]').value.trim(),subj:f.querySelector('[name=subj]').value.trim(),dt:f.querySelector('[name=dt]').value.trim(),end:f.querySelector('[name=end]').value.trim(),sign:f.querySelector('[name=sign]').value,tz:f.querySelector('[name=tz]').value.trim(),link:f.querySelector('[name=link]').value.trim()};
+  var data={num:f.querySelector('[name=num]').value.trim(),cust:f.querySelector('[name=cust]').value,custname:f.querySelector('[name=custname]').value.trim(),obj:f.querySelector('[name=obj]').value.trim(),subj:f.querySelector('[name=subj]').value.trim(),dt:f.querySelector('[name=dt]').value.trim(),end:f.querySelector('[name=end]').value.trim(),sign:f.querySelector('[name=sign]').value,tz:f.querySelector('[name=tz]').value.trim(),link:f.querySelector('[name=link]').value.trim()};
+  var sv=parseFloat(f.querySelector('[name=sumval]').value)||0;
   if(!data.num&&!data.obj){alert('Заполните хотя бы № договора или объект.');return;}
-  if(modalId){edits[modalId]=data;saveEdits();}
-  else{var newId='c'+Date.now();customContracts.push(Object.assign({id:newId,_custom:true},data));saveCustom();}
+  var targetId;
+  if(modalId){edits[modalId]=data;saveEdits();targetId=modalId;}
+  else{var newId='c'+Date.now();customContracts.push(Object.assign({id:newId,_custom:true},data));saveCustom();targetId=newId;}
+  if(sv){sums[targetId]=sv;saveSums();}
   closeModal();renderList();updateTiles();syncPF();
   if(modalId&&selectedId===modalId){var d=allData().find(function(x){return x.id===modalId;});if(d)renderDetail(d);}
 }
