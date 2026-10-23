@@ -3,217 +3,437 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Реестр договоров заказчиков — ВПК</title>
+<title>Заказчики — ВПК</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --navy:#1e3a5f;--blue:#2563eb;--tx:#1e293b;--tx2:#475569;--tx3:#94a3b8;
-  --surf:#fff;--surf2:#f8fafc;--bdr:#e2e8f0;
-  --grn:#16a34a;--grn-bg:#dcfce7;--org:#ea580c;--org-bg:#fff7ed;
-  --red:#dc2626;--red-bg:#fee2e2;--yel:#ca8a04;--yel-bg:#fef9c3;
+  --navy:#1e3a5f;--blue:#2563eb;--blue-lt:rgba(37,99,235,.1);
+  --tx:#1e293b;--tx2:#475569;--tx3:#94a3b8;
+  --surf:#fff;--surf2:#f8fafc;--surf3:#f1f5f9;
+  --bdr:#e2e8f0;--bdr2:#cbd5e1;
+  --grn:#16a34a;--grn-bg:#dcfce7;
+  --org:#ea580c;--org-bg:#fff7ed;
+  --red:#dc2626;--red-bg:#fee2e2;
+  --yel:#ca8a04;--yel-bg:#fef9c3;
   --pur:#7c3aed;--pur-bg:#ede9fe;
+  --sel:#eff6ff;
 }
-body{font-family:'Inter',system-ui,sans-serif;background:#f1f5f9;color:var(--tx);font-size:13px;min-height:100vh}
+html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--surf3);color:var(--tx);font-size:13px}
 
-.hdr{background:var(--navy);color:#fff;padding:14px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;position:sticky;top:0;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+/* ── App shell ── */
+.app{display:flex;flex-direction:column;height:100%}
+
+/* ── Topbar ── */
+.hdr{background:var(--navy);color:#fff;padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.2)}
 .hdr-brand{font-size:15px;font-weight:700;white-space:nowrap}
 .hdr-brand span{color:#60a5fa}
-.hdr-tiles{display:flex;gap:10px;flex-wrap:wrap;margin-left:auto}
-.tile{background:rgba(255,255,255,.1);border-radius:8px;padding:6px 14px;text-align:center;min-width:90px}
+.hdr-tiles{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+.tile{background:rgba(255,255,255,.1);border-radius:8px;padding:5px 13px;text-align:center;min-width:86px}
 .tile-val{font-size:17px;font-weight:700;line-height:1.2}
-.tile-lbl{font-size:10px;opacity:.65;text-transform:uppercase;letter-spacing:.4px}
+.tile-lbl{font-size:9px;opacity:.65;text-transform:uppercase;letter-spacing:.4px}
 .tile.grn .tile-val{color:#86efac}
-.tile.org .tile-val{color:#fdba74}
 .tile.red .tile-val{color:#fca5a5}
+.tile.org .tile-val{color:#fdba74}
 .tile.pur .tile-val{color:#c4b5fd}
 
-.filters{display:flex;gap:8px;flex-wrap:wrap;padding:12px 24px;background:var(--surf);border-bottom:1px solid var(--bdr);align-items:center}
-.fi{border:1px solid var(--bdr);border-radius:7px;padding:5px 9px;font-size:12px;font-family:inherit;color:var(--tx);background:var(--surf);outline:none;transition:border .15s}
-.fi:focus{border-color:var(--blue)}
-.fi-search{width:210px}
-.lbl{font-size:11px;font-weight:600;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px}
-.btn-reset{padding:5px 11px;border:1px solid var(--bdr);border-radius:7px;background:var(--surf);font-size:12px;font-family:inherit;cursor:pointer;color:var(--tx2)}
-.btn-reset:hover{background:var(--surf2)}
+/* ── Split layout ── */
+.split{display:flex;flex:1;min-height:0}
 
-.wrap{overflow-x:auto;margin:14px 24px;border-radius:10px;box-shadow:0 1px 6px rgba(0,0,0,.07);background:var(--surf)}
-table{border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums;font-size:12px}
-thead{position:sticky;top:55px;z-index:10}
-th{background:var(--navy);color:rgba(255,255,255,.8);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;padding:7px 9px;text-align:left;white-space:nowrap;border-right:1px solid rgba(255,255,255,.1)}
-th:last-child{border-right:none}
-td{padding:6px 9px;border-bottom:1px solid var(--bdr);vertical-align:top}
-tr:last-child td{border-bottom:none}
-tr:hover td{background:#f8fafc}
+/* ── LEFT panel ── */
+.left-panel{width:310px;flex-shrink:0;background:var(--surf);border-right:1px solid var(--bdr);display:flex;flex-direction:column;min-height:0}
+.left-head{padding:10px 12px 8px;border-bottom:1px solid var(--bdr);flex-shrink:0}
+.search-row{display:flex;gap:6px}
+.fi-search{flex:1;border:1px solid var(--bdr);border-radius:7px;padding:6px 9px;font-size:12px;font-family:inherit;color:var(--tx);background:var(--surf2);outline:none}
+.fi-search:focus{border-color:var(--blue);background:var(--surf)}
+.btn-add{padding:6px 11px;background:var(--blue);color:#fff;border:none;border-radius:7px;font-size:12px;font-family:inherit;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn-add:hover{background:#1d4ed8}
+.left-filters{padding:6px 12px 8px;border-bottom:1px solid var(--bdr);display:flex;gap:5px;flex-wrap:wrap}
+.fi-sm{border:1px solid var(--bdr);border-radius:6px;padding:3px 6px;font-size:11px;font-family:inherit;color:var(--tx);background:var(--surf2);outline:none;cursor:pointer}
+.fi-sm:focus{border-color:var(--blue)}
+.ctr-list{flex:1;overflow-y:auto;padding-bottom:12px}
+.group-hd{padding:8px 12px 4px;font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surf);z-index:2;border-bottom:1px solid var(--bdr)}
+.group-count{background:var(--surf3);color:var(--tx3);border-radius:99px;padding:1px 6px;font-size:10px;font-weight:600}
+.ctr-item{display:flex;align-items:flex-start;gap:7px;padding:8px 12px;cursor:pointer;border-left:3px solid transparent;transition:background .1s}
+.ctr-item:hover{background:var(--surf3)}
+.ctr-item.active{background:var(--sel);border-left-color:var(--blue)}
+.ctr-item.active .ci-num{color:var(--blue)}
+.sign-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.sign-dot.yes{background:var(--grn)}
+.sign-dot.no{background:var(--bdr2)}
+.ci-body{flex:1;min-width:0}
+.ci-num{font-size:10px;font-weight:600;color:var(--tx2);margin-bottom:1px}
+.ci-obj{font-size:12px;color:var(--tx);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ci-sub{font-size:10px;color:var(--tx3);margin-top:1px}
+.ci-badges{display:flex;gap:3px;margin-top:4px;flex-wrap:wrap}
+.ci-sum{font-size:10px;font-weight:600;color:var(--tx2);margin-top:2px}
+.mini-badge{font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px;text-transform:uppercase;letter-spacing:.3px}
+.mb-gge{background:var(--grn-bg);color:var(--grn)}
+.mb-gge-pend{background:var(--yel-bg);color:var(--yel)}
+.mb-exon{background:var(--pur-bg);color:var(--pur)}
+.mb-ds{background:var(--blue-lt);color:var(--blue)}
+.mb-pf{background:var(--red-bg);color:var(--red)}
 
-.col-num{position:sticky;left:0;z-index:2;background:var(--surf);min-width:140px;max-width:160px;font-size:11px;font-weight:600;border-right:2px solid var(--bdr);white-space:normal;line-height:1.3}
-tr:hover .col-num{background:#f8fafc}
-thead th.col-num{background:var(--navy);z-index:11}
+/* ── RIGHT panel ── */
+.right-panel{flex:1;min-width:0;overflow-y:auto;background:var(--surf3)}
+.empty-state{height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--tx3)}
+.empty-state .es-icon{font-size:40px;opacity:.3}
+.empty-state p{font-size:13px}
 
-/* Spacer row after group separator so first data row is never behind sticky thead */
-.group-spacer td{height:30px;padding:0;border:none;background:var(--surf)}
+/* ── Detail head ── */
+.detail-head{background:var(--navy);color:#fff;padding:14px 20px 12px;display:flex;align-items:flex-start;gap:12px;position:sticky;top:0;z-index:10}
+.dh-main{flex:1;min-width:0}
+.dh-num{font-size:14px;font-weight:700;margin-bottom:3px}
+.dh-meta{font-size:11px;opacity:.65;display:flex;gap:8px;flex-wrap:wrap}
+.dh-actions{display:flex;gap:5px;flex-shrink:0}
+.dh-btn{padding:5px 12px;border-radius:6px;font-size:11px;font-family:inherit;font-weight:600;cursor:pointer;border:none}
+.dh-btn.edit{background:rgba(255,255,255,.15);color:#fff}
+.dh-btn.edit:hover{background:rgba(255,255,255,.25)}
+.dh-btn.del{background:rgba(220,38,38,.35);color:#fff}
+.dh-btn.del:hover{background:rgba(220,38,38,.55)}
 
+/* ── Summary bar ── */
+.sum-bar{display:flex;background:var(--surf);border-bottom:1px solid var(--bdr)}
+.sum-cell{flex:1;padding:9px 16px;text-align:center;border-right:1px solid var(--bdr)}
+.sum-cell:last-child{border-right:none}
+.sum-val{font-size:15px;font-weight:700;line-height:1.2}
+.sum-val.grn{color:var(--grn)}
+.sum-val.red{color:var(--red)}
+.sum-val.yel{color:var(--yel)}
+.sum-lbl{font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+
+/* ── Progress bars ── */
+.prog-wrap{padding:10px 20px 0;background:var(--surf);border-bottom:1px solid var(--bdr)}
+.prog-track{height:6px;background:var(--bdr);border-radius:99px;overflow:hidden;margin-bottom:5px}
+.prog-fill{height:100%;border-radius:99px;transition:width .4s}
+.prog-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--tx3);padding-bottom:8px}
+
+/* ── Card sections ── */
+.sections{padding:14px 20px;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--surf);border:1px solid var(--bdr);border-radius:10px;overflow:hidden}
+.card-hd{padding:8px 14px;background:var(--surf2);border-bottom:1px solid var(--bdr);font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;justify-content:space-between}
+.card-hd-btn{font-size:11px;font-weight:600;color:var(--blue);background:none;border:none;cursor:pointer;font-family:inherit;padding:0}
+.card-hd-btn:hover{text-decoration:underline}
+.field{display:flex;align-items:flex-start;padding:7px 14px;gap:12px;border-bottom:1px solid var(--bdr)}
+.field:last-child{border-bottom:none}
+.field-lbl{width:110px;flex-shrink:0;font-size:11px;font-weight:600;color:var(--tx3);padding-top:2px}
+.field-val{flex:1;min-width:0;font-size:12px;color:var(--tx)}
+
+/* ── Badges ── */
 .badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:600;white-space:nowrap}
 .b-signed{background:var(--grn-bg);color:var(--grn)}
 .b-nosign{background:var(--red-bg);color:var(--red)}
 .b-yes{background:var(--grn-bg);color:var(--grn);cursor:pointer;border:none;font-family:inherit}
-.b-no{background:#f1f5f9;color:var(--tx3);cursor:pointer;border:none;font-family:inherit}
+.b-no{background:var(--surf3);color:var(--tx3);cursor:pointer;border:none;font-family:inherit}
 .b-partial{background:var(--org-bg);color:var(--org)}
 .b-review{background:var(--yel-bg);color:var(--yel)}
 .b-pf{background:var(--red-bg);color:var(--red);font-weight:700}
-.b-customer{background:rgba(37,99,235,.1);color:#1d4ed8}
+.b-gray{background:var(--surf3);color:var(--tx3)}
 .b-btn{cursor:pointer;border:none;font-family:inherit;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:600}
+.b-pur{background:var(--pur-bg);color:var(--pur)}
+.b-grn{background:var(--grn-bg);color:var(--grn)}
+.b-yel{background:var(--yel-bg);color:var(--yel)}
+.b-red{background:var(--red-bg);color:var(--red)}
+.b-blue{background:var(--blue-lt);color:var(--blue)}
 
-.inp-sm{width:90px;border:1px solid var(--bdr);border-radius:5px;padding:2px 5px;font-size:11px;font-family:inherit;color:var(--tx);background:var(--surf);outline:none}
+/* ── Select/input inside field ── */
+.sel-sm{border:1px solid var(--bdr);border-radius:5px;padding:3px 6px;font-size:11px;font-family:inherit;color:var(--tx);background:var(--surf2);outline:none;cursor:pointer}
+.sel-sm:focus{border-color:var(--blue)}
+.inp-sm{border:1px solid var(--bdr);border-radius:5px;padding:3px 6px;font-size:11px;font-family:inherit;color:var(--tx);background:var(--surf2);outline:none;width:130px}
 .inp-sm:focus{border-color:var(--blue)}
 .inp-sm.filled{border-color:#93c5fd;background:rgba(37,99,235,.04)}
-.inp-lg{width:130px;border:1px solid var(--bdr);border-radius:5px;padding:2px 5px;font-size:11px;font-family:inherit;color:var(--tx);background:var(--surf);outline:none}
-.inp-lg:focus{border-color:var(--blue)}
-.inp-lg.filled{border-color:#93c5fd;background:rgba(37,99,235,.04)}
-.inp-sum{width:110px;border:1px solid var(--bdr);border-radius:5px;padding:3px 6px;font-size:12px;text-align:right;font-family:inherit;font-variant-numeric:tabular-nums;color:var(--tx);background:var(--surf);outline:none}
-.inp-sum:focus{border-color:var(--blue)}
-.inp-sum.has-val{border-color:#93c5fd;background:rgba(37,99,235,.04);font-weight:600;color:var(--blue)}
-.inp-cmt{width:140px;border:1px solid transparent;border-radius:5px;padding:2px 5px;font-size:11px;font-family:inherit;color:var(--tx2);background:transparent;outline:none}
-.inp-cmt:focus,.inp-cmt:hover{border-color:var(--bdr);background:var(--surf)}
-.inp-cmt.filled{color:var(--tx)}
-
-select.sel-sm{border:1px solid var(--bdr);border-radius:5px;padding:2px 4px;font-size:11px;font-family:inherit;color:var(--tx);background:var(--surf);outline:none;cursor:pointer}
-select.sel-sm:focus{border-color:var(--blue)}
-
-.gge-sub{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
-.ext-link{color:var(--blue);text-decoration:none;font-size:11px;opacity:.7;transition:opacity .15s}
-.ext-link:hover{opacity:1}
-
-.group-row td{background:#eef2f7;font-weight:700;font-size:11px;color:var(--tx2);text-transform:uppercase;letter-spacing:.5px;padding:5px 10px;border-bottom:1px solid var(--bdr)}
+.inp-sum-d{width:150px;border:1px solid var(--bdr);border-radius:5px;padding:4px 7px;font-size:12px;text-align:right;font-family:inherit;color:var(--tx);background:var(--surf2);outline:none}
+.inp-sum-d:focus{border-color:var(--blue)}
+.inp-sum-d.has-val{border-color:#93c5fd;background:rgba(37,99,235,.04);font-weight:600;color:var(--blue)}
+.cmt-area{width:100%;border:none;resize:none;padding:10px 14px;font-size:12px;font-family:inherit;color:var(--tx);background:transparent;outline:none;min-height:52px}
+.cmt-area::placeholder{color:var(--tx3)}
+.ext-link{color:var(--blue);text-decoration:none;font-size:11px}
+.ext-link:hover{text-decoration:underline}
 .overdue{color:var(--red);font-weight:600}
 .no-date{color:var(--tx3);font-style:italic}
 
-.pf-sync-info{padding:8px 24px;background:#fef2f2;border-bottom:1px solid #fecaca;font-size:12px;color:#991b1b;display:none;align-items:center;gap:6px}
+/* ── Budget bar ── */
+.budget-block{padding:10px 14px;display:flex;flex-direction:column;gap:7px;border-bottom:1px solid var(--bdr)}
+.budget-block:last-child{border-bottom:none}
+.b-track-row{display:flex;align-items:center;gap:8px}
+.b-track{flex:1;height:7px;background:var(--bdr);border-radius:99px;overflow:hidden}
+.b-fill{height:100%;border-radius:99px;transition:width .4s}
+.b-fill.ok{background:var(--grn)}
+.b-fill.warn{background:var(--yel)}
+.b-fill.over{background:var(--red)}
+.b-pct{font-size:11px;font-weight:700;min-width:34px;text-align:right}
+.b-pct.ok{color:var(--grn)}
+.b-pct.warn{color:var(--yel)}
+.b-pct.over{color:var(--red)}
+.b-nums{font-size:10px;color:var(--tx3);display:flex;gap:8px}
+.b-alert{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:7px;font-size:11px;font-weight:600}
+.b-alert.over{background:var(--red-bg);color:var(--red)}
+.b-alert.warn{background:var(--yel-bg);color:var(--yel)}
+.b-alert.ok{background:var(--grn-bg);color:var(--grn)}
+
+/* ── Tables (payments, subs) ── */
+.pay-table{width:100%;border-collapse:collapse;font-size:11px}
+.pay-table th{padding:6px 14px;text-align:left;font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--bdr);background:var(--surf3)}
+.pay-table td{padding:7px 14px;border-bottom:1px solid var(--bdr)}
+.pay-table tr:last-child td{border-bottom:none}
+.pay-table td.amt{font-weight:600;text-align:right}
+.pay-table td.amt.grn{color:var(--grn)}
+.pay-table td.amt.red{color:var(--red)}
+.pay-table td.muted{color:var(--tx3)}
+.pay-table tr.total-row td{font-weight:700;background:var(--surf3)}
+.pay-empty{padding:14px;text-align:center;font-size:11px;color:var(--tx3);font-style:italic}
+.pay-add-form{padding:10px 14px;border-top:1px solid var(--bdr);display:flex;gap:7px;align-items:center;flex-wrap:wrap;background:var(--surf2)}
+.pay-add-form input{border:1px solid var(--bdr);border-radius:5px;padding:4px 7px;font-size:11px;font-family:inherit;color:var(--tx);background:var(--surf);outline:none}
+.pay-add-form input:focus{border-color:var(--blue)}
+.btn-save-pay{padding:4px 10px;background:var(--blue);color:#fff;border:none;border-radius:5px;font-size:11px;font-family:inherit;font-weight:600;cursor:pointer}
+.btn-save-pay:hover{background:#1d4ed8}
+.btn-del-pay{background:none;border:none;cursor:pointer;font-size:11px;color:var(--tx3);padding:0 4px;opacity:.5}
+.btn-del-pay:hover{opacity:1;color:var(--red)}
+
+/* ── PF indicator ── */
+.pf-ind{display:flex;align-items:center;gap:7px;padding:8px 14px;font-size:11px;font-weight:600}
+.pf-ind.active{background:var(--red-bg);color:var(--red)}
+.pf-ind.inactive{background:var(--surf3);color:var(--tx3)}
+.gge-sub-row{display:flex;gap:5px;margin-top:5px}
+
+/* ── PF sync bar ── */
+.pf-sync-info{padding:7px 20px;background:#fef2f2;border-bottom:1px solid #fecaca;font-size:12px;color:#991b1b;display:none;align-items:center;gap:6px}
 .pf-sync-info.visible{display:flex}
-.btn-add{padding:6px 14px;background:var(--blue);color:#fff;border:none;border-radius:7px;font-size:12px;font-family:inherit;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px}
-.btn-add:hover{background:#1d4ed8}
+
+/* ── Modal ── */
 .mf-lbl{display:block;font-size:11px;font-weight:600;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
 .mf-inp{width:100%;border:1px solid var(--bdr);border-radius:7px;padding:7px 10px;font-size:13px;font-family:inherit;color:var(--tx);outline:none;transition:border .15s}
 .mf-inp:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+
+[hidden]{display:none!important}
+/* ── Scroll ── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:99px}
+
+/* ── Mobile ── */
+@media(max-width:640px){
+  .left-panel{width:100%;border-right:none;position:absolute;inset:0;z-index:2;transition:transform .2s}
+  .left-panel.mob-hidden{transform:translateX(-100%)}
+  .right-panel{width:100%}
+  .hdr-tiles{display:none}
+  .back-btn{display:flex!important}
+  .sum-cell{padding:7px 8px}
+  .sum-val{font-size:13px}
+}
+.back-btn{display:none;align-items:center;gap:5px;padding:5px 10px;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;font-family:inherit;cursor:pointer}
 </style>
 </head>
 <body>
 
+<div class="app">
+<!-- Topbar -->
 <div class="hdr">
   <div class="hdr-brand">ВПК · <span>Заказчики</span></div>
-  <div style="font-size:11px;opacity:.5">Реестр договоров</div>
   <div class="hdr-tiles">
     <div class="tile"><div class="tile-val" id="t-total">0</div><div class="tile-lbl">Договоров</div></div>
     <div class="tile grn"><div class="tile-val" id="t-signed">0</div><div class="tile-lbl">Подписано</div></div>
-    <div class="tile red"><div class="tile-val" id="t-nosign">0</div><div class="tile-lbl">Не подписано</div></div>
-    <div class="tile org"><div class="tile-val" id="t-sum">—</div><div class="tile-lbl">Общая сумма</div></div>
-    <div class="tile pur"><div class="tile-val" id="t-pf">0</div><div class="tile-lbl">→ Приоритет ПФ</div></div>
+    <div class="tile org"><div class="tile-val" id="t-sum">—</div><div class="tile-lbl">Сумма млн ₽</div></div>
+    <div class="tile pur"><div class="tile-val" id="t-recv">—</div><div class="tile-lbl">Поступило млн ₽</div></div>
+    <div class="tile red"><div class="tile-val" id="t-pf">0</div><div class="tile-lbl">→ Приоритет ПФ</div></div>
   </div>
 </div>
 
+<!-- PF bar -->
 <div class="pf-sync-info" id="pf-bar">
-  🔴 <strong id="pf-bar-names"></strong> — статус экспертизы передан в «План-Факт», приоритет поднят автоматически
+  🔴 <strong id="pf-bar-names"></strong> — экспертиза пройдена, приоритет ПФ поднят автоматически
 </div>
 
-<div class="filters">
-  <span class="lbl">Фильтр:</span>
-  <input class="fi fi-search" id="fsearch" placeholder="Поиск по объекту, номеру..." oninput="applyFilter()">
-  <select class="fi" id="fcustomer" onchange="applyFilter()">
-    <option value="">Все заказчики</option>
-    <option>ЕКС</option>
-    <option>Стройресурс</option>
-    <option>ООО 495 ССУ</option>
-    <option>ООО «РСА»</option>
-    <option>Прочие</option>
-  </select>
-  <select class="fi" id="fstatus" onchange="applyFilter()">
-    <option value="">Все статусы</option>
-    <option value="подписан">Подписан</option>
-    <option value="не подписан">Не подписан</option>
-  </select>
-  <select class="fi" id="fgge" onchange="applyFilter()">
-    <option value="">ГГЭ — все</option>
-    <option value="пройдена">ГГЭ пройдена</option>
-    <option value="на рассмотрении">На рассмотрении</option>
-  </select>
-  <select class="fi" id="fpf" onchange="applyFilter()">
-    <option value="">→ ПФ — все</option>
-    <option value="1">Только с приоритетом ПФ</option>
-  </select>
-  <button class="btn-reset" onclick="resetFilter()">Сбросить</button>
-  <span style="margin-left:auto;font-size:11px;color:var(--tx3)" id="count-lbl"></span>
-  <button class="btn-add" onclick="openAddModal()">＋ Добавить договор</button>
+<!-- Split -->
+<div class="split">
+  <!-- LEFT -->
+  <div class="left-panel" id="left-panel">
+    <div class="left-head">
+      <div class="search-row">
+        <input class="fi-search" id="fsearch" placeholder="🔍  объект, № договора…" oninput="renderList()">
+        <button class="btn-add" onclick="openAddModal()">＋ Договор</button>
+      </div>
+    </div>
+    <div class="left-filters">
+      <select class="fi-sm" id="fcust" onchange="renderList()">
+        <option value="">Все заказчики</option>
+        <option>ЕКС</option><option>Стройресурс</option>
+        <option>ООО 495 ССУ</option><option>ООО «РСА»</option><option>Прочие</option>
+      </select>
+      <select class="fi-sm" id="fsign" onchange="renderList()">
+        <option value="">Все статусы</option>
+        <option value="подписан">Подписан</option>
+        <option value="не подписан">Не подписан</option>
+      </select>
+      <select class="fi-sm" id="fgge" onchange="renderList()">
+        <option value="">ГГЭ — все</option>
+        <option value="пройдена">Пройдена</option>
+        <option value="на рассмотрении">На рассмотрении</option>
+      </select>
+    </div>
+    <div class="ctr-list" id="ctr-list"></div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right-panel" id="right-panel">
+    <div class="empty-state" id="empty-state">
+      <div class="es-icon">📄</div>
+      <p>Выберите договор из списка слева</p>
+    </div>
+    <div id="detail-view" hidden></div>
+  </div>
+</div>
 </div>
 
-<div class="wrap">
-<table id="tbl">
-<thead>
-<tr>
-  <th class="col-num">№ Договора</th>
-  <th>Объект</th>
-  <th>Предмет</th>
-  <th>Дата / Срок</th>
-  <th style="text-align:right">Сумма, ₽</th>
-  <th>Подписан</th>
-  <th>ТЗ</th>
-  <th>ДС</th>
-  <th>ГГЭ</th>
-  <th>EXON</th>
-  <th>Закрывающие</th>
-  <th>Комментарий</th>
-  <th>Связь ПФ</th>
-  <th>→ ПФ</th>
-  <th>Папка</th>
-  <th style="width:36px"></th>
-</tr>
-</thead>
-<tbody id="tbody"></tbody>
-</table>
+<!-- Modal: add / edit -->
+<div id="modal-overlay" onclick="if(event.target===this)closeModal()" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:200;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#fff;border-radius:12px;width:100%;max-width:560px;box-shadow:0 20px 60px rgba(0,0,0,.25);max-height:90vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid var(--bdr)">
+      <span id="modal-title" style="font-size:15px;font-weight:700;color:var(--tx)">Договор</span>
+      <button onclick="closeModal()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--tx3);line-height:1;padding:2px 6px">×</button>
+    </div>
+    <form id="modal-form" onsubmit="saveModal();return false;" style="padding:20px 22px;display:grid;gap:14px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label class="mf-lbl">Заказчик</label>
+          <select name="cust" class="mf-inp" style="cursor:pointer">
+            <option>ЕКС</option><option>Стройресурс</option>
+            <option>ООО 495 ССУ</option><option>ООО «РСА»</option><option>Прочие</option>
+          </select>
+        </div>
+        <div>
+          <label class="mf-lbl">№ Договора</label>
+          <input name="num" class="mf-inp" placeholder="напр. 123/24-ПИР">
+        </div>
+      </div>
+      <div>
+        <label class="mf-lbl">Объект</label>
+        <input name="obj" class="mf-inp" placeholder="Наименование объекта">
+      </div>
+      <div>
+        <label class="mf-lbl">Предмет договора</label>
+        <input name="subj" class="mf-inp" placeholder="Разработка ПД, ИИ и т.д.">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div><label class="mf-lbl">Дата</label><input name="dt" class="mf-inp" placeholder="01.01.2024"></div>
+        <div><label class="mf-lbl">Срок</label><input name="end" class="mf-inp" placeholder="31.12.2024"></div>
+        <div>
+          <label class="mf-lbl">Статус</label>
+          <select name="sign" class="mf-inp" style="cursor:pointer">
+            <option value="подписан">Подписан</option>
+            <option value="не подписан">Не подписан</option>
+          </select>
+        </div>
+      </div>
+      <div><label class="mf-lbl">ТЗ</label><input name="tz" class="mf-inp" placeholder="Ссылка или номер ТЗ"></div>
+      <div><label class="mf-lbl">Ссылка на папку</label><input name="link" class="mf-inp" placeholder="https://..."></div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;padding-top:6px;border-top:1px solid var(--bdr)">
+        <button type="button" onclick="closeModal()" style="padding:8px 18px;border:1px solid var(--bdr);border-radius:7px;background:#fff;font-size:13px;font-family:inherit;cursor:pointer;color:var(--tx2)">Отмена</button>
+        <button type="submit" style="padding:8px 20px;background:var(--blue);color:#fff;border:none;border-radius:7px;font-size:13px;font-family:inherit;font-weight:600;cursor:pointer">Сохранить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Payment mini-modal -->
+<div id="pay-modal" onclick="if(event.target===this)closePay()" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:200;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#fff;border-radius:12px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.25)">
+    <div style="padding:16px 20px 12px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:14px;font-weight:700;color:var(--tx)">Добавить поступление</span>
+      <button onclick="closePay()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--tx3)">×</button>
+    </div>
+    <form id="pay-form" onsubmit="savePay();return false;" style="padding:16px 20px;display:grid;gap:12px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><label class="mf-lbl">Дата</label><input name="pdt" class="mf-inp" placeholder="01.01.2025" required></div>
+        <div><label class="mf-lbl">Сумма, ₽</label><input name="pamt" type="number" class="mf-inp" placeholder="500000" required></div>
+      </div>
+      <div><label class="mf-lbl">Назначение</label><input name="pnote" class="mf-inp" placeholder="Аванс 50%, промежуточный..."></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button type="button" onclick="closePay()" style="padding:7px 16px;border:1px solid var(--bdr);border-radius:7px;background:#fff;font-size:13px;font-family:inherit;cursor:pointer;color:var(--tx2)">Отмена</button>
+        <button type="submit" style="padding:7px 18px;background:var(--blue);color:#fff;border:none;border-radius:7px;font-size:13px;font-family:inherit;font-weight:600;cursor:pointer">Добавить</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <script>
+/* ============================================================
+   Constants & Supabase
+   ============================================================ */
+var SUPABASE_URL='https://urfnpjumxkewyizaxgns.supabase.co';
+var SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVyZm5wanVteGtld3lpemF4Z25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMzkyNDMsImV4cCI6MjA5MTgxNTI0M30.vDbdyE3Z4whApQo50Mfgor11SL-dT1PWDOygipxVKtE';
+
+/* ============================================================
+   LocalStorage
+   ============================================================ */
 var LS_SUMS='vpk_cust_sums';
 var LS_EXTRA='vpk_cust_extra';
 var LS_PF='vpk_priority_from_customer';
 var LS_DEL='vpk_cust_deleted';
 var LS_CUSTOM='vpk_cust_custom';
 var LS_EDITS='vpk_cust_edits';
+var LS_PAY='vpk_cust_payments';
+
 var sums={};
 var extra={};
 var deleted=new Set();
 var customContracts=[];
 var edits={};
+var payments={};
 try{sums=JSON.parse(localStorage.getItem(LS_SUMS)||'{}');}catch(e){}
 try{extra=JSON.parse(localStorage.getItem(LS_EXTRA)||'{}');}catch(e){}
 try{(JSON.parse(localStorage.getItem(LS_DEL)||'[]')).forEach(function(id){deleted.add(id);});}catch(e){}
 try{customContracts=JSON.parse(localStorage.getItem(LS_CUSTOM)||'[]');}catch(e){}
 try{edits=JSON.parse(localStorage.getItem(LS_EDITS)||'{}');}catch(e){}
+try{payments=JSON.parse(localStorage.getItem(LS_PAY)||'{}');}catch(e){}
+
 function saveSums(){try{localStorage.setItem(LS_SUMS,JSON.stringify(sums));}catch(e){}}
 function saveExtra(){try{localStorage.setItem(LS_EXTRA,JSON.stringify(extra));}catch(e){}}
 function saveDeleted(){try{localStorage.setItem(LS_DEL,JSON.stringify(Array.from(deleted)));}catch(e){}}
 function saveCustom(){try{localStorage.setItem(LS_CUSTOM,JSON.stringify(customContracts));}catch(e){}}
 function saveEdits(){try{localStorage.setItem(LS_EDITS,JSON.stringify(edits));}catch(e){}}
+function savePays(){try{localStorage.setItem(LS_PAY,JSON.stringify(payments));}catch(e){}}
 function getEx(id){if(!extra[id])extra[id]={};return extra[id];}
+function getPays(id){return payments[id]||[];}
 
-function allData(){
-  return DATA.concat(customContracts).map(function(d){
-    var ev=edits[d.id]||{};
-    return {
-      id:d.id,
-      num:ev.num!==undefined?ev.num:d.num,
-      cust:ev.cust||d.cust,
-      obj:ev.obj!==undefined?ev.obj:d.obj,
-      subj:ev.subj!==undefined?ev.subj:d.subj,
-      dt:ev.dt!==undefined?ev.dt:d.dt,
-      end:ev.end!==undefined?ev.end:d.end,
-      sign:ev.sign||d.sign,
-      tz:ev.tz!==undefined?ev.tz:(d.tz||''),
-      link:ev.link!==undefined?ev.link:(d.link||''),
-      _custom:!!d._custom
-    };
-  });
+/* ============================================================
+   Supabase: subcontractor contracts
+   ============================================================ */
+var subsByPF={};  // pfname → [{contractor, amount, sign_status, subj, number}]
+
+function loadSubContracts(){
+  fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.vpk_contracts_v3',{
+    headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}
+  }).then(function(r){return r.json();}).then(function(data){
+    if(!data||!data[0]||!data[0].value)return;
+    var contracts=JSON.parse(data[0].value);
+    subsByPF={};
+    contracts.forEach(function(c){
+      var obj=(c.object||'').trim();
+      if(!obj)return;
+      if(!subsByPF[obj])subsByPF[obj]=[];
+      var total=parseFloat(c.amount)||0;
+      // If DS exist, add DS amounts too
+      if(c.ds&&c.ds.length){c.ds.forEach(function(ds){total+=parseFloat(ds.amount)||0;});}
+      subsByPF[obj].push({
+        contractor:c.contractor||'',
+        number:c.number||'',
+        amount:total,
+        sign_status:c.sign_status||'',
+        subj:c.subject||c.subj||''
+      });
+    });
+    // Re-render detail if open
+    if(selectedId){
+      var d=allData().find(function(x){return x.id===selectedId;});
+      if(d)renderDetail(d);
+    }
+  }).catch(function(){});
 }
 
-// Объекты из план-факта для выпадающего списка
+/* ============================================================
+   Data
+   ============================================================ */
 var PF_OBJECTS=[
   'Гимназия №60','Академия детства','Панфилова','Луганская спец школа 57',
   'Гастелло','Коваля','МКД Мариуполь','Ленком','Москва-Донбасс','Почтовая',
@@ -222,40 +442,6 @@ var PF_OBJECTS=[
   'Урицкого РВР','Урицкого НС','АО «Завод Пластмасс»','Кирова 56',
   'Мангущ','Теплотрасса','Проспект Нахимова','Вышка Мариуполь','Торез РВР'
 ];
-
-function deleteContract(id, name){
-  if(!confirm('Удалить «'+name+'»?\n\nДоговор будет скрыт из реестра.'))return;
-  deleted.add(id);
-  saveDeleted();
-  render();
-}
-
-function syncPF(){
-  var pf={};
-  allData().forEach(function(d){
-    var ex=extra[d.id]||{};
-    if(ex.pfname&&(ex.gge_status==='пройдена'||ex.exon_status==='одобрен')){
-      pf[ex.pfname]='exp';
-    }
-  });
-  try{localStorage.setItem(LS_PF,JSON.stringify(pf));}catch(e){}
-  updatePFBar(pf);
-}
-
-function updatePFBar(pf){
-  var names=Object.keys(pf);
-  var bar=document.getElementById('pf-bar');
-  var tile=document.getElementById('t-pf');
-  if(tile)tile.textContent=names.length;
-  if(bar){
-    if(names.length>0){
-      bar.classList.add('visible');
-      document.getElementById('pf-bar-names').textContent=names.join(', ');
-    } else {
-      bar.classList.remove('visible');
-    }
-  }
-}
 
 var DATA=[
   {id:'1',num:'Договор 1 ВПКЭ П',cust:'ЕКС',obj:'МКД Мариуполь (30 домов)',subj:'ПИР',dt:'19.10.2022',end:'10.12.2022',sign:'подписан',tz:'',link:'https://disk.yandex.ru/i/ub1gcuDSm8hIQg'},
@@ -293,258 +479,428 @@ var DATA=[
   {id:'p1',num:'Договор №36/2025',cust:'Прочие',obj:'Каменск-Шахтинский (ФКП Комбинат)',subj:'РВР — ПИР',dt:'03.02.2025',end:'—',sign:'подписан',tz:'',link:'https://disk.360.yandex.ru/i/PolXSopnoJQx2A'},
   {id:'p2',num:'Договор №15ВПКПЭ/ПИР',cust:'Прочие',obj:'БХЗ (Брянск, Сельцо)',subj:'Техническое обследование',dt:'—',end:'—',sign:'подписан',tz:'',link:'https://disk.360.yandex.ru/i/KVZ3hCX6z8IZBA'},
 ];
-
 var CUSTOMER_ORDER=['ЕКС','Стройресурс','ООО 495 ССУ','ООО «РСА»','Прочие'];
 
-function parseDt(s){if(!s||s==='—')return null;var p=s.split('.');return new Date(p[2],p[1]-1,p[0]);}
-function ea(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');}
+/* ============================================================
+   allData / syncPF
+   ============================================================ */
+function allData(){
+  return DATA.concat(customContracts).filter(function(d){return !deleted.has(d.id);}).map(function(d){
+    var ev=edits[d.id]||{};
+    return {
+      id:d.id,num:ev.num!==undefined?ev.num:d.num,cust:ev.cust||d.cust,
+      obj:ev.obj!==undefined?ev.obj:d.obj,subj:ev.subj!==undefined?ev.subj:d.subj,
+      dt:ev.dt!==undefined?ev.dt:d.dt,end:ev.end!==undefined?ev.end:d.end,
+      sign:ev.sign||d.sign,tz:ev.tz!==undefined?ev.tz:(d.tz||''),
+      link:ev.link!==undefined?ev.link:(d.link||''),_custom:!!d._custom
+    };
+  });
+}
 
-function endCell(s){
+function syncPF(){
+  var pf={};
+  allData().forEach(function(d){
+    var ex=extra[d.id]||{};
+    if(ex.pfname&&(ex.gge_status==='пройдена'||ex.exon_status==='одобрен')){pf[ex.pfname]='exp';}
+  });
+  try{localStorage.setItem(LS_PF,JSON.stringify(pf));}catch(e){}
+  var names=Object.keys(pf);
+  var bar=document.getElementById('pf-bar');
+  if(bar){
+    if(names.length){bar.classList.add('visible');document.getElementById('pf-bar-names').textContent=names.join(', ');}
+    else bar.classList.remove('visible');
+  }
+  var t=document.getElementById('t-pf');
+  if(t)t.textContent=names.length;
+}
+
+/* ============================================================
+   Helpers
+   ============================================================ */
+function n(v){if(!v)return '—';return Math.round(v).toLocaleString('ru-RU')+' ₽';}
+function nm(v){return v?+(v/1000000).toFixed(2):'0';}
+function ea(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');}
+function pfActive(d){var ex=extra[d.id]||{};return ex.pfname&&(ex.gge_status==='пройдена'||ex.exon_status==='одобрен');}
+function totalRecv(id){return getPays(id).reduce(function(s,p){return s+(parseFloat(p.amt)||0);},0);}
+function parseDt(s){if(!s||s==='—')return null;var p=s.split('.');return new Date(+p[2],+p[1]-1,+p[0]);}
+function endStr(s){
   if(!s||s==='—')return '<span class="no-date">—</span>';
   var d=parseDt(s);if(!d)return s;
   if(d<new Date())return '<span class="overdue" title="Срок истёк">'+s+' ⚠</span>';
   return s;
 }
-
 function tzBadge(v){
   if(v&&v.startsWith('http'))return '<a href="'+v+'" target="_blank" class="badge b-yes" style="text-decoration:none">✓ ссылка</a>';
   if(v==='да')return '<span class="badge b-yes">✓</span>';
   return '<span class="badge b-no">—</span>';
 }
+function statusBadge(s){
+  if(s==='Подписан')return '<span class="badge b-grn">✓ '+s+'</span>';
+  if(s==='Расторгнут')return '<span class="badge b-red">'+s+'</span>';
+  return '<span class="badge b-gray">'+s+'</span>';
+}
 
-// ---- Inline field handlers (no full re-render) ----
+/* ============================================================
+   Tiles
+   ============================================================ */
+function updateTiles(){
+  var ad=allData();
+  var totalSum=ad.reduce(function(s,d){return s+(parseFloat(sums[d.id])||0);},0);
+  var totalRecvAll=ad.reduce(function(s,d){return s+totalRecv(d.id);},0);
+  document.getElementById('t-total').textContent=ad.length;
+  document.getElementById('t-signed').textContent=ad.filter(function(d){return d.sign==='подписан';}).length;
+  document.getElementById('t-sum').textContent=totalSum?nm(totalSum):'—';
+  document.getElementById('t-recv').textContent=totalRecvAll?nm(totalRecvAll):'—';
+}
 
-function onSumInput(id, inp){
+/* ============================================================
+   LEFT panel render
+   ============================================================ */
+var selectedId=null;
+
+function renderList(){
+  var q=(document.getElementById('fsearch').value||'').toLowerCase();
+  var fCust=document.getElementById('fcust').value;
+  var fSign=document.getElementById('fsign').value;
+  var fGge=document.getElementById('fgge').value;
+  var ad=allData();
+  var html='';
+  CUSTOMER_ORDER.forEach(function(cust){
+    var items=ad.filter(function(d){
+      if(d.cust!==cust)return false;
+      if(fCust&&d.cust!==fCust)return false;
+      if(fSign&&d.sign!==fSign)return false;
+      var ex=extra[d.id]||{};
+      if(fGge&&ex.gge_status!==fGge)return false;
+      if(q&&!(d.num.toLowerCase().includes(q)||d.obj.toLowerCase().includes(q)||d.subj.toLowerCase().includes(q)))return false;
+      return true;
+    });
+    if(!items.length)return;
+    html+='<div class="group-hd"><span>'+cust+'</span><span class="group-count">'+items.length+'</span></div>';
+    items.forEach(function(d){
+      var ex=extra[d.id]||{};
+      var badges='';
+      if(ex.gge_status==='пройдена')badges+='<span class="mini-badge mb-gge">ГГЭ ✓</span>';
+      else if(ex.gge_status==='на рассмотрении')badges+='<span class="mini-badge mb-gge-pend">ГГЭ…</span>';
+      if(ex.exon_status==='одобрен')badges+='<span class="mini-badge mb-exon">EXON ✓</span>';
+      if(ex.ds==='да')badges+='<span class="mini-badge mb-ds">ДС</span>';
+      if(pfActive(d))badges+='<span class="mini-badge mb-pf">→ПФ</span>';
+      var sv=parseFloat(sums[d.id])||0;
+      var rv=totalRecv(d.id);
+      var sumLine=sv?'<div class="ci-sum">'+nm(sv)+' млн'+(rv?' · пост. '+nm(rv)+' млн':'')+'</div>':'';
+      html+='<div class="ctr-item'+(selectedId===d.id?' active':'')+'" onclick="selectContract(\''+d.id+'\')">'+
+        '<div class="sign-dot '+(d.sign==='подписан'?'yes':'no')+'"></div>'+
+        '<div class="ci-body">'+
+          '<div class="ci-num">'+d.num+'</div>'+
+          '<div class="ci-obj">'+d.obj+'</div>'+
+          '<div class="ci-sub">'+d.subj+(d.dt&&d.dt!=='—'?' · '+d.dt:'')+'</div>'+
+          (badges?'<div class="ci-badges">'+badges+'</div>':'')+
+          sumLine+
+        '</div>'+
+      '</div>';
+    });
+  });
+  document.getElementById('ctr-list').innerHTML=html||'<div style="padding:20px;text-align:center;color:var(--tx3);font-size:12px">Ничего не найдено</div>';
+}
+
+function selectContract(id){
+  selectedId=id;
+  renderList();
+  var d=allData().find(function(x){return x.id===id;});
+  if(d)renderDetail(d);
+  requestAnimationFrame(function(){document.getElementById('right-panel').scrollTop=0;});
+  if(window.innerWidth<=640)document.getElementById('left-panel').classList.add('mob-hidden');
+}
+
+/* ============================================================
+   RIGHT panel: detail
+   ============================================================ */
+function renderDetail(d){
+  document.getElementById('empty-state').hidden=true;
+  var dv=document.getElementById('detail-view');
+  dv.hidden=false;
+  var id=d.id;
+  var ex=extra[id]||{};
+  var sv=parseFloat(sums[id])||0;
+  var rv=totalRecv(id);
+  var rem=sv-rv;
+  var payPct=sv>0?Math.min(Math.round(rv/sv*100),100):0;
+
+  /* --- HEADER --- */
+  var html='<div class="detail-head">'+
+    '<button class="back-btn" onclick="document.getElementById(\'left-panel\').classList.remove(\'mob-hidden\')">← Назад</button>'+
+    '<div class="dh-main">'+
+      '<div class="dh-num">'+d.num+'</div>'+
+      '<div class="dh-meta"><span>'+d.cust+'</span><span>·</span><span>'+d.obj+'</span>'+
+        (d.sign==='подписан'?'<span>· <span style="color:#86efac">✓ Подписан</span></span>':'<span>· <span style="color:#fca5a5">⏳ Не подписан</span></span>')+
+      '</div>'+
+    '</div>'+
+    '<div class="dh-actions">'+
+      '<button class="dh-btn edit" onclick="openEditModal(\''+id+'\')">✏️ Редактировать</button>'+
+      '<button class="dh-btn del" onclick="deleteContract(\''+id+'\',\''+ea(d.num)+'\')">🗑</button>'+
+    '</div>'+
+  '</div>';
+
+  /* --- SUMMARY BAR --- */
+  html+='<div class="sum-bar">'+
+    '<div class="sum-cell"><div class="sum-val">'+(sv?nm(sv)+' млн':'<span style="color:var(--tx3);font-size:12px">не указана</span>')+'</div><div class="sum-lbl">Сумма договора</div></div>'+
+    '<div class="sum-cell"><div class="sum-val grn">'+(rv?nm(rv)+' млн':'0')+'</div><div class="sum-lbl">Поступило</div></div>'+
+    '<div class="sum-cell"><div class="sum-val '+(sv&&rem<0?'red':sv&&rem>0?'':'')+'">'+
+      (sv?(rem>=0?nm(rem)+' млн':'-'+nm(Math.abs(rem))+' млн'):'—')+'</div><div class="sum-lbl">Остаток</div></div>'+
+    '<div class="sum-cell"><div class="sum-val '+(payPct>=100?'grn':payPct>0?'':'')+'">'+
+      (sv?payPct+'%':'—')+'</div><div class="sum-lbl">Оплачено</div></div>'+
+  '</div>';
+
+  /* --- PAYMENTS PROGRESS --- */
+  if(sv>0){
+    html+='<div class="prog-wrap">'+
+      '<div class="prog-track"><div class="prog-fill" style="width:'+payPct+'%;background:var(--grn)"></div></div>'+
+      '<div class="prog-labels"><span>'+n(rv)+' поступило</span><span>из '+n(sv)+'</span></div>'+
+    '</div>';
+  }
+
+  html+='<div class="sections">';
+
+  /* --- BUDGET / SUBCONTRACTORS --- */
+  var pfname=ex.pfname||'';
+  var subs=pfname?(subsByPF[pfname]||[]):[];
+  var subTotal=subs.reduce(function(s,c){return s+(c.amount||0);},0);
+  var budPct=sv>0?Math.round(subTotal/sv*100):0;
+  var budCls=budPct>100?'over':budPct>85?'warn':'ok';
+  html+='<div class="card"><div class="card-hd"><span>🏗 Подрядчики / Бюджет</span></div>';
+  if(sv>0){
+    var alertMsg=budPct>100
+      ?'⚠️ Превышение! Подряд больше суммы договора на '+n(subTotal-sv)
+      :budPct>85
+        ?'⚠️ Использовано '+budPct+'% — осталось '+n(sv-subTotal)
+        :'✓ В бюджете — маржа '+n(sv-subTotal)+' ('+(100-budPct)+'%)';
+    html+='<div class="budget-block">'+
+      '<div class="b-track-row">'+
+        '<span style="font-size:10px;font-weight:600;color:var(--tx3);width:80px">Подряд/Договор</span>'+
+        '<div class="b-track"><div class="b-fill '+budCls+'" style="width:'+Math.min(budPct,100)+'%"></div></div>'+
+        '<span class="b-pct '+budCls+'">'+budPct+'%</span>'+
+      '</div>'+
+      '<div class="b-nums"><span>'+n(subTotal)+' подряд</span><span>из</span><span>'+n(sv)+' договор</span></div>'+
+      '<div class="b-alert '+budCls+'">'+alertMsg+'</div>'+
+    '</div>';
+  } else {
+    html+='<div class="budget-block"><div style="font-size:11px;color:var(--tx3)">Укажите сумму договора выше для контроля бюджета</div></div>';
+  }
+  if(subs.length){
+    html+='<table class="pay-table"><thead><tr><th>Подрядчик</th><th>Предмет</th><th>Статус</th><th style="text-align:right">Сумма</th></tr></thead><tbody>';
+    var subsTotal=0;
+    subs.forEach(function(c){
+      subsTotal+=c.amount||0;
+      html+='<tr>'+
+        '<td>'+c.contractor+'</td>'+
+        '<td class="muted">'+c.subj+'</td>'+
+        '<td>'+statusBadge(c.sign_status)+'</td>'+
+        '<td class="amt">'+n(c.amount)+'</td>'+
+      '</tr>';
+    });
+    html+='<tr class="total-row"><td colspan="3"><span style="color:var(--tx2)">Итого по подряду</span></td>'+
+      '<td class="amt '+(budPct>100?'red':budPct>85?'':'grn')+'">'+n(subsTotal)+'</td></tr>';
+    html+='</tbody></table>';
+  } else {
+    html+='<div class="pay-empty">'+(pfname?'Подрядные договоры по объекту «'+pfname+'» не найдены в реестре':'Выберите объект в поле «Связь с ПФ» для отображения подрядчиков')+'</div>';
+  }
+  html+='</div>';
+
+  /* --- PAYMENTS --- */
+  var pays=getPays(id);
+  html+='<div class="card"><div class="card-hd"><span>💰 Поступления</span><button class="card-hd-btn" onclick="openPayModal(\''+id+'\')">＋ Добавить</button></div>';
+  if(pays.length){
+    var pTotal=0;
+    html+='<table class="pay-table"><thead><tr><th>Дата</th><th>Назначение</th><th style="text-align:right">Сумма</th><th></th></tr></thead><tbody>';
+    pays.forEach(function(p,i){
+      pTotal+=parseFloat(p.amt)||0;
+      html+='<tr>'+
+        '<td class="muted">'+p.dt+'</td>'+
+        '<td>'+p.note+'</td>'+
+        '<td class="amt grn">'+n(p.amt)+'</td>'+
+        '<td><button class="btn-del-pay" onclick="delPay(\''+id+'\','+i+')">✕</button></td>'+
+      '</tr>';
+    });
+    html+='<tr class="total-row"><td colspan="2">Итого поступило</td><td class="amt grn">'+n(pTotal)+'</td><td></td></tr>';
+    html+='</tbody></table>';
+  } else {
+    html+='<div class="pay-empty">Платежей нет — нажмите «＋ Добавить»</div>';
+  }
+  html+='</div>';
+
+  /* --- ОСНОВНОЕ --- */
+  html+='<div class="card"><div class="card-hd">📋 Основное</div>'+
+    fld('Сумма, ₽','<input class="inp-sum-d'+(sv?' has-val':'')+'" type="number" placeholder="Введите сумму" value="'+(sv||'')+'" oninput="onSumInput(\''+id+'\',this)">',false)+
+    fld('Предмет',d.subj||'<span class="no-date">—</span>',false)+
+    fld('Дата',d.dt&&d.dt!=='—'?d.dt:'<span class="no-date">не указана</span>',false)+
+    fld('Срок',endStr(d.end),false)+
+    fld('Подписан',d.sign==='подписан'?'<span class="badge b-signed">✓ Подписан</span>':'<span class="badge b-nosign">✗ Не подписан</span>',false)+
+    fld('ТЗ',tzBadge(d.tz),false)+
+    fld('Папка',d.link?'<a href="'+d.link+'" target="_blank" class="ext-link">🔗 Открыть на Яндекс.Диске</a>':'<span class="no-date">—</span>',true)+
+  '</div>';
+
+  /* --- ЭКСПЕРТИЗА --- */
+  var ggeStatus=ex.gge_status||'';
+  var exonStatus=ex.exon_status||'';
+  var dsYes=ex.ds==='да';
+  html+='<div class="card"><div class="card-hd">🏛 Экспертиза</div>'+
+    fld('ДС к договору','<button class="badge b-btn '+(dsYes?'b-yes':'b-no')+'" onclick="toggleBadge(\''+id+'\',\'ds\',this)">'+(dsYes?'✓ есть':'—')+'</button>',false)+
+    fld('Статус ГГЭ',
+      '<select class="sel-sm" onchange="onExtraChange(\''+id+'\',\'gge_status\',this.value)">'+
+        '<option value=""'+(ggeStatus===''?' selected':'')+'>—</option>'+
+        '<option value="на рассмотрении"'+(ggeStatus==='на рассмотрении'?' selected':'')+'>⏳ На рассмотрении</option>'+
+        '<option value="пройдена"'+(ggeStatus==='пройдена'?' selected':'')+'>✓ Пройдена</option>'+
+      '</select>'+
+      '<div class="gge-sub-row" style="display:'+(ggeStatus==='пройдена'?'flex':'none')+'" id="gge-sub-'+id+'">'+
+        '<input class="inp-sm'+(ex.gge_num?' filled':'')+'" placeholder="№ заключения" value="'+(ex.gge_num||'')+'" onblur="onExtraBlur(\''+id+'\',\'gge_num\',this)" title="Номер заключения ГГЭ">'+
+        '<input class="inp-sm'+(ex.gge_date?' filled':'')+'" placeholder="Дата" value="'+(ex.gge_date||'')+'" onblur="onExtraBlur(\''+id+'\',\'gge_date\',this)" title="Дата заключения ГГЭ">'+
+      '</div>',false)+
+    fld('Статус EXON',
+      '<select class="sel-sm" onchange="onExtraChange(\''+id+'\',\'exon_status\',this.value)">'+
+        '<option value=""'+(exonStatus===''?' selected':'')+'>—</option>'+
+        '<option value="в работе"'+(exonStatus==='в работе'?' selected':'')+'>⏳ В работе</option>'+
+        '<option value="одобрен"'+(exonStatus==='одобрен'?' selected':'')+'>✓ Одобрен</option>'+
+        '<option value="отклонён"'+(exonStatus==='отклонён'?' selected':'')+'>✗ Отклонён</option>'+
+      '</select>',true)+
+  '</div>';
+
+  /* --- ЗАКРЫВАЮЩИЕ --- */
+  var clType=ex.closetype||'';
+  var clStatus=ex.closestatus||'';
+  html+='<div class="card"><div class="card-hd">📑 Закрывающие документы</div>'+
+    fld('Тип',
+      '<select class="sel-sm" onchange="onExtraChange(\''+id+'\',\'closetype\',this.value)">'+
+        '<option value=""'+(clType===''?' selected':'')+'>—</option>'+
+        '<option value="Акт"'+(clType==='Акт'?' selected':'')+'>Акт</option>'+
+        '<option value="КС-2/КС-3"'+(clType==='КС-2/КС-3'?' selected':'')+'>КС-2/КС-3</option>'+
+      '</select>',false)+
+    (clType?fld('Статус',
+      '<select class="sel-sm" onchange="onExtraChange(\''+id+'\',\'closestatus\',this.value)">'+
+        '<option value=""'+(clStatus===''?' selected':'')+'>—</option>'+
+        '<option value="в работе"'+(clStatus==='в работе'?' selected':'')+'>В работе</option>'+
+        '<option value="подписан"'+(clStatus==='подписан'?' selected':'')+'>✓ Подписан</option>'+
+        '<option value="замечания"'+(clStatus==='замечания'?' selected':'')+'>! Замечания</option>'+
+      '</select>',true):'')+
+  '</div>';
+
+  /* --- СВЯЗЬ С ПФ --- */
+  var pfInd='';
+  if(pfActive(d)){pfInd='<div class="pf-ind active">🔴 Экспертиза пройдена — первоочередная оплата в Плане-Факте</div>';}
+  else if(pfname){pfInd='<div class="pf-ind inactive">Связан с «'+pfname+'» — экспертиза ещё не пройдена</div>';}
+  html+='<div class="card"><div class="card-hd">📊 Связь с Планом-Фактом</div>'+
+    fld('Объект в ПФ',
+      '<select class="sel-sm" style="width:200px" onchange="onExtraChange(\''+id+'\',\'pfname\',this.value)">'+
+        '<option value="">— выберите объект —</option>'+
+        PF_OBJECTS.map(function(o){return '<option value="'+o+'"'+(pfname===o?' selected':'')+'>'+o+'</option>';}).join('')+
+      '</select>',true)+
+  pfInd+'</div>';
+
+  /* --- КОММЕНТАРИЙ --- */
+  html+='<div class="card"><div class="card-hd">💬 Комментарий</div>'+
+    '<textarea class="cmt-area" placeholder="Заметки по договору…" onblur="onExtraBlur(\''+id+'\',\'comment\',this)">'+(ex.comment||'')+'</textarea>'+
+  '</div>';
+
+  html+='</div>'; // /sections
+  dv.innerHTML=html;
+}
+
+function fld(lbl,val,last){
+  return '<div class="field'+(last?' style=\"border-bottom:none\"':'')+'">'+
+    '<div class="field-lbl">'+lbl+'</div><div class="field-val">'+val+'</div></div>';
+}
+
+/* ============================================================
+   Inline field handlers
+   ============================================================ */
+function onSumInput(id,inp){
   var v=inp.value;
-  if(v)sums[id]=parseFloat(v); else delete sums[id];
+  if(v)sums[id]=parseFloat(v);else delete sums[id];
   saveSums();
   inp.classList.toggle('has-val',!!v);
   updateTiles();
+  renderList();
+  // Re-render to refresh budget/payment bars without losing focus
+  setTimeout(function(){
+    var d=allData().find(function(x){return x.id===id;});
+    if(d&&selectedId===id)renderDetail(d);
+  },600);
 }
 
-function onExtraBlur(id, field, inp){
-  getEx(id)[field]=inp.value;
-  saveExtra();
-  if(field==='pfname'){
-    syncPF();
-    updatePFCell(id);
-  }
+function onExtraBlur(id,field,inp){
+  getEx(id)[field]=inp.value;saveExtra();
+  if(field==='pfname'){syncPF();if(selectedId===id){var d=allData().find(function(x){return x.id===id;});if(d)renderDetail(d);}}
 }
 
-function onExtraChange(id, field, val){
-  getEx(id)[field]=val;
-  saveExtra();
-  syncPF();
-  // Show/hide GGE sub-fields
+function onExtraChange(id,field,val){
+  getEx(id)[field]=val;saveExtra();syncPF();
   if(field==='gge_status'){
     var sub=document.getElementById('gge-sub-'+id);
     if(sub)sub.style.display=val==='пройдена'?'flex':'none';
   }
-  updatePFCell(id);
+  renderList();
+  if(selectedId===id){var d=allData().find(function(x){return x.id===id;});if(d)renderDetail(d);}
 }
 
-function toggleBadge(id, field, btn){
+function toggleBadge(id,field,btn){
   var ex=getEx(id);
   ex[field]=(ex[field]==='да'?'нет':'да');
   saveExtra();
   var yes=ex[field]==='да';
   btn.className='badge b-btn '+(yes?'b-yes':'b-no');
   btn.textContent=yes?'✓ есть':'—';
+  renderList();
 }
 
-function updatePFCell(id){
-  var el=document.getElementById('pf-'+id);
-  if(!el)return;
-  var ex=extra[id]||{};
-  var active=ex.pfname&&(ex.gge_status==='пройдена'||ex.exon_status==='одобрен');
-  el.innerHTML=active
-    ?'<span class="badge b-pf">🔴 → ПФ</span>'
-    +'<div style="font-size:10px;color:var(--tx3);margin-top:2px">'+ex.pfname+'</div>'
-    :'<span style="color:var(--tx3);font-size:11px">—</span>';
+/* ============================================================
+   Payments
+   ============================================================ */
+var payModalId=null;
+function openPayModal(id){payModalId=id;var f=document.getElementById('pay-form');f.reset();document.getElementById('pay-modal').style.display='flex';}
+function closePay(){document.getElementById('pay-modal').style.display='none';}
+function savePay(){
+  var f=document.getElementById('pay-form');
+  var dt=f.querySelector('[name=pdt]').value.trim();
+  var amt=parseFloat(f.querySelector('[name=pamt]').value)||0;
+  var note=f.querySelector('[name=pnote]').value.trim();
+  if(!dt||!amt){return;}
+  if(!payments[payModalId])payments[payModalId]=[];
+  payments[payModalId].push({dt:dt,amt:amt,note:note||'Оплата'});
+  savePays();closePay();updateTiles();renderList();
+  var d=allData().find(function(x){return x.id===payModalId;});
+  if(d)renderDetail(d);
 }
-
-function updateTiles(){
-  var total=0;
-  DATA.forEach(function(d){total+=parseFloat(sums[d.id])||0;});
-  var t=document.getElementById('t-sum');
-  if(t)t.textContent=total?Math.round(total).toLocaleString('ru-RU')+' ₽':'—';
-}
-
-// ---- Main render ----
-function render(){
-  var search=(document.getElementById('fsearch').value||'').toLowerCase();
-  var fCust=document.getElementById('fcustomer').value;
-  var fSign=document.getElementById('fstatus').value;
-  var fGge=document.getElementById('fgge').value;
-  var fPf=document.getElementById('fpf').value;
-
-  var ad=allData();
-
-  // Pre-compute current PF state
-  var curPF={};
-  ad.forEach(function(d){
-    var ex=extra[d.id]||{};
-    if(ex.pfname&&(ex.gge_status==='пройдена'||ex.exon_status==='одобрен'))curPF[d.id]=true;
-  });
-
-  var filtered=ad.filter(function(d){
-    if(deleted.has(d.id))return false;
-    if(search&&!(d.num.toLowerCase().includes(search)||d.obj.toLowerCase().includes(search)||d.subj.toLowerCase().includes(search)))return false;
-    if(fCust&&d.cust!==fCust)return false;
-    if(fSign&&d.sign!==fSign)return false;
-    var ex=extra[d.id]||{};
-    if(fGge&&ex.gge_status!==fGge)return false;
-    if(fPf&&!curPF[d.id])return false;
-    return true;
-  });
-
-  var grouped={};
-  CUSTOMER_ORDER.forEach(function(c){grouped[c]=[];});
-  filtered.forEach(function(d){if(grouped[d.cust])grouped[d.cust].push(d);});
-
-  var h='';
-  var totalSum=0;
-  CUSTOMER_ORDER.forEach(function(cust){
-    var rows=grouped[cust];
-    if(!rows||!rows.length)return;
-    var custSum=rows.reduce(function(s,d){return s+(parseFloat(sums[d.id])||0);},0);
-    totalSum+=custSum;
-    h+='<tr class="group-row"><td colspan="16">'+
-       '<span class="badge b-customer">'+cust+'</span> — '+rows.length+
-       ' дог'+(rows.length===1?'овор':'оворов')+
-       (custSum?'<span style="float:right;color:#1d4ed8;font-weight:700">'+Math.round(custSum).toLocaleString('ru-RU')+' ₽</span>':'')+
-       '</td></tr>';
-    h+='<tr class="group-spacer"><td colspan="16"></td></tr>';
-
-    rows.forEach(function(d){
-      var sv=sums[d.id]||'';
-      var ex=extra[d.id]||{};
-      var pfActive=ex.pfname&&(ex.gge_status==='пройдена'||ex.exon_status==='одобрен');
-
-      // ДС toggle
-      var dsYes=ex.ds==='да';
-      var dsBtn='<button class="badge b-btn '+(dsYes?'b-yes':'b-no')+'" onclick="toggleBadge(\''+d.id+'\',\'ds\',this)">'+(dsYes?'✓ есть':'—')+'</button>';
-
-      // ГГЭ cell
-      var ggeStatus=ex.gge_status||'';
-      var ggeCell='<select class="sel-sm" onchange="onExtraChange(\''+d.id+'\',\'gge_status\',this.value)">'+
-        '<option value=""'+(ggeStatus===''?' selected':'')+'>—</option>'+
-        '<option value="на рассмотрении"'+(ggeStatus==='на рассмотрении'?' selected':'')+'>⏳ На рассм.</option>'+
-        '<option value="пройдена"'+(ggeStatus==='пройдена'?' selected':'')+'>✓ Пройдена</option>'+
-        '</select>'+
-        '<div id="gge-sub-'+d.id+'" class="gge-sub" style="display:'+(ggeStatus==='пройдена'?'flex':'none')+'">'+
-          '<input class="inp-sm'+(ex.gge_num?' filled':'')+'" placeholder="№ закл." value="'+(ex.gge_num||'')+'" onblur="onExtraBlur(\''+d.id+'\',\'gge_num\',this)" title="Номер заключения ГГЭ">'+
-          '<input class="inp-sm'+(ex.gge_date?' filled':'')+'" placeholder="Дата" value="'+(ex.gge_date||'')+'" onblur="onExtraBlur(\''+d.id+'\',\'gge_date\',this)" title="Дата заключения ГГЭ">'+
-        '</div>';
-
-      // EXON cell
-      var exonStatus=ex.exon_status||'';
-      var exonCell='<select class="sel-sm" onchange="onExtraChange(\''+d.id+'\',\'exon_status\',this.value)">'+
-        '<option value=""'+(exonStatus===''?' selected':'')+'>—</option>'+
-        '<option value="в работе"'+(exonStatus==='в работе'?' selected':'')+'>⏳ В работе</option>'+
-        '<option value="одобрен"'+(exonStatus==='одобрен'?' selected':'')+'>✓ Одобрен</option>'+
-        '<option value="отклонён"'+(exonStatus==='отклонён'?' selected':'')+'>✗ Откл.</option>'+
-        '</select>';
-
-      // Закрывающие
-      var clType=ex.closetype||'';
-      var clStatus=ex.closestatus||'';
-      var clTypeCell='<select class="sel-sm" style="margin-bottom:3px" onchange="onExtraChange(\''+d.id+'\',\'closetype\',this.value)">'+
-        '<option value=""'+(clType===''?' selected':'')+'>тип...</option>'+
-        '<option value="Акт"'+(clType==='Акт'?' selected':'')+'>Акт</option>'+
-        '<option value="КС-2/КС-3"'+(clType==='КС-2/КС-3'?' selected':'')+'>КС-2/КС-3</option>'+
-        '</select>';
-      var clStatusCell=clType?'<select class="sel-sm" onchange="onExtraChange(\''+d.id+'\',\'closestatus\',this.value)">'+
-        '<option value=""'+(clStatus===''?' selected':'')+'>—</option>'+
-        '<option value="в работе"'+(clStatus==='в работе'?' selected':'')+'>В работе</option>'+
-        '<option value="подписан"'+(clStatus==='подписан'?' selected':'')+'>✓ Подписан</option>'+
-        '<option value="замечания"'+(clStatus==='замечания'?' selected':'')+'>! Замечания</option>'+
-        '</select>':'';
-
-      // →ПФ cell
-      var pfCell=pfActive
-        ?'<span class="badge b-pf">🔴 → ПФ</span>'+
-          '<div style="font-size:10px;color:var(--tx3);margin-top:2px">'+ex.pfname+'</div>'
-        :'<span style="color:var(--tx3);font-size:11px">—</span>';
-
-      h+='<tr>'+
-        '<td class="col-num">'+d.num+'</td>'+
-        '<td style="min-width:160px;font-weight:500;line-height:1.35">'+d.obj+'</td>'+
-        '<td style="max-width:160px;color:var(--tx2);font-size:11px;line-height:1.3">'+d.subj+'</td>'+
-        '<td style="white-space:nowrap;font-size:11px">'+d.dt+'<br><span style="color:var(--tx3)">до </span>'+endCell(d.end)+'</td>'+
-        '<td style="text-align:right"><input class="inp-sum'+(sv?' has-val':'')+'" type="number" placeholder="Сумма" value="'+sv+'" oninput="onSumInput(\''+d.id+'\',this)"></td>'+
-        '<td>'+(d.sign==='подписан'?'<span class="badge b-signed">✓</span>':'<span class="badge b-nosign">✗</span>')+'</td>'+
-        '<td>'+tzBadge(d.tz)+'</td>'+
-        '<td>'+dsBtn+'</td>'+
-        '<td style="min-width:120px">'+ggeCell+'</td>'+
-        '<td style="min-width:100px">'+exonCell+'</td>'+
-        '<td style="min-width:110px">'+clTypeCell+clStatusCell+'</td>'+
-        '<td><input class="inp-cmt'+(ex.comment?' filled':'')+'" placeholder="Заметка..." value="'+(ex.comment||'').replace(/"/g,'&quot;')+'" onblur="onExtraBlur(\''+d.id+'\',\'comment\',this)"></td>'+
-        '<td style="min-width:130px">'+
-          '<select class="sel-sm" style="width:130px" onchange="onExtraChange(\''+d.id+'\',\'pfname\',this.value)">'+
-            '<option value="">— объект —</option>'+
-            PF_OBJECTS.map(function(o){return '<option value="'+o+'"'+(ex.pfname===o?' selected':'')+'>'+o+'</option>';}).join('')+
-          '</select>'+
-        '</td>'+
-        '<td style="min-width:90px" id="pf-'+d.id+'">'+pfCell+'</td>'+
-        '<td>'+(d.link?'<a href="'+d.link+'" target="_blank" class="ext-link">📁</a>':'<span style="color:var(--tx3)">—</span>')+'</td>'+
-        '<td style="text-align:center;white-space:nowrap">'+
-          '<button onclick="openEditModal(\''+d.id+'\')" title="Редактировать" style="background:none;border:none;cursor:pointer;font-size:13px;opacity:.35;transition:opacity .15s;padding:2px" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=.35">✏️</button>'+
-          '<button onclick="deleteContract(\''+d.id+'\',\''+ea(d.num)+'\')" title="Удалить договор" style="background:none;border:none;cursor:pointer;font-size:13px;opacity:.35;transition:opacity .15s;padding:2px" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=.35">🗑</button>'+
-        '</td>'+
-      '</tr>';
-    });
-  });
-
-  document.getElementById('tbody').innerHTML=h;
-
-  // Tiles
-  document.getElementById('t-total').textContent=filtered.length;
-  document.getElementById('t-signed').textContent=filtered.filter(function(d){return d.sign==='подписан';}).length;
-  document.getElementById('t-nosign').textContent=filtered.filter(function(d){return d.sign==='не подписан';}).length;
-  document.getElementById('t-sum').textContent=totalSum?Math.round(totalSum).toLocaleString('ru-RU')+' ₽':'—';
-  document.getElementById('count-lbl').textContent='Показано: '+filtered.length+' из '+ad.length;
-
-  // Sync and update PF bar
-  syncPF();
-}
-
-function applyFilter(){render();}
-function resetFilter(){
-  document.getElementById('fsearch').value='';
-  document.getElementById('fcustomer').value='';
-  document.getElementById('fstatus').value='';
-  document.getElementById('fgge').value='';
-  document.getElementById('fpf').value='';
-  render();
-}
-
-// Init
-syncPF();
-render();
-
-/* ===== МОДАЛЬНОЕ ОКНО: добавить / редактировать договор ===== */
-var modalId=null; // null = новый, иначе id редактируемого
-
-function openAddModal(){
-  modalId=null;
-  _fillModal(null);
-  document.getElementById('modal-title').textContent='Новый договор';
-  document.getElementById('modal-overlay').style.display='flex';
-}
-
-function openEditModal(id){
-  modalId=id;
+function delPay(id,idx){
+  if(!payments[id])return;
+  payments[id].splice(idx,1);
+  savePays();updateTiles();renderList();
   var d=allData().find(function(x){return x.id===id;});
-  if(!d)return;
-  _fillModal(d);
-  document.getElementById('modal-title').textContent='Редактировать договор';
-  document.getElementById('modal-overlay').style.display='flex';
+  if(d)renderDetail(d);
 }
 
+/* ============================================================
+   Delete
+   ============================================================ */
+function deleteContract(id,name){
+  if(!confirm('Удалить «'+name+'»?\n\nДоговор будет скрыт из реестра.'))return;
+  deleted.add(id);saveDeleted();
+  if(selectedId===id){
+    selectedId=null;
+    document.getElementById('empty-state').hidden=false;
+    document.getElementById('detail-view').hidden=true;
+    document.getElementById('empty-state').innerHTML='<div class="es-icon">📄</div><p>Выберите договор из списка слева</p>';
+  }
+  renderList();updateTiles();syncPF();
+}
+
+/* ============================================================
+   Add / Edit modal
+   ============================================================ */
+var modalId=null;
+function openAddModal(){modalId=null;_fillModal(null);document.getElementById('modal-title').textContent='Новый договор';document.getElementById('modal-overlay').style.display='flex';}
+function openEditModal(id){modalId=id;var d=allData().find(function(x){return x.id===id;});if(!d)return;_fillModal(d);document.getElementById('modal-title').textContent='Редактировать договор';document.getElementById('modal-overlay').style.display='flex';}
 function _fillModal(d){
   var f=document.getElementById('modal-form');
-  f.querySelector('[name=cust]').value=d?d.cust:'';
+  f.querySelector('[name=cust]').value=d?d.cust:'ЕКС';
   f.querySelector('[name=num]').value=d?d.num:'';
   f.querySelector('[name=obj]').value=d?d.obj:'';
   f.querySelector('[name=subj]').value=d?d.subj:'';
@@ -554,103 +910,24 @@ function _fillModal(d){
   f.querySelector('[name=tz]').value=d?d.tz:'';
   f.querySelector('[name=link]').value=d?d.link:'';
 }
-
-function closeModal(){
-  document.getElementById('modal-overlay').style.display='none';
-}
-
+function closeModal(){document.getElementById('modal-overlay').style.display='none';}
 function saveModal(){
   var f=document.getElementById('modal-form');
-  var data={
-    num:f.querySelector('[name=num]').value.trim(),
-    cust:f.querySelector('[name=cust]').value,
-    obj:f.querySelector('[name=obj]').value.trim(),
-    subj:f.querySelector('[name=subj]').value.trim(),
-    dt:f.querySelector('[name=dt]').value.trim(),
-    end:f.querySelector('[name=end]').value.trim(),
-    sign:f.querySelector('[name=sign]').value,
-    tz:f.querySelector('[name=tz]').value.trim(),
-    link:f.querySelector('[name=link]').value.trim()
-  };
+  var data={num:f.querySelector('[name=num]').value.trim(),cust:f.querySelector('[name=cust]').value,obj:f.querySelector('[name=obj]').value.trim(),subj:f.querySelector('[name=subj]').value.trim(),dt:f.querySelector('[name=dt]').value.trim(),end:f.querySelector('[name=end]').value.trim(),sign:f.querySelector('[name=sign]').value,tz:f.querySelector('[name=tz]').value.trim(),link:f.querySelector('[name=link]').value.trim()};
   if(!data.num&&!data.obj){alert('Заполните хотя бы № договора или объект.');return;}
-  if(modalId){
-    edits[modalId]=data;
-    saveEdits();
-  } else {
-    var newId='c'+Date.now();
-    customContracts.push(Object.assign({id:newId,_custom:true},data));
-    saveCustom();
-  }
-  closeModal();
-  render();
-  syncPF();
+  if(modalId){edits[modalId]=data;saveEdits();}
+  else{var newId='c'+Date.now();customContracts.push(Object.assign({id:newId,_custom:true},data));saveCustom();}
+  closeModal();renderList();updateTiles();syncPF();
+  if(modalId&&selectedId===modalId){var d=allData().find(function(x){return x.id===modalId;});if(d)renderDetail(d);}
 }
 
+/* ============================================================
+   Init
+   ============================================================ */
+syncPF();
+updateTiles();
+renderList();
+loadSubContracts();
 </script>
-
-<!-- Модальное окно -->
-<div id="modal-overlay" onclick="if(event.target===this)closeModal()" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:200;align-items:center;justify-content:center;padding:16px">
-  <div style="background:#fff;border-radius:12px;width:100%;max-width:560px;box-shadow:0 20px 60px rgba(0,0,0,.25);max-height:90vh;overflow-y:auto">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid #e2e8f0">
-      <span id="modal-title" style="font-size:15px;font-weight:700;color:#1e293b">Договор</span>
-      <button onclick="closeModal()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#94a3b8;line-height:1;padding:2px 6px">×</button>
-    </div>
-    <form id="modal-form" onsubmit="saveModal();return false;" style="padding:20px 22px;display:grid;gap:14px">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div>
-          <label class="mf-lbl">Заказчик</label>
-          <select name="cust" class="mf-inp" style="cursor:pointer">
-            <option>ЕКС</option>
-            <option>Стройресурс</option>
-            <option>ООО 495 ССУ</option>
-            <option>ООО «РСА»</option>
-            <option>Прочие</option>
-          </select>
-        </div>
-        <div>
-          <label class="mf-lbl">№ Договора</label>
-          <input name="num" class="mf-inp" placeholder="напр. 123/24-ПИР">
-        </div>
-      </div>
-      <div>
-        <label class="mf-lbl">Объект</label>
-        <input name="obj" class="mf-inp" placeholder="Наименование объекта">
-      </div>
-      <div>
-        <label class="mf-lbl">Предмет договора</label>
-        <input name="subj" class="mf-inp" placeholder="Разработка ПД, ИИ и т.д.">
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-        <div>
-          <label class="mf-lbl">Дата</label>
-          <input name="dt" class="mf-inp" placeholder="01.01.2024">
-        </div>
-        <div>
-          <label class="mf-lbl">Срок</label>
-          <input name="end" class="mf-inp" placeholder="31.12.2024">
-        </div>
-        <div>
-          <label class="mf-lbl">Статус</label>
-          <select name="sign" class="mf-inp" style="cursor:pointer">
-            <option value="подписан">Подписан</option>
-            <option value="не подписан">Не подписан</option>
-          </select>
-        </div>
-      </div>
-      <div>
-        <label class="mf-lbl">ТЗ</label>
-        <input name="tz" class="mf-inp" placeholder="Ссылка или номер ТЗ">
-      </div>
-      <div>
-        <label class="mf-lbl">Ссылка на папку</label>
-        <input name="link" class="mf-inp" placeholder="https://...">
-      </div>
-      <div style="display:flex;justify-content:flex-end;gap:10px;padding-top:6px;border-top:1px solid #e2e8f0">
-        <button type="button" onclick="closeModal()" style="padding:8px 18px;border:1px solid #e2e8f0;border-radius:7px;background:#fff;font-size:13px;font-family:inherit;cursor:pointer;color:#475569">Отмена</button>
-        <button type="submit" style="padding:8px 20px;background:#2563eb;color:#fff;border:none;border-radius:7px;font-size:13px;font-family:inherit;font-weight:600;cursor:pointer">Сохранить</button>
-      </div>
-    </form>
-  </div>
-</div>
 </body>
 </html>
