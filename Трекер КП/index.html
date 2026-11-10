@@ -103,6 +103,23 @@ a{color:inherit}
 .filters-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
 .filter-chip{padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:#fff;font-size:12.5px;font-weight:600;color:var(--muted)}
 .filter-chip.active{border-color:var(--accent);color:var(--accent-ink);background:#eff6ff}
+.filter-chip.hot.active{border-color:var(--danger);color:#b91c1c;background:#fef2f2}
+.list-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.list-toolbar input[type=search]{flex:1 1 260px;min-width:200px}
+.list-toolbar select{max-width:230px}
+.list-toolbar .lt-dates{display:none;gap:6px;align-items:center}
+.list-toolbar .lt-dates input{width:150px}
+.list-count{font-size:12px;color:var(--muted);margin-bottom:10px}
+.tag{display:inline-flex;align-items:center;gap:3px;padding:1px 8px;border-radius:10px;font-size:11.5px;font-weight:600;background:#f1f5f9;color:#475569;white-space:nowrap}
+.tag-cat{background:#eef2ff;color:#3730a3}
+.tag-warn{background:#fef3c7;color:#92400e}
+.tag-danger{background:#fee2e2;color:#991b1b}
+.tag-ok{background:#ecfdf5;color:#065f46}
+.cat-picker{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.cat-picker label{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid var(--border);border-radius:16px;font-size:12.5px;font-weight:600;cursor:pointer;background:#fff;color:var(--ink)}
+.cat-picker label.on{border-color:#6366f1;background:#eef2ff;color:#3730a3}
+.cat-picker input{margin:0}
+.kp-texts textarea{min-height:90px}
 
 /* ---------- Form ---------- */
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -206,7 +223,7 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     <div class="role" id="user-box-role"></div>
     <button class="logout-btn" onclick="logout()">Выйти</button>
   </div>
-  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-10-07.7</div>
+  <div style="padding:6px 20px 0;font-size:10px;color:rgba(255,255,255,.25)">build 2026-11-10.2</div>
 </div>
 
 <div id="main" style="display:none">
@@ -220,6 +237,11 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
       <div class="page-title" style="font-size:15px;margin-bottom:12px">Суммы</div>
       <div class="cards-row" id="dash-money-cards"></div>
     </div>
+    <div id="dash-hot-wrap" style="display:none">
+      <div class="page-title" style="font-size:15px;margin-bottom:4px">🔥 Горят сроки</div>
+      <div class="page-sub" style="margin-bottom:12px">Заявки, которые дольше нормы стоят на одном этапе, или у которых подходит/прошёл срок отправки КП</div>
+      <div class="req-list" id="dash-hot-list" style="margin-bottom:22px"></div>
+    </div>
     <div class="page-title" style="font-size:15px;margin-bottom:12px">Требуют действия</div>
     <div class="req-list" id="dash-action-list"></div>
   </div>
@@ -229,7 +251,31 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
     <div class="page-title">Заявки на КП</div>
     <div class="page-sub" id="req-sub"></div>
     <div class="filters-row" id="req-filters"></div>
-    <select id="req-manager-filter" onchange="setManagerFilter(this.value)" style="margin-bottom:14px;max-width:240px"></select>
+    <div class="list-toolbar">
+      <input type="search" id="req-search" placeholder="🔍 Поиск: заказчик, предмет, адрес, номер заявки или КП" oninput="setReqSearch(this.value)">
+      <select id="req-category-filter" onchange="setCategoryFilter(this.value)"></select>
+      <select id="req-manager-filter" onchange="setManagerFilter(this.value)"></select>
+    </div>
+    <div class="list-toolbar">
+      <select id="req-period" onchange="setReqPeriod(this.value)">
+        <option value="all">За всё время</option>
+        <option value="month">Этот месяц</option>
+        <option value="30d">Последние 30 дней</option>
+        <option value="quarter">Этот квартал</option>
+        <option value="year">Этот год</option>
+        <option value="custom">Свой период…</option>
+      </select>
+      <span class="lt-dates" id="req-period-dates"><input type="date" id="req-date-from" onchange="setReqDates()"> — <input type="date" id="req-date-to" onchange="setReqDates()"></span>
+      <select id="req-sort" onchange="setReqSort(this.value)">
+        <option value="new">Сначала новые</option>
+        <option value="old">Сначала старые</option>
+        <option value="amount">По сумме (больше → меньше)</option>
+        <option value="due">По сроку КП (ближе → дальше)</option>
+        <option value="age">Дольше всего на этапе</option>
+      </select>
+      <button type="button" class="btn btn-sm" id="req-export-btn" onclick="exportRequestsXlsx()">⬇ Выгрузить в Excel</button>
+    </div>
+    <div class="list-count" id="req-count"></div>
     <div class="req-list" id="req-list"></div>
   </div>
 
@@ -247,12 +293,34 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
   <!-- ANALYTICS -->
   <div id="section-analytics" class="section">
     <div class="page-title">Аналитика</div>
-    <div class="page-sub">Сводка по клиентским менеджерам и заказчикам — по всем заявкам. Кликните по строке, чтобы увидеть её заявки</div>
+    <div class="page-sub">Сводка по клиентским менеджерам, заказчикам и категориям. Период — по дате создания заявки. Кликните по строке, чтобы увидеть её заявки</div>
+    <div class="list-toolbar">
+      <select id="an-period" onchange="setAnalyticsPeriod(this.value)">
+        <option value="all">За всё время</option>
+        <option value="month">Этот месяц</option>
+        <option value="30d">Последние 30 дней</option>
+        <option value="quarter">Этот квартал</option>
+        <option value="year">Этот год</option>
+        <option value="custom">Свой период…</option>
+      </select>
+      <span class="lt-dates" id="an-period-dates"><input type="date" id="an-date-from" onchange="setAnalyticsDates()"> — <input type="date" id="an-date-to" onchange="setAnalyticsDates()"></span>
+      <select id="an-category" onchange="setAnalyticsCategory(this.value)"></select>
+    </div>
+    <div class="cards-row" id="an-kpi" style="margin-bottom:16px"></div>
     <div id="req-stats-wrap">
       <div class="page-title" style="font-size:14px">Сводка по клиентским менеджерам</div>
       <div class="table-wrap"><table><thead><tr><th>Менеджер</th><th>Заявок</th><th>Сумма (принято)</th><th>На согласовании</th><th>Подписано</th></tr></thead><tbody id="req-stats-managers"></tbody></table></div>
       <div class="page-title" style="font-size:14px;margin-top:16px">Сводка по заказчикам</div>
       <div class="table-wrap"><table><thead><tr><th>Заказчик</th><th>Заявок</th><th>Сумма (принято)</th><th>На согласовании</th><th>Подписано</th></tr></thead><tbody id="req-stats-customers"></tbody></table></div>
+      <div class="page-title" style="font-size:14px;margin-top:16px">Сводка по категориям</div>
+      <div class="page-sub" style="margin-bottom:8px">Заявка с несколькими категориями учитывается в каждой из них</div>
+      <div class="table-wrap"><table><thead><tr><th>Категория</th><th>Заявок</th><th>Сумма (принято)</th><th>На согласовании</th><th>Подписано</th></tr></thead><tbody id="req-stats-categories"></tbody></table></div>
+      <div class="page-title" style="font-size:14px;margin-top:16px">Почему теряем заказы</div>
+      <div class="page-sub" style="margin-bottom:8px">Отказы за выбранный период. Сумма — ориентировочная из заявки или сумма КП</div>
+      <div class="form-grid">
+        <div class="table-wrap"><table><thead><tr><th>Отказ ПО — причина</th><th>Заявок</th><th>Сумма</th></tr></thead><tbody id="req-stats-reject-po"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Отказ заказчика — причина</th><th>КП</th><th>Сумма</th></tr></thead><tbody id="req-stats-reject-customer"></tbody></table></div>
+      </div>
     </div>
     <div id="analytics-detail-wrap" style="display:none">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
@@ -292,7 +360,9 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
         <div class="field"><label>Валюта расчётов</label>
           <select id="nf-currency"><option value="Рубль">Рубль</option><option value="Цифровой рубль">Цифровой рубль</option></select>
         </div>
-        <div class="field"><label>Срок исполнения</label><input id="nf-deadline" placeholder="напр. 45 дней / 01.12.2026"></div>
+        <div class="field span2"><label>Категория (можно несколько)</label><div class="cat-picker" id="nf-categories"></div></div>
+        <div class="field"><label>КП нужно отправить до</label><input id="nf-kpdue" type="date"></div>
+        <div class="field"><label>Срок исполнения работ</label><input id="nf-deadline" placeholder="напр. 45 дней / 01.12.2026"></div>
         <div class="field"><label>Размер аванса, %</label><input id="nf-advance" type="number" min="0" max="100" step="1" placeholder="напр. 30"></div>
         <div class="field span2"><label>Файл ТЗ (ссылка или название)</label><input id="nf-tz" placeholder="напр. ТЗ_Объект.pdf или ссылка на диск"></div>
         <div class="field span2"><label>Комментарий</label><textarea id="nf-comment" placeholder="Любые заметки по заявке"></textarea></div>
@@ -329,6 +399,23 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
       <table>
         <thead><tr><th>Имя</th><th>Логин</th><th>Роль</th><th></th></tr></thead>
         <tbody id="users-table-body"></tbody>
+      </table>
+    </div>
+
+    <div class="page-title" style="font-size:17px;margin-top:28px">Категории заявок</div>
+    <div class="page-sub">Направления работ (ПИР, изыскания, обследование…). Выбираются в заявке, по ним фильтруется список и строится аналитика. Переименование сразу отражается во всех заявках.</div>
+    <div class="card-block">
+      <div class="form-grid single">
+        <div class="field"><label>Название</label><input id="catf-name" placeholder="напр. Лазерное сканирование"></div>
+      </div>
+      <div class="form-actions" style="justify-content:flex-start">
+        <button class="btn btn-primary" onclick="createCategory()">Добавить категорию</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Категория</th><th>Заявок</th><th></th></tr></thead>
+        <tbody id="categories-table-body"></tbody>
       </table>
     </div>
 
@@ -502,6 +589,36 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
         <tbody id="legalentities-table-body"></tbody>
       </table>
     </div>
+
+    <div class="page-title" style="font-size:17px;margin-top:28px">Тексты коммерческого предложения</div>
+    <div class="page-sub">Постоянные блоки, которые попадают в каждое КП (Word). Пустой блок в документ не выводится. <b>Проверьте тексты по умолчанию</b> — особенно «Гарантии»: это обязательства перед заказчиком.</div>
+    <div class="card-block kp-texts">
+      <div class="form-grid single">
+        <div class="field"><label>Вступление (после обращения)</label><textarea id="kpt-intro"></textarea></div>
+        <div class="field"><label>О компании</label><textarea id="kpt-about"></textarea></div>
+        <div class="field"><label>Наши преимущества — по одному пункту на строку</label><textarea id="kpt-advantages" style="min-height:130px"></textarea></div>
+        <div class="field"><label>Результат работ — что получит заказчик</label><textarea id="kpt-result"></textarea></div>
+        <div class="field"><label>Гарантии</label><textarea id="kpt-guarantees"></textarea></div>
+        <div class="field"><label>Заключительная фраза</label><input id="kpt-closing"></div>
+        <div class="field" style="max-width:220px"><label>Срок действия КП, календарных дней</label><input id="kpt-validity" type="number" min="1" step="1"></div>
+      </div>
+      <div class="form-actions" style="justify-content:flex-start">
+        <button class="btn btn-primary" onclick="saveKpTexts()">Сохранить тексты КП</button>
+        <button class="btn" onclick="resetKpTexts()">Вернуть тексты по умолчанию</button>
+      </div>
+    </div>
+
+    <div class="page-title" style="font-size:17px;margin-top:28px">Причины отказов</div>
+    <div class="page-sub">Списки для выбора причины — по одной на строку. По ним строится раздел «Почему теряем заказы» в «Аналитике». Переименование причины не меняет уже размеченные заявки.</div>
+    <div class="card-block kp-texts">
+      <div class="form-grid">
+        <div class="field"><label>Отказ производственного отдела</label><textarea id="rsn-po" style="min-height:170px"></textarea></div>
+        <div class="field"><label>Отказ заказчика (после КП)</label><textarea id="rsn-customer" style="min-height:170px"></textarea></div>
+      </div>
+      <div class="form-actions" style="justify-content:flex-start">
+        <button class="btn btn-primary" onclick="saveReasons()">Сохранить причины</button>
+      </div>
+    </div>
   </div>
 
 </div>
@@ -629,6 +746,150 @@ const REGION_NAME={ru:'Россия',msk:'Москва'};
 const PROSPECTS_KEY='kptracker_prospects';
 const PROSPECT_STATUS_NAME={contact:'Первый контакт',negotiation:'Переговоры',meeting:'Встреча назначена',preparing_kp:'Готовим КП',won:'Стал заказчиком',lost:'Отказ'};
 const PROSPECT_LOG_TYPE_NAME={call:'Звонок',meeting:'Встреча',email:'Письмо',other:'Другое'};
+
+/* ---- Категории заявок (2026-11-10) ---- */
+const CATEGORIES_KEY='kptracker_categories';
+const SEED_CATEGORIES=[
+  {id:'cat-pir',name:'ПИР (проектирование)'},
+  {id:'cat-iz',name:'Изыскания'},
+  {id:'cat-ob',name:'Обследование'},
+  {id:'cat-ls',name:'Лазерное сканирование'},
+  {id:'cat-an',name:'Авторский надзор'},
+  {id:'cat-ex',name:'Экспертиза / сопровождение'},
+  {id:'cat-other',name:'Прочее'}
+];
+function activeCategories(){return (DB.categories||[]).filter(c=>!c._del);}
+function categoryName(id){const c=(DB.categories||[]).find(x=>x.id===id);return c?c.name:'';}
+function reqCategories(r){return (r.categories||[]).filter(id=>categoryName(id));}
+function categoryTagsHtml(r){return reqCategories(r).map(id=>'<span class="tag tag-cat">'+escape(categoryName(id))+'</span>').join('');}
+function categoryPickerHtml(prefix,selected){
+  selected=selected||[];
+  const list=activeCategories();
+  // keep a deleted-but-still-assigned category visible so it isn't silently dropped on save
+  selected.forEach(id=>{if(!list.some(c=>c.id===id)&&categoryName(id))list.push({id,name:categoryName(id)});});
+  if(!list.length)return '<span style="font-size:12px;color:var(--muted)">Категорий нет — администратор добавляет их в «Настройках»</span>';
+  return list.map(c=>{const on=selected.includes(c.id);
+    return '<label class="'+(on?'on':'')+'"><input type="checkbox" data-catpick="'+prefix+'" value="'+escape(c.id)+'"'+(on?' checked':'')+' onchange="this.parentNode.classList.toggle(\'on\',this.checked)">'+escape(c.name)+'</label>';
+  }).join('');
+}
+function pickedCategories(prefix){return Array.from(document.querySelectorAll('input[data-catpick="'+prefix+'"]:checked')).map(i=>i.value);}
+
+/* ---- Сроки: сколько заявка стоит на этапе и срок отправки КП (2026-11-10) ---- */
+// Норма (в днях), после которой заявка считается «застрявшей» на этапе. Для accepted — пока КП не сформировано.
+const STAGE_SLA_DAYS={new:2,subdivisions:7,decision:2,accepted:5,returned:3};
+// Для заявок, созданных до появления req.stageAt: дата последней записи истории, которая меняла этап.
+const STAGE_CHANGE_RE=/Заявка создана|Возврат в коммерческий|отправлена повторно|Первичный контроль|завершили оценку|Досрочный переход|Возврат на переработку|вернул заявку в производств|Решение:/;
+function setStage(req,stage){req.stage=stage;req.stageAt=nowIso();}
+function stageSince(req){
+  if(req.stageAt)return req.stageAt;
+  const h=req.history||[];
+  for(let i=h.length-1;i>=0;i--){if(STAGE_CHANGE_RE.test(h[i].action||''))return h[i].at;}
+  return req.createdAt;
+}
+function stageClosed(req){return req.stage==='rejected'||(req.stage==='accepted'&&!!req.kpGenerated);}
+function stageAgeDays(req){const s=stageSince(req);return s?Math.max(0,Math.floor((Date.now()-new Date(s).getTime())/86400000)):0;}
+function stageAgeLevel(req){
+  if(stageClosed(req))return '';
+  const sla=STAGE_SLA_DAYS[req.stage]; if(!sla)return '';
+  const d=stageAgeDays(req);
+  return d>sla*2?'danger':d>sla?'warn':'';
+}
+function startOfDay(d){const x=new Date(d);x.setHours(0,0,0,0);return x;}
+function dueDaysLeft(req){
+  if(!req.kpDueDate)return null;
+  return Math.round((startOfDay(req.kpDueDate+'T00:00:00')-startOfDay(Date.now()))/86400000);
+}
+function dueLevel(req){
+  if(!req.kpDueDate||stageClosed(req))return '';
+  const left=dueDaysLeft(req);
+  return left<0?'danger':left<=2?'warn':'';
+}
+function fmtDay(ymd){return ymd?new Date(ymd+'T00:00:00').toLocaleDateString('ru-RU'):'';}
+function plDays(n){n=Math.abs(n);const m10=n%10,m100=n%100;return n+' '+(m10===1&&m100!==11?'день':(m10>=2&&m10<=4&&(m100<10||m100>=20))?'дня':'дней');}
+function dueText(req){
+  if(!req.kpDueDate)return '';
+  if(req.kpGenerated)return 'КП до '+fmtDay(req.kpDueDate)+' · отправлено';
+  const left=dueDaysLeft(req);
+  if(left<0)return 'КП до '+fmtDay(req.kpDueDate)+' · просрочено на '+plDays(left);
+  if(left===0)return 'КП до '+fmtDay(req.kpDueDate)+' · сегодня';
+  return 'КП до '+fmtDay(req.kpDueDate)+' · осталось '+plDays(left);
+}
+function isHot(req){return !!(stageAgeLevel(req)||dueLevel(req)||contactLevel(req));}
+function timingTagsHtml(r){
+  let h='';
+  if(!stageClosed(r)){
+    const lvl=stageAgeLevel(r), d=stageAgeDays(r);
+    h+='<span class="tag'+(lvl?' tag-'+lvl:'')+'" title="Норма для этапа: '+(STAGE_SLA_DAYS[r.stage]||'—')+' дн.">⏱ '+(d?plDays(d):'сегодня')+' на этапе</span>';
+  }
+  if(r.kpDueDate){
+    const lvl=dueLevel(r);
+    h+='<span class="tag'+(r.kpGenerated?' tag-ok':lvl?' tag-'+lvl:'')+'">📅 '+dueText(r)+'</span>';
+  }
+  if(negotiationOpen(r)&&r.nextContactDate){
+    const lvl=contactLevel(r);
+    h+='<span class="tag'+(lvl?' tag-'+lvl:'')+'">📞 '+contactText(r)+'</span>';
+  }
+  return h;
+}
+
+/* ---- Период (по дате создания заявки) ---- */
+function periodRange(p,from,to){
+  const now=new Date();
+  if(p==='month')return [new Date(now.getFullYear(),now.getMonth(),1),null];
+  if(p==='30d')return [new Date(Date.now()-30*86400000),null];
+  if(p==='quarter')return [new Date(now.getFullYear(),Math.floor(now.getMonth()/3)*3,1),null];
+  if(p==='year')return [new Date(now.getFullYear(),0,1),null];
+  if(p==='custom'){
+    const f=from?new Date(from+'T00:00:00'):null;
+    const t=to?new Date(new Date(to+'T00:00:00').getTime()+86400000):null; // включительно
+    return [f,t];
+  }
+  return [null,null];
+}
+function filterByPeriod(list,p,from,to){
+  const [f,t]=periodRange(p,from,to);
+  if(!f&&!t)return list;
+  return list.filter(r=>{const d=new Date(r.createdAt||0);return (!f||d>=f)&&(!t||d<t);});
+}
+
+/* ---- Тексты КП (2026-11-10) — редактирует admin в «Настройках» ---- */
+const KP_TEXTS_KEY='kptracker_kp_texts';
+const DEFAULT_KP_TEXTS={
+  intro:'Благодарим за интерес к нашей компании и направленный запрос. Мы внимательно изучили исходные данные по объекту и подготовили предложение с учётом его особенностей. Ниже — состав и стоимость работ, сроки, условия оплаты и то, что вы получите по итогам.',
+  about:'{company} — проектная и инжиниринговая компания полного цикла: инженерные изыскания и обследования, разработка проектной и рабочей документации, сопровождение экспертизы и авторский надзор. Мы берём на себя весь путь от исходных данных до готовой документации, чтобы заказчику не приходилось координировать нескольких подрядчиков.',
+  advantages:'Один ответственный подрядчик на весь цикл работ — от изысканий до авторского надзора\nДокументация по составу Постановления Правительства РФ № 87 и требованиям действующих СП и ГОСТ\nСопровождение экспертизы и оперативное снятие замечаний\nПерсональный менеджер проекта и регулярная отчётность о ходе работ\nСтоимость фиксируется в договоре и не меняется при неизменном объёме работ',
+  result:'Документация передаётся в электронном виде (PDF и редактируемые форматы) и на бумажном носителе в количестве экземпляров, согласованном в договоре.',
+  guarantees:'Замечания заказчика и экспертизы к выполненной нами документации устраняем в рамках договора, без дополнительной оплаты.',
+  closing:'Будем рады сотрудничеству и готовы ответить на любые вопросы по предложению.',
+  validityDays:14
+};
+function kpTexts(){return Object.assign({},DEFAULT_KP_TEXTS,DB.kpTexts||{});}
+
+/* ---- Причины отказов (2026-11-10) — справочник правит admin в «Настройках» ---- */
+const REASONS_KEY='kptracker_reasons';
+const DEFAULT_REASONS={
+  po:['Не наш профиль работ','Нет свободных ресурсов','Нереальные сроки','Недостаточно исходных данных','Бюджет заказчика ниже себестоимости','Риски по заказчику или условиям договора','Другое'],
+  customer:['Дорого — выбрали дешевле','Не устроили сроки','Выбрали другого подрядчика','Проект отложен или отменён','Не устроили условия оплаты','Заказчик перестал выходить на связь','Другое']
+};
+function reasonList(kind){const r=DB.reasons&&DB.reasons[kind];return r&&r.length?r:DEFAULT_REASONS[kind];}
+function reasonOptionsHtml(kind,selected){
+  return '<option value="">— выберите причину —</option>'+reasonList(kind).map(n=>'<option value="'+escape(n)+'"'+(n===selected?' selected':'')+'>'+escape(n)+'</option>').join('');
+}
+
+/* ---- Следующий контакт с заказчиком после отправки КП ---- */
+const FOLLOWUP_DEFAULT_DAYS=3;
+function ymdPlus(days){const d=new Date();d.setDate(d.getDate()+days);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function negotiationOpen(r){return r.stage==='accepted'&&!!r.kpGenerated&&!['signed','declined'].includes(r.customerStatus||'waiting');}
+function contactDaysLeft(r){return r.nextContactDate?Math.round((startOfDay(r.nextContactDate+'T00:00:00')-startOfDay(Date.now()))/86400000):null;}
+function contactLevel(r){
+  if(!negotiationOpen(r)||!r.nextContactDate)return '';
+  const left=contactDaysLeft(r);
+  return left<0?'danger':left===0?'warn':'';
+}
+function contactText(r){
+  const left=contactDaysLeft(r);
+  return 'связаться '+fmtDay(r.nextContactDate)+(left<0?' · просрочено на '+plDays(left):left===0?' · сегодня':'');
+}
 function areaTier(area){
   const a=tonum(area);
   if(!a)return null;
@@ -684,11 +945,16 @@ const SEED_USERS=[
 ];
 
 /* ========================= STATE ========================= */
-let DB={users:[...SEED_USERS],requests:{},managers:[],divisions:[...SEED_DIVISIONS],sections:[...SEED_SECTIONS],stageCoefficients:[...SEED_STAGE_COEFFICIENTS],objectTypes:[...SEED_OBJECT_TYPES],units:[],legalEntities:[],prospects:[]};
+let DB={users:[...SEED_USERS],requests:{},managers:[],divisions:[...SEED_DIVISIONS],sections:[...SEED_SECTIONS],stageCoefficients:[...SEED_STAGE_COEFFICIENTS],objectTypes:[...SEED_OBJECT_TYPES],units:[],legalEntities:[],prospects:[],categories:[...SEED_CATEGORIES],kpTexts:null,reasons:null};
 let currentUser=null;
 let activePage='dashboard';
 let reqFilter='all';
 let managerFilter='all';
+let categoryFilter='all';
+let reqSearch='';
+let reqPeriod='all', reqDateFrom='', reqDateTo='';
+let reqSort='new';
+let anPeriod='all', anDateFrom='', anDateTo='', anCategory='all';
 let prospectFilter='all';
 let currentProspectId=null;
 let pendingProspectLink=null;
@@ -721,6 +987,7 @@ function loadLocal(){
     const raw=lsGet(LS_KEY);
     if(raw){const parsed=JSON.parse(raw);if(parsed&&parsed.users&&parsed.users.length)DB=parsed;}
   }catch(e){}
+  if(!DB.categories||!DB.categories.length)DB.categories=[...SEED_CATEGORIES];
 }
 function setSyncStatus(ok,msg){
   const dot=byId('sync-dot'),txt=byId('sync-text');
@@ -744,8 +1011,22 @@ function fetchRemote(initial){
     fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.'+OBJECT_TYPE_KEY,{headers:sbHeaders()}).then(r=>r.json()).catch(()=>[]),
     fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.'+UNITS_KEY,{headers:sbHeaders()}).then(r=>r.json()).catch(()=>[]),
     fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.'+LEGAL_ENTITIES_KEY,{headers:sbHeaders()}).then(r=>r.json()).catch(()=>[]),
-    fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.'+PROSPECTS_KEY,{headers:sbHeaders()}).then(r=>r.json()).catch(()=>[])
+    fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.'+PROSPECTS_KEY,{headers:sbHeaders()}).then(r=>r.json()).catch(()=>[]),
+    fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.'+CATEGORIES_KEY,{headers:sbHeaders()}).then(r=>r.json()).catch(()=>[]),
+    fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.'+KP_TEXTS_KEY,{headers:sbHeaders()}).then(r=>r.json()).catch(()=>[]),
+    fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.'+REASONS_KEY,{headers:sbHeaders()}).then(r=>r.json()).catch(()=>[])
   ]).then(function(res){
+    const categoriesRows=res[10]||[], kpTextsRows=res[11]||[], reasonsRows=res[12]||[];
+    if(reasonsRows.length&&reasonsRows[0].value&&!pendingCatalogPushes.has('reasons')){
+      try{const rs=JSON.parse(reasonsRows[0].value);if(rs&&typeof rs==='object')DB.reasons=rs;}catch(e){}
+    }
+    // Новые справочники НЕ засеваются в облако автоматически: пока admin их не сохранил, используются значения по умолчанию из кода.
+    if(categoriesRows.length&&categoriesRows[0].value&&!pendingCatalogPushes.has('categories')){
+      try{const c=JSON.parse(categoriesRows[0].value);if(c&&c.length)DB.categories=c;}catch(e){}
+    }
+    if(kpTextsRows.length&&kpTextsRows[0].value&&!pendingCatalogPushes.has('kpTexts')){
+      try{const t=JSON.parse(kpTextsRows[0].value);if(t&&typeof t==='object')DB.kpTexts=t;}catch(e){}
+    }
     const usersRows=res[0]||[], reqRows=res[1]||[], managersRows=res[2]||[], divisionsRows=res[3]||[], sectionsRows=res[4]||[], stageCoefRows=res[5]||[], objectTypeRows=res[6]||[], unitsRows=res[7]||[], legalRows=res[8]||[], prospectsRows=res[9]||[];
     // Flat-array catalogs (users/managers/divisions/.../prospects) are each stored under one
     // key and pushX() sends the whole array with no debounce — but the POST still takes a
@@ -838,6 +1119,9 @@ function pushObjectTypes(){pushCatalog('objectTypes',OBJECT_TYPE_KEY);}
 function pushUnits(){pushCatalog('units',UNITS_KEY);}
 function pushLegalEntities(){pushCatalog('legalEntities',LEGAL_ENTITIES_KEY);}
 function pushProspects(){pushCatalog('prospects',PROSPECTS_KEY);}
+function pushCategories(){pushCatalog('categories',CATEGORIES_KEY);}
+function pushKpTexts(){pushCatalog('kpTexts',KP_TEXTS_KEY);}
+function pushReasons(){pushCatalog('reasons',REASONS_KEY);}
 
 function pushRequest(id){
   if(pushTimers[id])clearTimeout(pushTimers[id]);
@@ -946,7 +1230,7 @@ function renderAll(){
   if(activePage==='analytics')renderAnalytics();
   if(activePage==='prospects')renderProspects();
   if(activePage==='users')renderUsers();
-  if(activePage==='new'){renderManagerSelect();renderLegalEntitySelect();}
+  if(activePage==='new'){renderManagerSelect();renderLegalEntitySelect();renderNewCategoryPicker();}
 }
 function renderManagerSelect(){
   const sel=byId('nf-manager2');
@@ -967,6 +1251,11 @@ function renderLegalEntitySelect(){
     +list.map(l=>'<option value="'+escape(l.name)+'">'+escape(l.name)+'</option>').join('');
   if(list.some(l=>l.name===current))sel.value=current;
 }
+function renderNewCategoryPicker(){
+  const box=byId('nf-categories'); if(!box)return;
+  const keep=pickedCategories('nf');
+  box.innerHTML=categoryPickerHtml('nf',keep);
+}
 function onManagerSelectChange(){
   const sel=byId('nf-manager2');
   byId('nf-manager2-custom-wrap').style.display=sel.value==='__new__'?'block':'none';
@@ -984,7 +1273,8 @@ function renderDashboard(){
     ['В расчёте',counts.subdivisions,''],
     ['На решении',counts.decision,'warn'],
     ['Принято в работу',counts.accepted,'success'],
-    ['Отказы',counts.rejected,'danger']
+    ['Отказы',counts.rejected,'danger'],
+    ['🔥 Горят сроки',visibleRequests().filter(isHot).length,'danger']
   ];
   byId('dash-cards').innerHTML=cards.map(c=>
     '<div class="stat-card '+c[2]+'"><div class="num">'+c[1]+'</div><div class="lbl">'+c[0]+'</div></div>'
@@ -1024,10 +1314,48 @@ function renderDashboard(){
   }else{
     actionable=all.slice(0,6);
   }
+  const hot=visibleRequests().filter(isHot).sort((a,b)=>hotScore(b)-hotScore(a));
+  byId('dash-hot-wrap').style.display=hot.length?'':'none';
+  byId('dash-hot-list').innerHTML=hot.slice(0,8).map(renderReqCard).join('')
+    +(hot.length>8?'<div style="font-size:12.5px"><a href="#" onclick="reqFilter=\'hot\';showPage(\'requests\');return false;">Показать все ('+hot.length+') →</a></div>':'');
   byId('dash-action-list').innerHTML=actionable.length?actionable.map(renderReqCard).join(''):'<div class="empty-state">Нет заявок, требующих действия</div>';
 }
 
 /* ========================= REQUEST LIST ========================= */
+function hotScore(r){
+  // для сортировки «горящих»: просрочка срока КП важнее, потом сколько дней сверх нормы на этапе
+  const left=dueDaysLeft(r);
+  const dueScore=dueLevel(r)?(100-Math.min(left,99)):0;
+  const ageScore=stageAgeLevel(r)?stageAgeDays(r)-(STAGE_SLA_DAYS[r.stage]||0):0;
+  const contactScore=contactLevel(r)?(1-contactDaysLeft(r)):0;
+  return dueScore*10+ageScore+contactScore;
+}
+function reqSearchText(r){
+  return [r.customer,r.subject,r.address,r.id,r.kpOutNum,r.kpGenerated?kpNumber(r):'',r.clientManager,r.manager,r.workType,r.comment]
+    .concat(reqCategories(r).map(categoryName)).filter(Boolean).join(' ').toLowerCase();
+}
+function filteredRequestList(){
+  let list=visibleRequests();
+  if(reqFilter==='hot')list=list.filter(isHot);
+  else if(reqFilter!=='all')list=list.filter(r=>r.stage===reqFilter);
+  if(managerFilter!=='all')list=list.filter(r=>r.clientManager===managerFilter);
+  if(categoryFilter==='none')list=list.filter(r=>!reqCategories(r).length);
+  else if(categoryFilter!=='all')list=list.filter(r=>(r.categories||[]).includes(categoryFilter));
+  list=filterByPeriod(list,reqPeriod,reqDateFrom,reqDateTo);
+  const words=reqSearch.toLowerCase().split(/\s+/).filter(Boolean);
+  if(words.length)list=list.filter(r=>{const t=reqSearchText(r);return words.every(w=>t.includes(w));});
+  const amt=r=>tonum(r.finalAmount||r.amount);
+  const sorters={
+    new:(a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''),
+    old:(a,b)=>(a.createdAt||'').localeCompare(b.createdAt||''),
+    amount:(a,b)=>amt(b)-amt(a),
+    // уже отправленные/закрытые и без срока — в конец
+    due:(a,b)=>((stageClosed(a)||!a.kpDueDate)?'9999':a.kpDueDate).localeCompare((stageClosed(b)||!b.kpDueDate)?'9999':b.kpDueDate),
+    age:(a,b)=>(stageClosed(a)?-1:stageAgeDays(a))-(stageClosed(b)?-1:stageAgeDays(b))
+  };
+  const sorter=sorters[reqSort]||sorters.new;
+  return reqSort==='age'?list.sort((a,b)=>-sorter(a,b)):list.sort(sorter);
+}
 function renderRequests(){
   const role=currentUser.role;
   byId('req-sub').textContent='Видимость по роли: '+roleName(role);
@@ -1035,12 +1363,11 @@ function renderRequests(){
   if(role==='admin'||role==='commercial'||role==='production'||role==='klientskiy_menedzher'||role==='commercial_director'){
     filters.push(['new','Новые'],['subdivisions','В расчёте'],['decision','На решении'],['accepted','Принято'],['rejected','Отказ'],['returned','Возврат']);
   }
+  const hotN=visibleRequests().filter(isHot).length;
+  filters.push(['hot','🔥 Горят сроки'+(hotN?' ('+hotN+')':'')]);
   byId('req-filters').innerHTML=filters.map(f=>
-    '<button class="filter-chip '+(reqFilter===f[0]?'active':'')+'" onclick="setReqFilter(\''+f[0]+'\')">'+f[1]+'</button>'
+    '<button class="filter-chip '+(f[0]==='hot'?'hot ':'')+(reqFilter===f[0]?'active':'')+'" onclick="setReqFilter(\''+f[0]+'\')">'+f[1]+'</button>'
   ).join('');
-
-  let list=visibleRequests();
-  if(reqFilter!=='all')list=list.filter(r=>r.stage===reqFilter);
 
   const managerSel=byId('req-manager-filter');
   if(managerSel){
@@ -1049,16 +1376,73 @@ function renderRequests(){
     managerSel.value=managerFilter;
     managerSel.style.display=names.length?'':'none';
   }
-  if(managerFilter!=='all')list=list.filter(r=>r.clientManager===managerFilter);
+  const catSel=byId('req-category-filter');
+  if(catSel){
+    catSel.innerHTML='<option value="all">Все категории</option>'
+      +activeCategories().map(c=>'<option value="'+escape(c.id)+'">'+escape(c.name)+'</option>').join('')
+      +'<option value="none">— Без категории —</option>';
+    catSel.value=categoryFilter;
+    if(catSel.value!==categoryFilter){categoryFilter='all';catSel.value='all';}
+  }
+  const searchEl=byId('req-search');
+  if(searchEl&&document.activeElement!==searchEl)searchEl.value=reqSearch;
+  byId('req-period').value=reqPeriod;
+  byId('req-period-dates').style.display=reqPeriod==='custom'?'inline-flex':'none';
+  byId('req-sort').value=reqSort;
+  byId('req-export-btn').style.display=divisionKeys().includes(role)?'none':'';
 
+  const list=filteredRequestList();
+  const total=list.reduce((s,r)=>s+tonum(r.finalAmount||r.amount),0);
+  byId('req-count').textContent='Найдено: '+list.length+(list.length&&!divisionKeys().includes(role)?' · сумма '+fmtMoney(total):'');
   byId('req-list').innerHTML=list.length?list.map(renderReqCard).join(''):'<div class="empty-state">Заявок нет</div>';
 }
+function setReqSearch(v){reqSearch=v||'';renderRequests();}
+function setCategoryFilter(v){categoryFilter=v;renderRequests();}
+function setReqPeriod(v){reqPeriod=v;renderRequests();}
+function setReqDates(){reqDateFrom=byId('req-date-from').value;reqDateTo=byId('req-date-to').value;renderRequests();}
+function setReqSort(v){reqSort=v;renderRequests();}
 function setReqFilter(f){reqFilter=f;renderRequests();}
 function setManagerFilter(v){managerFilter=v;renderRequests();}
+function analyticsRequests(){
+  let list=filterByPeriod(allRequests(),anPeriod,anDateFrom,anDateTo);
+  if(anCategory==='none')list=list.filter(r=>!reqCategories(r).length);
+  else if(anCategory!=='all')list=list.filter(r=>(r.categories||[]).includes(anCategory));
+  return list;
+}
+function setAnalyticsPeriod(v){anPeriod=v;renderAnalytics();}
+function setAnalyticsDates(){anDateFrom=byId('an-date-from').value;anDateTo=byId('an-date-to').value;renderAnalytics();}
+function setAnalyticsCategory(v){anCategory=v;renderAnalytics();}
+function median(arr){if(!arr.length)return null;const a=arr.slice().sort((x,y)=>x-y);const m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2;}
+function renderAnalyticsKpi(list){
+  // Время от создания заявки до первого сформированного КП (дни) и конверсия отправленных КП в подписанные договоры
+  const sent=list.filter(r=>r.kpGenerated);
+  const days=sent.map(r=>{const h=(r.history||[]).find(x=>/^Сформировано коммерческое предложение/.test(x.action||''));const at=h?h.at:r.kpGenerated.at;return (new Date(at)-new Date(r.createdAt))/86400000;}).filter(d=>d>=0);
+  const signed=sent.filter(r=>r.customerStatus==='signed').length;
+  const declined=sent.filter(r=>r.customerStatus==='declined').length;
+  const med=median(days);
+  const cards=[
+    ['Заявок за период',list.length,''],
+    ['КП отправлено',sent.length,'accent'],
+    ['Медиана: заявка → КП',med==null?'—':(med<1?'< 1 дн.':Math.round(med)+' дн.'),''],
+    ['Договор подписан',signed+(sent.length?' · '+Math.round(signed/sent.length*100)+'% от КП':''),'success'],
+    ['Отказ заказчика после КП',declined,'danger'],
+    ['Отказ ПО',list.filter(r=>r.stage==='rejected').length,'warn']
+  ];
+  byId('an-kpi').innerHTML=cards.map(c=>'<div class="stat-card '+c[2]+'"><div class="num" style="font-size:19px">'+c[1]+'</div><div class="lbl">'+c[0]+'</div></div>').join('');
+}
 function renderAnalytics(){
-  const all=allRequests();
+  const catSel=byId('an-category');
+  catSel.innerHTML='<option value="all">Все категории</option>'+activeCategories().map(c=>'<option value="'+escape(c.id)+'">'+escape(c.name)+'</option>').join('')+'<option value="none">— Без категории —</option>';
+  catSel.value=anCategory; if(catSel.value!==anCategory){anCategory='all';catSel.value='all';}
+  byId('an-period').value=anPeriod;
+  byId('an-period-dates').style.display=anPeriod==='custom'?'inline-flex':'none';
+  const all=analyticsRequests();
+  renderAnalyticsKpi(all);
   byId('req-stats-managers').innerHTML=renderGroupStatsRows(all,r=>r.clientManager,'manager');
   byId('req-stats-customers').innerHTML=renderGroupStatsRows(all,r=>r.customer,'customer');
+  byId('req-stats-categories').innerHTML=renderGroupStatsRows(all,r=>{const c=reqCategories(r).map(categoryName);return c.length?c:['— Без категории —'];},'category');
+  byId('req-stats-reject-po').innerHTML=renderReasonRows(all.filter(r=>r.stage==='rejected'),r=>r.rejectionCode);
+  byId('req-stats-reject-customer').innerHTML=renderReasonRows(all.filter(r=>r.kpGenerated&&r.customerStatus==='declined'),r=>r.declineReason);
   if(analyticsDetailState.key){
     renderAnalyticsDetail();
   }else{
@@ -1069,25 +1453,35 @@ function renderAnalytics(){
 function renderGroupStatsRows(list,keyFn,type){
   const map={};
   list.forEach(r=>{
-    const key=keyFn(r)||'—';
-    if(!map[key])map[key]={count:0,acceptedSum:0,reviewCount:0,reviewSum:0,signedCount:0,signedSum:0};
-    const g=map[key];
-    g.count++;
-    if(r.stage==='accepted'){
-      const amt=tonum(r.finalAmount||r.amount);
-      g.acceptedSum+=amt;
-      if(r.customerStatus==='contract_review'){g.reviewCount++;g.reviewSum+=amt;}
-      if(r.customerStatus==='signed'){g.signedCount++;g.signedSum+=amt;}
-    }
+    const kv=keyFn(r);
+    (Array.isArray(kv)?kv:[kv||'—']).forEach(key=>{
+      if(!map[key])map[key]={count:0,acceptedSum:0,reviewCount:0,reviewSum:0,signedCount:0,signedSum:0};
+      const g=map[key];
+      g.count++;
+      if(r.stage==='accepted'){
+        const amt=tonum(r.finalAmount||r.amount);
+        g.acceptedSum+=amt;
+        if(r.customerStatus==='contract_review'){g.reviewCount++;g.reviewSum+=amt;}
+        if(r.customerStatus==='signed'){g.signedCount++;g.signedSum+=amt;}
+      }
+    });
   });
   const keys=Object.keys(map).sort((a,b)=>map[b].acceptedSum-map[a].acceptedSum);
   if(!keys.length)return '<tr><td colspan="5" style="color:var(--muted)">Нет данных</td></tr>';
   return keys.map(k=>{
     const g=map[k];
-    return '<tr class="clickable-row" onclick="openAnalyticsDetail(\''+type+'\',\''+escape(k)+'\')"><td>'+escape(k)+'</td><td>'+g.count+'</td><td>'+fmtMoney(g.acceptedSum)+'</td>'
+    return '<tr class="clickable-row" data-key="'+escape(k)+'" onclick="openAnalyticsDetail(\''+type+'\',this.dataset.key)"><td>'+escape(k)+'</td><td>'+g.count+'</td><td>'+fmtMoney(g.acceptedSum)+'</td>'
       +'<td>'+(g.reviewCount?g.reviewCount+' · '+fmtMoney(g.reviewSum):'—')+'</td>'
       +'<td>'+(g.signedCount?g.signedCount+' · '+fmtMoney(g.signedSum):'—')+'</td></tr>';
   }).join('');
+}
+function renderReasonRows(list,keyFn){
+  const m={};
+  list.forEach(r=>{const k=keyFn(r)||'не указана (до справочника)';m[k]=m[k]||{n:0,sum:0};m[k].n++;m[k].sum+=tonum(r.finalAmount||r.amount);});
+  const keys=Object.keys(m).sort((a,b)=>m[b].n-m[a].n||m[b].sum-m[a].sum);
+  if(!keys.length)return '<tr><td colspan="3" style="color:var(--muted)">Отказов нет</td></tr>';
+  const total=list.length;
+  return keys.map(k=>'<tr><td>'+escape(k)+'</td><td>'+m[k].n+' <span style="color:var(--muted);font-size:11.5px">('+Math.round(m[k].n/total*100)+'%)</span></td><td>'+fmtMoney(m[k].sum)+'</td></tr>').join('');
 }
 let analyticsDetailState={type:'',key:'',stageFilter:'all'};
 function openAnalyticsDetail(type,key){
@@ -1104,8 +1498,11 @@ function closeAnalyticsDetail(){
 function setAnalyticsDetailFilter(f){analyticsDetailState.stageFilter=f;renderAnalyticsDetail();}
 function renderAnalyticsDetail(){
   const {type,key}=analyticsDetailState;
-  const all=allRequests().filter(function(r){return (type==='manager'?(r.clientManager||'—'):(r.customer||'—'))===key;});
-  byId('analytics-detail-title').textContent=(type==='manager'?'Менеджер: ':'Заказчик: ')+key;
+  const all=analyticsRequests().filter(function(r){
+    if(type==='category'){const c=reqCategories(r).map(categoryName);return c.length?c.includes(key):key==='— Без категории —';}
+    return (type==='manager'?(r.clientManager||'—'):(r.customer||'—'))===key;
+  });
+  byId('analytics-detail-title').textContent=(type==='manager'?'Менеджер: ':type==='category'?'Категория: ':'Заказчик: ')+key;
 
   const count=all.length;
   const accepted=all.filter(r=>r.stage==='accepted');
@@ -1146,7 +1543,8 @@ function renderReqCard(r){
     const involved=r.involvedSubs&&r.involvedSubs.length?r.involvedSubs:Object.keys(r.subs||{});
     const done=involved.filter(s=>r.subs[s].status==='done').length;
     const insuf=involved.filter(s=>r.subs[s].status==='insufficient').length;
-    subInfo='<span>Подразделения: '+done+'/'+involved.length+' готово'+(insuf?', '+insuf+' требуют уточнения':'')+'</span>';
+    // с 2026-10-07 считает только ПО — счётчик «подразделения N/M» показываем лишь у старых заявок с подразделениями
+    if(involved.some(s=>s!=='production'))subInfo='<span>Подразделения: '+done+'/'+involved.length+' готово'+(insuf?', '+insuf+' требуют уточнения':'')+'</span>';
   }
   if(r.stage==='accepted'&&r.priceApproval&&r.priceApproval.status==='pending')subInfo+='<span style="color:#b45309">⏳ цена ждёт согласования директора</span>';
   if(r.stage==='accepted'&&r.priceApproval&&r.priceApproval.status==='returned')subInfo+='<span style="color:#b91c1c">↩ цена возвращена директором</span>';
@@ -1156,6 +1554,7 @@ function renderReqCard(r){
     +'<div class="rc-main">'
       +'<div class="rc-title">'+escape(r.customer)+' — '+escape(r.subject)+'</div>'
       +'<div class="rc-sub"><span>'+escape(r.workType||'—')+'</span><span>'+(r.amount?fmtMoney(r.amount):'')+'</span>'+(r.clientManager?'<span>👤 '+escape(r.clientManager)+'</span>':'')+subInfo+'<span class="rc-id mono">'+r.id+'</span></div>'
+      +((r.categories&&r.categories.length)||r.kpDueDate||!stageClosed(r)||(negotiationOpen(r)&&r.nextContactDate)?'<div class="rc-sub" style="margin-top:6px;gap:6px">'+categoryTagsHtml(r)+timingTagsHtml(r)+'</div>':'')
     +'</div>'
     +'<div style="display:flex;gap:6px;flex:0 0 auto">'+stageBadge+clBadge+'</div>'
   +'</div>';
@@ -1421,11 +1820,13 @@ async function createRequest(){
     govOrder:byId('nf-gov').value,
     currency:byId('nf-currency').value,
     deadline:byId('nf-deadline').value.trim(),
+    kpDueDate:byId('nf-kpdue').value||'',
+    categories:pickedCategories('nf'),
     advance:byId('nf-advance').value.trim(),
     tzLink:byId('nf-tz').value.trim(),
     comment:byId('nf-comment').value.trim(),
     attachments,
-    stage:'new',
+    stage:'new', stageAt:nowIso(),
     createdBy:currentUser.name, createdAt:nowIso(),
     subs:Object.fromEntries(assessorKeys().map(s=>[s,{status:'not_involved'}])),
     involvedSubs:[],
@@ -1446,13 +1847,14 @@ async function createRequest(){
     }
     pendingProspectLink=null;
   }
-  ['customer','manager','subject','address','area','amount','worktype','gov','currency','deadline','advance','tz','comment'].forEach(f=>{
+  ['customer','manager','subject','address','area','amount','worktype','gov','currency','deadline','kpdue','advance','tz','comment'].forEach(f=>{
     const el=byId('nf-'+f); if(el&&el.tagName!=='SELECT')el.value='';
   });
   byId('nf-manager2').value='';
   byId('nf-manager2-custom').value='';
   byId('nf-manager2-custom-wrap').style.display='none';
   byId('nf-legalentity').value='';
+  byId('nf-categories').innerHTML=categoryPickerHtml('nf',[]);
   pendingAttachments=[];
   byId('nf-files-list').innerHTML='';
   btn.disabled=false; btn.textContent='Создать заявку';
@@ -1487,77 +1889,182 @@ function findParaStart(xml,beforeIdx){
 function wEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function wRun(text,opts){
   opts=opts||{};
-  const rPr=(opts.bold?'<w:b/>':'')+(opts.size?('<w:sz w:val="'+opts.size+'"/><w:szCs w:val="'+opts.size+'"/>'):'');
+  // CT_RPr child order: b, i, color, sz, szCs
+  const rPr=(opts.bold?'<w:b/>':'')+(opts.italic?'<w:i/>':'')+(opts.color?'<w:color w:val="'+opts.color+'"/>':'')
+    +(opts.size?('<w:sz w:val="'+opts.size+'"/><w:szCs w:val="'+opts.size+'"/>'):'');
   const lines=String(text==null?'':text).split('\n');
   const body=lines.map((line,i)=>(i>0?'<w:br/>':'')+'<w:t xml:space="preserve">'+wEsc(line)+'</w:t>').join('');
   return '<w:r>'+(rPr?'<w:rPr>'+rPr+'</w:rPr>':'')+body+'</w:r>';
 }
+function wPPr(opts){
+  // CT_PPr child order: keepNext, spacing, ind, jc — Word rejects the file if reversed.
+  const sp=(opts.spaceBefore!=null||opts.spaceAfter!=null)?'<w:spacing'+(opts.spaceBefore!=null?' w:before="'+opts.spaceBefore+'"':'')+(opts.spaceAfter!=null?' w:after="'+opts.spaceAfter+'"':'')+'/>':'';
+  const ind=opts.indLeft?'<w:ind w:left="'+opts.indLeft+'"'+(opts.hanging?' w:hanging="'+opts.hanging+'"':'')+'/>':'';
+  const pPr=(opts.keepNext?'<w:keepNext/>':'')+sp+ind+(opts.align?'<w:jc w:val="'+opts.align+'"/>':'');
+  return pPr?'<w:pPr>'+pPr+'</w:pPr>':'';
+}
 function wPara(text,opts){
   opts=opts||{};
-  // CT_PPr child order per schema: spacing comes before jc — Word rejects the file if reversed.
-  const pPr=(opts.spaceBefore?'<w:spacing w:before="'+opts.spaceBefore+'"/>':'')+(opts.align?'<w:jc w:val="'+opts.align+'"/>':'');
-  return '<w:p>'+(pPr?'<w:pPr>'+pPr+'</w:pPr>':'')+wRun(text,opts)+'</w:p>';
+  return '<w:p>'+wPPr(opts)+wRun(text,opts)+'</w:p>';
+}
+// paragraph from several differently-formatted pieces: [[text,{bold:true}],[text,{}]]
+function wParaRuns(parts,opts){
+  return '<w:p>'+wPPr(opts||{})+parts.map(p=>wRun(p[0],p[1]||{})).join('')+'</w:p>';
 }
 function wCell(text,opts){
   opts=opts||{};
-  return '<w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/>'+(opts.shade?'<w:shd w:val="clear" w:fill="'+opts.shade+'"/>':'')+'</w:tcPr>'+wPara(text,opts)+'</w:tc>';
+  // CT_TcPr child order: tcW, gridSpan, shd, vAlign
+  const tcPr='<w:tcW w:w="'+(opts.width||0)+'" w:type="'+(opts.width?'dxa':'auto')+'"/>'
+    +(opts.span?'<w:gridSpan w:val="'+opts.span+'"/>':'')
+    +(opts.shade?'<w:shd w:val="clear" w:color="auto" w:fill="'+opts.shade+'"/>':'')
+    +'<w:vAlign w:val="center"/>';
+  return '<w:tc><w:tcPr>'+tcPr+'</w:tcPr>'+wPara(text,{bold:opts.bold,italic:opts.italic,color:opts.color,size:opts.size,align:opts.align,spaceBefore:0,spaceAfter:0})+'</w:tc>';
 }
-function wRow(cells){return '<w:tr>'+cells.join('')+'</w:tr>';}
-function wTable(rows,numCols){
+// cantSplit — строка не рвётся между страницами; header — шапка таблицы повторяется на следующей странице
+function wRow(cells,opts){return '<w:tr><w:trPr><w:cantSplit/>'+(opts&&opts.header?'<w:tblHeader/>':'')+'</w:trPr>'+cells.join('')+'</w:tr>';}
+function wTable(rows,cols){
+  // cols — number of equal columns (old behaviour) or an array of widths in twips.
   // w:tblGrid is a REQUIRED element right after tblPr — Word refuses to open the file without it.
-  const grid='<w:tblGrid>'+Array(numCols).fill('<w:gridCol w:w="2400"/>').join('')+'</w:tblGrid>';
+  const widths=Array.isArray(cols)?cols:Array(cols).fill(2400);
+  const grid='<w:tblGrid>'+widths.map(w=>'<w:gridCol w:w="'+w+'"/>').join('')+'</w:tblGrid>';
   return '<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblBorders>'
-    +'<w:top w:val="single" w:sz="4" w:color="999999"/><w:left w:val="single" w:sz="4" w:color="999999"/>'
-    +'<w:bottom w:val="single" w:sz="4" w:color="999999"/><w:right w:val="single" w:sz="4" w:color="999999"/>'
-    +'<w:insideH w:val="single" w:sz="4" w:color="999999"/><w:insideV w:val="single" w:sz="4" w:color="999999"/>'
-    +'</w:tblBorders></w:tblPr>'+grid+rows.join('')+'</w:tbl>';
+    +'<w:top w:val="single" w:sz="4" w:color="A6A6A6"/><w:left w:val="single" w:sz="4" w:color="A6A6A6"/>'
+    +'<w:bottom w:val="single" w:sz="4" w:color="A6A6A6"/><w:right w:val="single" w:sz="4" w:color="A6A6A6"/>'
+    +'<w:insideH w:val="single" w:sz="4" w:color="A6A6A6"/><w:insideV w:val="single" w:sz="4" w:color="A6A6A6"/>'
+    +'</w:tblBorders><w:tblCellMar><w:top w:w="40" w:type="dxa"/><w:left w:w="100" w:type="dxa"/><w:bottom w:w="40" w:type="dxa"/><w:right w:w="100" w:type="dxa"/></w:tblCellMar></w:tblPr>'+grid+rows.join('')+'</w:tbl>';
 }
-function buildKpBodyXml(req,amount,addressee,outNum,outDate,vatPct,kpStages,netAmount,scale){
+const KP_ACCENT='1F4E79', KP_HEAD_SHADE='DCE6F1', KP_GROUP_SHADE='F2F2F2';
+function kpMoney(v){return Math.round(tonum(v)).toLocaleString('ru-RU')+' ₽';}
+// Разделы, заявленные исполнителями, сгруппированные по стадиям каталога (ПД, РД, изыскания…) в порядке STAGE_NAME_BY_KEY
+function kpSectionGroups(req){
+  const order=Object.keys(STAGE_NAME_BY_KEY);
+  const groups={};
+  Object.keys(req.subs||{}).forEach(function(role){
+    const st=req.subs[role];
+    if(st&&st.sections)st.sections.forEach(function(sec){
+      const cat=(DB.sections||[]).find(x=>x.id===sec.sectionId);
+      const key=cat&&cat.stage&&STAGE_NAME_BY_KEY[cat.stage]?cat.stage:'_other';
+      (groups[key]=groups[key]||[]).push(sec);
+    });
+  });
+  return order.concat(['_other']).filter(k=>groups[k]).map(k=>({key:k,name:k==='_other'?'Прочие работы':STAGE_NAME_BY_KEY[k],items:groups[k]}));
+}
+function buildKpBodyXml(req,amount,addressee,outNum,outDate,vatPct,kpStages,netAmount,scale,opts){
+  opts=opts||{};
+  const T=kpTexts();
+  const fill=t=>String(t||'').split('{company}').join(KP_COMPANY.name);
   const number=kpNumber(req);
   const dateStr=new Date().toLocaleDateString('ru-RU');
-  const outDateStr=outDate?new Date(outDate+'T00:00:00').toLocaleDateString('ru-RU'):dateStr;
+  const outDateObj=outDate?new Date(outDate+'T00:00:00'):new Date();
+  const outDateStr=outDateObj.toLocaleDateString('ru-RU');
   // Only the final price (and, if given, the VAT rate baked into it) ever reaches the customer —
   // cost price and margin are internal and must never be written into this document.
   const vat=tonum(vatPct);
-  const vatAmount=netAmount!=null?(tonum(netAmount)*vat/100):(vat?tonum(amount)*vat/(100+vat):0);
+  const net=netAmount!=null?tonum(netAmount):(vat?tonum(amount)*100/(100+vat):tonum(amount));
+  const vatAmount=tonum(amount)-net;
   const lineScale=(scale!=null&&scale>0)?scale:1;
+  const objCoefKp=req.objectType?tonum(req.objectType.coef):1;
+
+  let n=0;
+  const H=t=>wPara((++n)+'. '+t,{bold:true,color:KP_ACCENT,size:24,spaceBefore:280,spaceAfter:100,keepNext:true});
+  const P=(t,o)=>wPara(t,Object.assign({align:'both',spaceAfter:80},o||{}));
+  const B=t=>'<w:p>'+wPPr({indLeft:360,hanging:240,spaceAfter:40,align:'both'})+'<w:r><w:t xml:space="preserve">•</w:t></w:r><w:r><w:tab/></w:r>'+wRun(t)+'</w:p>';
 
   let xml='';
-  xml+=wPara('Исх. № '+(outNum||number)+' от '+outDateStr,{});
-  if(addressee)xml+=wPara(addressee,{align:'right'});
-  xml+=wPara('КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ № '+number+' от '+dateStr,{align:'center',bold:true,size:28,spaceBefore:240});
-  xml+='<w:p><w:r><w:t xml:space="preserve">Заказчику: </w:t></w:r>'+wRun(req.customer,{bold:true})+'</w:p>';
-  xml+=wPara('В ответ на ваш запрос '+KP_COMPANY.name+' готово выполнить следующие работы на изложенных ниже условиях:',{spaceBefore:120});
-  xml+=wPara('Предмет договора: '+(req.subject||'—')
-    +'\nАдрес объекта: '+(req.address||'—')
-    +'\nВид работ: '+(req.workType||'—')
-    +'\nСрок исполнения: '+(req.deadline||'—'),{spaceBefore:120});
-  const totalsRows=[];
+  xml+=wPara('Исх. № '+(outNum||number)+' от '+outDateStr,{spaceAfter:0});
+  if(addressee)xml+=wPara(addressee,{align:'right',spaceBefore:120});
+  xml+=wPara('КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ',{align:'center',bold:true,size:30,color:KP_ACCENT,spaceBefore:280,spaceAfter:40});
+  if(req.subject)xml+=wPara(req.subject,{align:'center',size:24,spaceAfter:40});
+  xml+=wPara('№ '+number+' от '+dateStr,{align:'center',size:18,color:'7F7F7F',spaceAfter:200});
+  xml+=wPara(opts.greeting||'Уважаемые коллеги!',{bold:true,align:'center',spaceAfter:120});
+  if(T.intro)xml+=P(fill(T.intro));
+
+  // 1. Объект
+  const stageNames=kpSectionGroups(req).map(g=>g.name).concat((kpStages||[]).map(s=>s.name));
+  const objRows=[
+    ['Заказчик',req.customer],
+    ['Объект / предмет работ',req.subject],
+    ['Адрес объекта',req.address],
+    ['Площадь объекта',req.buildingArea?Number(tonum(req.buildingArea)).toLocaleString('ru-RU')+' м²':''],
+    ['Тип объекта',req.objectType?req.objectType.name:''],
+    ['Вид работ',req.workType],
+    ['Направление',reqCategories(req).map(categoryName).join(', ')],
+    ['Состав (стадии)',stageNames.filter((v,i,a)=>a.indexOf(v)===i).join('; ')]
+  ].filter(r=>r[1]);
+  xml+=H('Объект и задача');
+  xml+=wTable(objRows.map(r=>wRow([wCell(r[0],{width:3000,shade:KP_GROUP_SHADE,bold:true}),wCell(r[1],{width:6600})])),[3000,6600]);
+
+  // 2. Состав и стоимость
+  xml+=H('Состав и стоимость работ');
+  const groups=kpSectionGroups(req);
+  const extra=(kpStages||[]).filter(st=>tonum(st.amount)>0);
+  const lines=[];
+  groups.forEach(g=>g.items.forEach(sec=>lines.push(sec)));
+  const hasDays=lines.some(sec=>tonum(sec.days)>0);
+  const widths=hasDays?[600,5400,1200,2400]:[600,6600,2400];
+  const ncol=widths.length;
+  const rows=[];
+  {
+    rows.push(wRow([wCell('№',{width:widths[0],shade:KP_HEAD_SHADE,bold:true,align:'center'}),wCell('Наименование работ',{width:widths[1],shade:KP_HEAD_SHADE,bold:true})]
+      .concat(hasDays?[wCell('Срок, дн.',{width:widths[2],shade:KP_HEAD_SHADE,bold:true,align:'center'})]:[])
+      .concat([wCell(vat?'Стоимость без НДС':'Стоимость',{width:widths[ncol-1],shade:KP_HEAD_SHADE,bold:true,align:'right'})]),{header:true}));
+    let i=0;
+    const showGroups=groups.length+(extra.length?1:0)>1;
+    const lineRow=(name,sum,days)=>wRow([wCell(String(++i),{width:widths[0],align:'center'}),wCell(name,{width:widths[1]})]
+      .concat(hasDays?[wCell(days?String(days):'—',{width:widths[2],align:'center'})]:[])
+      .concat([wCell(kpMoney(sum),{width:widths[ncol-1],align:'right'})]));
+    const groupRow=name=>wRow([wCell(name,{span:ncol,shade:KP_GROUP_SHADE,bold:true,color:KP_ACCENT})]);
+    groups.forEach(g=>{
+      if(showGroups)rows.push(groupRow(g.name));
+      g.items.forEach(sec=>rows.push(lineRow(sec.name,tonum(sec.commercial)*objCoefKp*lineScale,tonum(sec.days))));
+    });
+    if(extra.length){
+      if(showGroups)rows.push(groupRow('Дополнительные стадии и сопровождение'));
+      extra.forEach(st=>rows.push(lineRow(st.name,tonum(st.amount)*lineScale,0)));
+    }
+    // Цена задана вручную, без разделов — одна строка с видом работ / предметом договора
+    if(!lines.length&&!extra.length)rows.push(lineRow(req.workType||req.subject||'Выполнение работ',net,0));
+  }
+  const totalRow=(label,val,strong)=>wRow([wCell(label,{span:ncol-1,align:'right',bold:strong,shade:strong?KP_HEAD_SHADE:''}),wCell(val,{width:widths[ncol-1],align:'right',bold:strong,shade:strong?KP_HEAD_SHADE:''})]);
   if(vat){
-    totalsRows.push(wRow([wCell('в т.ч. НДС ('+vat+'%)',{shade:'F5F5F5'}),wCell(Math.round(vatAmount).toLocaleString('ru-RU')+' ₽')]));
+    rows.push(totalRow('Итого без НДС',kpMoney(net),false));
+    rows.push(totalRow('НДС '+vat+'%',kpMoney(vatAmount),false));
+    rows.push(totalRow('Итого с НДС',kpMoney(amount),true));
+  }else{
+    rows.push(totalRow('Итоговая стоимость',kpMoney(amount),true));
   }
-  totalsRows.push(wRow([wCell('Итоговая стоимость',{shade:'F5F5F5',bold:true}),wCell(fmtMoney(amount),{bold:true})]));
-  xml+=wPara('',{spaceBefore:120});
-  xml+=wTable(totalsRows,2);
-  // Customer-facing composition: section name + final (markup-included) sum only — never the rate/₽/м² or the % markup.
-  const claimedSections=[];
-  Object.keys(req.subs||{}).forEach(function(role){
-    const st=req.subs[role];
-    if(st&&st.sections&&st.sections.length)st.sections.forEach(function(sec){claimedSections.push(sec);});
-  });
-  if(claimedSections.length||(kpStages&&kpStages.length)){
-    xml+=wPara('Состав работ:',{bold:true,spaceBefore:200});
-    const worksRows=[wRow([wCell('Раздел',{shade:'F5F5F5',bold:true}),wCell('Стоимость',{shade:'F5F5F5',bold:true})])];
-    const objCoefKp=req.objectType?tonum(req.objectType.coef):1;
-    claimedSections.forEach(function(sec){
-      worksRows.push(wRow([wCell(sec.name),wCell(fmtMoney(tonum(sec.commercial)*objCoefKp*lineScale))]));
-    });
-    (kpStages||[]).forEach(function(st){
-      worksRows.push(wRow([wCell(st.name),wCell(fmtMoney(st.amount*lineScale))]));
-    });
-    xml+=wTable(worksRows,2);
+  xml+=wTable(rows,widths);
+  if(hasDays)xml+=wPara('Сроки по разделам указаны ориентировочно и закрепляются календарным планом договора.',{italic:true,size:18,color:'7F7F7F',spaceBefore:60});
+
+  // 3. Сроки и оплата
+  xml+=H('Сроки и порядок оплаты');
+  xml+=B('Срок выполнения работ: '+(req.deadline||'согласовывается в календарном плане договора')+'.');
+  const adv=tonum(String(req.advance||'').replace('%',''));
+  if(adv>0&&adv<100)xml+=B('Аванс — '+adv+'% от стоимости работ после подписания договора; окончательный расчёт — '+(100-adv)+'% по факту подписания актов сдачи-приёмки.');
+  else if(adv>=100)xml+=B('Оплата — 100% предоплата после подписания договора.');
+  else xml+=B('Оплата — по факту выполнения работ на основании актов сдачи-приёмки.');
+  if(req.currency==='Цифровой рубль')xml+=B('Расчёты — в цифровых рублях.');
+
+  // 4. Результат
+  if(T.result){xml+=H('Результат работ');xml+=P(fill(T.result));}
+
+  // 5. О компании
+  const adv2=String(T.advantages||'').split('\n').map(x=>x.trim()).filter(Boolean);
+  if(T.about||adv2.length||T.guarantees){
+    xml+=H('Почему '+KP_COMPANY.name);
+    if(T.about)xml+=P(fill(T.about));
+    adv2.forEach(a=>{xml+=B(fill(a));});
+    if(T.guarantees)xml+=wParaRuns([['Гарантии. ',{bold:true}],[fill(T.guarantees),{}]],{align:'both',spaceBefore:100,spaceAfter:80});
   }
-  xml+=wPara('Предложение действительно в течение 14 календарных дней с даты составления.',{spaceBefore:200});
+
+  // Доп. условия по конкретному КП
+  if(opts.extra){xml+=H('Дополнительные условия');xml+=P(opts.extra);}
+
+  const days=Math.max(1,Math.round(tonum(T.validityDays))||14);
+  const until=new Date(outDateObj.getTime()+days*86400000).toLocaleDateString('ru-RU');
+  xml+=P('Предложение действительно в течение '+days+' календарных дней — до '+until+'.',{spaceBefore:240});
+  if(opts.contact)xml+=wParaRuns([['Контактное лицо по предложению: ',{bold:true}],[opts.contact,{}]],{spaceAfter:80});
+  if(T.closing)xml+=P(fill(T.closing),{spaceBefore:120});
   xml+=wPara('');
   return xml;
 }
@@ -1572,6 +2079,11 @@ async function generateKp(id){
   const outNum=(byId('kp-outnum').value||'').trim();
   const outDate=(byId('kp-outdate').value||'').trim();
   const vatPct=(byId('kp-vat').value||'').trim();
+  const kpOpts={
+    greeting:((byId('kp-greeting')||{}).value||'').trim(),
+    contact:((byId('kp-contact')||{}).value||'').trim(),
+    extra:((byId('kp-extra')||{}).value||'').trim()
+  };
   let amount, netAmount, profitPctUsed, cost, marginPct;
   if(usingAutoCalc){
     const netEl=byId('kp-net-amount');
@@ -1593,7 +2105,7 @@ async function generateKp(id){
     const docPath='word/document.xml';
     let xml=await zip.file(docPath).async('string');
     const scale=usingAutoCalc&&agg.commFinal>0?(netAmount/agg.commFinal):1;
-    const injected=buildKpBodyXml(req,amount,addressee,outNum,outDate,vatPct,req.stages,usingAutoCalc?netAmount:null,scale);
+    const injected=buildKpBodyXml(req,amount,addressee,outNum,outDate,vatPct,req.stages,usingAutoCalc?netAmount:null,scale,kpOpts);
     const marker='Генеральный директор';
     const markerIdx=xml.indexOf(marker);
     if(markerIdx===-1)throw new Error('не найден якорь подписи в шаблоне');
@@ -1606,6 +2118,14 @@ async function generateKp(id){
     // is empty filler (blank lines left for someone to type a letter by hand) — drop it and
     // put our content right after the letterhead instead, so it doesn't get pushed down.
     xml=xml.slice(0,bodyContentStart)+injected+xml.slice(pStart);
+    // После подписи в шаблоне стоят пустые абзацы — с длинным КП они уводят документ на лишнюю пустую страницу.
+    const sectIdx=xml.lastIndexOf('<w:sectPr');
+    if(sectIdx>0){
+      let head=xml.slice(0,sectIdx);
+      const emptyP=/(<w:p(?:\s[^>]*)?\/>|<w:p(?:\s[^>]*)?>(?:<w:pPr>(?:(?!<\/w:pPr>)[\s\S])*<\/w:pPr>)?<\/w:p>)\s*$/;
+      while(emptyP.test(head))head=head.replace(emptyP,'');
+      xml=head+xml.slice(sectIdx);
+    }
     zip.file(docPath,xml);
     const blob=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
 
@@ -1613,6 +2133,7 @@ async function generateKp(id){
     req.kpAddressee=addressee;
     req.kpOutNum=outNum;
     req.kpOutDate=outDate;
+    req.kpGreeting=kpOpts.greeting; req.kpContact=kpOpts.contact; req.kpExtra=kpOpts.extra;
     if(usingAutoCalc){
       req.kpCost=agg.costFinal;
       req.kpMarginPct=profitPctUsed;
@@ -1623,6 +2144,18 @@ async function generateKp(id){
     }
     if(vatPct)req.kpVatPct=vatPct;
     req.kpGenerated={amount,by:currentUser.name,at:nowIso()};
+    // Версия КП: сумма + сам файл (отдельным ключом, как вложения) — чтобы можно было скачать любую прежнюю
+    req.kpVersions=req.kpVersions||[];
+    const verFileName=kpNumber(req)+'_v'+(req.kpVersions.length+1)+'_'+req.customer.replace(/[^\wа-яА-ЯёЁ\- ]+/g,'').trim().replace(/\s+/g,'_')+'.docx';
+    const ver={n:req.kpVersions.length+1,at:req.kpGenerated.at,by:currentUser.name,outNum:outNum||kpNumber(req),amount:tonum(amount),net:usingAutoCalc?Math.round(netAmount):null,vatPct:vatPct||'',fileName:verFileName};
+    try{
+      const verDataUrl=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(blob);});
+      const verFileId=uid('file');
+      const resp=await pushFile(verFileId,verDataUrl);
+      if(resp&&resp.ok)ver.fileId=verFileId;
+    }catch(e){}
+    req.kpVersions.push(ver);
+    if(!req.nextContactDate&&negotiationOpen(Object.assign({},req,{customerStatus:req.customerStatus||'waiting'})))req.nextContactDate=ymdPlus(FOLLOWUP_DEFAULT_DAYS);
     if(!req.customerLog){req.customerLog=[];req.customerStatus='waiting';}
     pushHistory(req,'Сформировано коммерческое предложение №'+(outNum||kpNumber(req))+' (сумма: '+fmtMoney(amount)+')');
     pushRequest(id);
@@ -1639,6 +2172,28 @@ async function generateKp(id){
 }
 
 /* ========================= СОГЛАСОВАНИЕ ЦЕНЫ (коммерческий директор) ========================= */
+function kpVersionsList(req){
+  const v=(req.kpVersions||[]).slice();
+  // КП, сформированные до появления версий, — одна запись без файла
+  if(!v.length&&req.kpGenerated)v.push({n:1,at:req.kpGenerated.at,by:req.kpGenerated.by,outNum:req.kpOutNum||kpNumber(req),amount:tonum(req.kpGenerated.amount),legacy:true});
+  return v;
+}
+function kpVersionsHtml(req){
+  const v=kpVersionsList(req);
+  if(!v.length)return '';
+  return '<div class="card-block" style="padding:12px 14px;margin-top:10px">'
+    +'<div style="font-weight:700;font-size:13px;margin-bottom:6px">Версии КП ('+v.length+')</div>'
+    +'<div class="table-wrap" style="margin:0"><table><thead><tr><th>Версия</th><th>Дата</th><th>Кто</th><th>Сумма с НДС</th><th>Изменение</th><th></th></tr></thead><tbody>'
+    +v.slice().reverse().map(function(x){
+      const prev=v.find(y=>y.n===x.n-1);
+      const diff=prev?x.amount-prev.amount:0;
+      const diffTxt=prev?(diff===0?'—':(diff>0?'+':'−')+fmtMoney(Math.abs(diff))+' ('+(diff>0?'+':'−')+(Math.abs(diff)/(prev.amount||1)*100).toFixed(1)+'%)'):'первая';
+      return '<tr><td>№'+x.n+(x.outNum?' <span class="mono" style="font-size:11px;color:var(--muted)">'+escape(x.outNum)+'</span>':'')+'</td><td>'+fmtDate(x.at)+'</td><td>'+escape(x.by||'')+'</td><td><b>'+fmtMoney(x.amount)+'</b></td>'
+        +'<td style="color:'+(diff<0?'#b91c1c':diff>0?'#047857':'inherit')+'">'+diffTxt+'</td>'
+        +'<td>'+(x.fileId?'<button class="btn btn-sm" data-name="'+escape(x.fileName||'КП.docx')+'" onclick="openAttachment(\''+x.fileId+'\',this.dataset.name,\'application/vnd.openxmlformats-officedocument.wordprocessingml.document\')">⬇ Word</button>':'<span style="font-size:11px;color:var(--muted)">файл не сохранялся</span>')+'</td></tr>';
+    }).join('')
+    +'</tbody></table></div></div>';
+}
 function kpFieldVal(elId){const el=byId(elId);return el?el.value:null;}
 function kpPriceNow(req,live){
   const agg=computeAggregateTotals(req);
@@ -1768,10 +2323,18 @@ function addCustomerLogEntry(id){
   const status=byId('cl-status').value;
   const note=(byId('cl-note').value||'').trim();
   const newAmount=(byId('cl-amount').value||'').trim();
-  if(!note&&!newAmount&&status===(req.customerStatus||'waiting')){
-    alert('Добавьте комментарий, новую сумму или измените статус');return;
+  const nextEl=byId('cl-next'), next=nextEl?(nextEl.value||''):'';
+  const reasonCode=status==='declined'?((byId('cl-reason')&&byId('cl-reason').value)||''):'';
+  const nextChanged=!['signed','declined'].includes(status)&&next!==(req.nextContactDate||'');
+  if(!note&&!newAmount&&!nextChanged&&status===(req.customerStatus||'waiting')&&!(status==='declined'&&reasonCode!==(req.declineReason||''))){
+    alert('Добавьте комментарий, новую сумму, дату следующего контакта или измените статус');return;
   }
+  if(status==='declined'&&!reasonCode){alert('Выберите причину отказа заказчика');return;}
   const entry={at:nowIso(),by:currentUser.name,status,note};
+  if(reasonCode){entry.reason=reasonCode;req.declineReason=reasonCode;}
+  if(status!=='declined')req.declineReason='';
+  if(['signed','declined'].includes(status))req.nextContactDate='';
+  else if(nextChanged){req.nextContactDate=next;entry.nextContact=next;}
   if(newAmount&&newAmount!==req.finalAmount){
     entry.amountBefore=req.finalAmount||'';
     entry.amountAfter=newAmount;
@@ -1781,7 +2344,9 @@ function addCustomerLogEntry(id){
   req.customerLog=req.customerLog||[];
   req.customerLog.push(entry);
   pushHistory(req,'Переговоры с заказчиком: '+CUSTOMER_STATUS_NAME[status]
+    +(entry.reason?' — причина: '+entry.reason:'')
     +(entry.amountAfter?' (сумма '+fmtMoney(entry.amountBefore)+' → '+fmtMoney(entry.amountAfter)+')':'')
+    +(entry.nextContact?' · следующий контакт '+fmtDay(entry.nextContact):'')
     +(note?' — '+note:''));
   pushRequest(id);
   openDetail(id);
@@ -1798,7 +2363,7 @@ function actionInitialControlReject(id){
   const req=DB.requests[id]; if(!req)return;
   const comment=(byId('ic-comment').value||'').trim();
   if(!comment){alert('Укажите комментарий — почему заявка возвращается в коммерческий отдел');return;}
-  req.stage='returned';
+  setStage(req,'returned');
   req.returnReason=comment;
   pushHistory(req,'Возврат в коммерческий отдел (первичный контроль): '+comment);
   pushRequest(id); closeModal('modal-detail'); renderAll();
@@ -1813,6 +2378,9 @@ function actionResubmit(id){
     const v=g(f);
     if(String(req[f]==null?'':req[f]).trim()!==v){req[f]=v;changed.push(labels[f]);}
   });
+  const newCats=pickedCategories('rs');
+  if((req.categories||[]).slice().sort().join(',')!==newCats.slice().sort().join(',')){req.categories=newCats;changed.push('категория');}
+  if((req.kpDueDate||'')!==g('kpDueDate')){req.kpDueDate=g('kpDueDate');changed.push('срок КП');}
   const newComment=g('comment');
   if(newComment!==(req.comment||'')){
     req.commentLog=req.commentLog||[];
@@ -1822,14 +2390,14 @@ function actionResubmit(id){
     changed.push('комментарий');
   }
   const prevReason=req.returnReason||'';
-  req.stage='new';
+  setStage(req,'new');
   req.returnReason='';
   pushHistory(req,'Заявка исправлена и отправлена повторно в производственный отдел'+(changed.length?' (изменено: '+changed.join(', ')+')':' (без изменений данных)')+(prevReason?' · причина возврата была: '+prevReason:''));
   pushRequest(id); closeModal('modal-detail'); renderAll();
 }
 function actionInitialControlSend(id){
   const req=DB.requests[id]; if(!req)return;
-  req.stage='subdivisions';
+  setStage(req,'subdivisions');
   req.involvedSubs=['production'];
   req.subs={production:{status:'waiting'}};
   pushHistory(req,'Первичный контроль пройден, заявка взята в проработку производственным отделом');
@@ -1881,7 +2449,7 @@ async function actionResendToSub(id,sub){
 function checkAutoDecision(req){
   const involved=req.involvedSubs&&req.involvedSubs.length?req.involvedSubs:Object.keys(req.subs||{});
   if(req.stage==='subdivisions'&&involved.every(s=>req.subs[s].status==='done')){
-    req.stage='decision';
+    setStage(req,'decision');
     pushHistory(req,'Все подразделения завершили оценку — заявка на решении ПО');
   }
 }
@@ -1890,7 +2458,7 @@ function actionForceDecision(id){
   const involved=req.involvedSubs&&req.involvedSubs.length?req.involvedSubs:Object.keys(req.subs||{});
   const notReady=involved.filter(s=>req.subs[s].status!=='done');
   if(!confirm('Перейти к решению, не дожидаясь: '+notReady.map(subLabel).join(', ')+'? При отказе/принятии в работу их оценка больше не потребуется.'))return;
-  req.stage='decision';
+  setStage(req,'decision');
   pushHistory(req,'Досрочный переход к решению — без ответа от: '+notReady.map(subLabel).join(', '));
   pushRequest(id); closeModal('modal-detail'); renderAll();
 }
@@ -1901,21 +2469,24 @@ function actionDecision(id,result){
     const chosen=involved.length===1?involved.slice():involved.filter(s=>byId('rw-'+s)&&byId('rw-'+s).checked);
     if(!chosen.length){alert('Отметьте хотя бы одно подразделение для переработки');return;}
     chosen.forEach(s=>req.subs[s]={status:'waiting'});
-    req.stage='subdivisions';
+    setStage(req,'subdivisions');
     pushHistory(req,'Возврат на переработку: '+chosen.map(subLabel).join(', '));
   }else if(result==='accepted'){
     involved.forEach(s=>{if(req.subs[s].status!=='done')req.subs[s].status='skipped';});
-    req.stage='accepted';
+    setStage(req,'accepted');
     req.decision={result:'accepted',by:currentUser.name,at:nowIso()};
     pushHistory(req,'Решение: берём в работу');
   }else if(result==='rejected'){
+    const code=(byId('dec-reject-code')&&byId('dec-reject-code').value)||'';
     const reason=byId('dec-reject-reason').value.trim();
-    if(!reason){alert('Укажите письменное обоснование отказа');return;}
+    if(!code){alert('Выберите причину отказа');return;}
+    if(code==='Другое'&&!reason){alert('Для причины «Другое» опишите отказ в пояснении');return;}
+    req.rejectionCode=code;
     involved.forEach(s=>{if(req.subs[s].status!=='done')req.subs[s].status='skipped';});
-    req.stage='rejected';
-    req.rejectionReason=reason;
+    setStage(req,'rejected');
+    req.rejectionReason=reason||code;
     req.decision={result:'rejected',by:currentUser.name,at:nowIso()};
-    pushHistory(req,'Решение: отказ');
+    pushHistory(req,'Решение: отказ — '+code+(reason?': '+reason:''));
   }
   pushRequest(id); closeModal('modal-detail'); renderAll();
 }
@@ -1925,7 +2496,7 @@ function actionReturnToProduction(id){
   req.subs.production=req.subs.production||{};
   req.subs.production.status='waiting';
   if(req.involvedSubs&&req.involvedSubs.length&&!req.involvedSubs.includes('production'))req.involvedSubs.push('production');
-  req.stage='subdivisions';
+  setStage(req,'subdivisions');
   pushHistory(req,'Коммерческий отдел вернул заявку в производственный отдел'+(reason?': '+reason:''));
   pushRequest(id); closeModal('modal-detail'); renderAll();
 }
@@ -1940,6 +2511,43 @@ function saveDetailComment(id){
   req.comment=comment;
   pushHistory(req,comment?'Изменён комментарий к заявке':'Комментарий к заявке очищен');
   pushRequest(id); openDetail(id);
+}
+async function addDetailAttachments(id,fileList){
+  const req=DB.requests[id]; if(!req)return;
+  const files=Array.from(fileList||[]); if(!files.length)return;
+  const st=byId('detail-files-status');
+  const added=[];
+  for(const file of files){
+    if(file.size>MAX_FILE_BYTES){alert('Файл «'+file.name+'» больше 8 МБ и не будет добавлен.');continue;}
+    if(st)st.textContent='Загрузка «'+file.name+'»…';
+    const isImage=file.type.startsWith('image/');
+    let dataUrl;
+    try{dataUrl=isImage?await compressImage(file):await readAsDataURL(file);}catch(e){try{dataUrl=await readAsDataURL(file);}catch(e2){continue;}}
+    const fileId=uid('file');
+    try{
+      const resp=await pushFile(fileId,dataUrl);
+      if(!resp||!resp.ok)throw new Error('upload');
+      added.push({id:fileId,name:file.name,type:isImage?'image/jpeg':(file.type||'application/octet-stream'),size:dataUrl.length,addedBy:currentUser.name,addedAt:nowIso()});
+    }catch(e){alert('Не удалось загрузить «'+file.name+'» — проверьте соединение');}
+  }
+  if(!added.length){if(st)st.textContent='';return;}
+  req.attachments=(req.attachments||[]).concat(added);
+  pushHistory(req,'Добавлены файлы: '+added.map(a=>a.name).join(', '));
+  pushRequest(id); openDetail(id);
+}
+function saveDetailMeta(id){
+  const req=DB.requests[id]; if(!req)return;
+  const cats=pickedCategories('dm');
+  const due=(byId('dm-kpdue')&&byId('dm-kpdue').value)||'';
+  const changes=[];
+  const before=(req.categories||[]).slice().sort().join(','), after=cats.slice().sort().join(',');
+  if(before!==after){changes.push('категория: '+(cats.map(categoryName).join(', ')||'не указана'));req.categories=cats;}
+  if((req.kpDueDate||'')!==due){changes.push('срок КП: '+(due?fmtDay(due):'не указан'));req.kpDueDate=due;}
+  const cmEl=byId('dm-clientmanager');
+  if(cmEl&&(req.clientManager||'')!==cmEl.value){changes.push('клиентский менеджер: '+(req.clientManager||'—')+' → '+(cmEl.value||'—'));req.clientManager=cmEl.value;}
+  if(!changes.length){openDetail(id);return;}
+  pushHistory(req,'Изменено — '+changes.join('; '));
+  pushRequest(id); openDetail(id); renderAll();
 }
 
 /* ========================= ЗАПРОСЫ НА РАСЧЁТ (учёт отправки/ответа) ========================= */
@@ -2116,7 +2724,7 @@ function crDelete(id,crid){
 }
 
 /* ========================= SUBDIVISION ACTIONS ========================= */
-function actionSubSubmit(id,sub){
+function actionSubSubmit(id,sub,andAccept){
   const insufChk=byId('sub-insufficient-'+sub);
   const insufficient=insufChk?insufChk.checked:false;
   const req=DB.requests[id]; if(!req)return;
@@ -2188,6 +2796,14 @@ function actionSubSubmit(id,sub){
     pushHistory(req,'«'+subLabel(sub)+'»: форма «Объём необходимых ресурсов» заполнена'+(sections.length?' · разделов выбрано: '+sections.length:'')+objTypeNote+stagesNote);
   }
   checkAutoDecision(req);
+  // «Отправить расчёт и взять в работу»: ПО считает само и само же решает — без второго захода в карточку
+  if(andAccept&&!insufficient&&req.stage==='decision'){
+    const involved=req.involvedSubs&&req.involvedSubs.length?req.involvedSubs:Object.keys(req.subs||{});
+    involved.forEach(s=>{if(req.subs[s]&&req.subs[s].status!=='done')req.subs[s].status='skipped';});
+    setStage(req,'accepted');
+    req.decision={result:'accepted',by:currentUser.name,at:nowIso()};
+    pushHistory(req,'Решение: берём в работу (сразу после расчёта)');
+  }
   pushRequest(id); closeModal('modal-detail'); renderAll();
 }
 
@@ -2220,6 +2836,36 @@ function openDetail(id){
   rows.forEach(([k,v])=>{html+='<div><div class="dk">'+k+'</div><div class="dv">'+((k==='Файл ТЗ'?linkifyText(v):escape(v))||'—')+'</div></div>';});
   html+='</div>';
 
+  // Категория и сроки — видно всем; править могут КО, admin, ПО и автор-клиентский менеджер
+  const canEditMeta=role==='commercial'||role==='admin'||role==='production'||(role==='klientskiy_menedzher'&&req.createdBy===currentUser.name);
+  html+='<div class="card-block" style="padding:12px 14px;margin:0 0 14px;background:var(--surface-2)">'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12.5px">'
+      +'<b style="margin-right:4px">Категория:</b>'+(categoryTagsHtml(req)||'<span style="color:var(--muted)">не указана</span>')
+      +'<span style="width:10px"></span>'+timingTagsHtml(req)
+      +(stageClosed(req)?'':'<span style="color:var(--muted)">на этапе с '+fmtDate(stageSince(req))+', норма — '+(STAGE_SLA_DAYS[req.stage]?plDays(STAGE_SLA_DAYS[req.stage]):'—')+'</span>')
+    +'</div>';
+  if(canEditMeta){
+    html+='<details style="margin-top:8px"><summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--accent-ink)">Изменить категорию / срок КП</summary>'
+      +'<div class="field" style="margin-top:8px"><label>Категория</label><div class="cat-picker">'+categoryPickerHtml('dm',req.categories||[])+'</div></div>'
+      +'<div class="form-grid" style="margin-top:8px">'
+        +'<div class="field"><label>КП нужно отправить до</label><input type="date" id="dm-kpdue" value="'+escape(req.kpDueDate||'')+'"></div>'
+        +'<div class="field"><label>Клиентский менеджер</label><select id="dm-clientmanager">'+(function(){
+          const list=(DB.managers||[]).filter(m=>!m._del).map(m=>m.name);
+          if(req.clientManager&&!list.includes(req.clientManager))list.push(req.clientManager);
+          return '<option value="">— Не выбран —</option>'+list.map(n=>'<option value="'+escape(n)+'"'+(n===req.clientManager?' selected':'')+'>'+escape(n)+'</option>').join('');
+        })()+'</select></div>'
+      +'</div>'
+      +'<div class="form-actions" style="justify-content:flex-start;margin-top:8px"><button type="button" class="btn btn-sm btn-primary" onclick="saveDetailMeta(\''+id+'\')">Сохранить</button></div>'
+    +'</details>';
+  }
+  html+='</div>';
+
+  const canAddFiles=['commercial','admin','production','commercial_director'].includes(role)||(role==='klientskiy_menedzher'&&req.createdBy===currentUser.name);
+  if(canAddFiles){
+    html+='<div style="margin-bottom:10px"><label class="btn btn-sm" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">📎 Добавить файлы'
+      +'<input type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.dwg,.zip" style="display:none" onchange="addDetailAttachments(\''+id+'\',this.files)"></label>'
+      +' <span id="detail-files-status" style="font-size:12px;color:var(--muted)">до 8 МБ каждый, фото сжимаются</span></div>';
+  }
   if(req.attachments&&req.attachments.length){
     html+='<div class="dk" style="margin-bottom:6px">Иные документы</div><div class="attach-list" style="margin-top:0">';
     req.attachments.forEach(a=>{
@@ -2306,7 +2952,7 @@ function openDetail(id){
 
   // Rejection reason
   if(req.stage==='rejected'&&req.rejectionReason){
-    html+='<div class="note-box"><b>Обоснование отказа:</b><br>'+escape(req.rejectionReason)+'</div>';
+    html+='<div class="note-box">'+(req.rejectionCode?'<b>Причина:</b> '+escape(req.rejectionCode)+'<br>':'')+(req.rejectionReason&&req.rejectionReason!==req.rejectionCode?'<b>Обоснование:</b><br>'+escape(req.rejectionReason):'')+'</div>';
   }
   if(req.stage==='returned'&&req.returnReason){
     html+='<div class="note-box"><b>Причина возврата (первичный контроль):</b><br>'+escape(req.returnReason)+'</div>';
@@ -2317,8 +2963,9 @@ function openDetail(id){
   if((role==='commercial'||role==='admin')&&req.stage==='accepted'){
     html+='<div class="divider"></div><h3>Коммерческое предложение для заказчика</h3>';
     if(req.kpGenerated){
-      html+='<div class="hint-box">КП №'+escape(req.kpOutNum||kpNumber(req))+' уже формировалось '+fmtDate(req.kpGenerated.at)+' ('+escape(req.kpGenerated.by)+'), сумма '+fmtMoney(req.finalAmount)+'. При необходимости можно сформировать заново.</div>';
+      html+='<div class="hint-box">КП №'+escape(req.kpOutNum||kpNumber(req))+' уже формировалось '+fmtDate(req.kpGenerated.at)+' ('+escape(req.kpGenerated.by)+'), сумма '+fmtMoney(req.finalAmount)+'. При необходимости можно сформировать заново — прежняя версия сохранится.</div>';
     }
+    html+=kpVersionsHtml(req);
     html+='<div class="card-block" style="padding:14px;margin-top:10px;background:var(--surface-2)">'
       +'<div style="font-weight:700;font-size:13px;margin-bottom:6px">Нужны правки от производства?</div>'
       +'<div class="field"><label>Комментарий для производственного отдела (необязательно)</label><textarea id="kp-return-reason" placeholder="Что нужно поправить — например, неверная себестоимость по разделу"></textarea></div>'
@@ -2331,6 +2978,10 @@ function openDetail(id){
       +'<div class="field span2"><label>Кому направляем (организация, ФИО, должность)</label><textarea id="kp-addressee" placeholder="напр. Генеральному директору ООО «Заказчик» Иванову И.И.">'+escape(req.kpAddressee||'')+'</textarea></div>'
       +'<div class="field"><label>Исходящий №</label><input id="kp-outnum" value="'+escape(req.kpOutNum||'')+'" placeholder="'+kpNumber(req)+'"></div>'
       +'<div class="field"><label>Дата письма</label><input type="date" id="kp-outdate" value="'+escape(req.kpOutDate||todayIso)+'"></div>'
+      +'<div class="field"><label>Обращение</label><input id="kp-greeting" value="'+escape(req.kpGreeting||'')+'" placeholder="Уважаемые коллеги!"></div>'
+      +'<div class="field"><label>Контактное лицо в КП</label><input id="kp-contact" value="'+escape(req.kpContact!=null&&req.kpContact!==''?req.kpContact:[req.clientManager,KP_COMPANY.phone,KP_COMPANY.email].filter(Boolean).join(', '))+'"></div>'
+      +'<div class="field span2"><label>Дополнительные условия для этого КП (необязательно — попадут отдельным пунктом)</label><textarea id="kp-extra" placeholder="напр. Выезд специалиста на объект — в течение 3 рабочих дней после подписания договора">'+escape(req.kpExtra||'')+'</textarea></div>'
+      +'<div class="span2" style="font-size:11.5px;color:var(--muted)">Постоянные блоки КП («О компании», преимущества, результат работ, гарантии) администратор правит в «Настройках» → «Тексты коммерческого предложения».</div>'
     +'</div>';
     const kpAgg=computeAggregateTotals(req);
     if(kpAgg.costFinal>0){
@@ -2409,23 +3060,28 @@ function openDetail(id){
   }
 
   // Customer follow-up log — visible to everyone once КП has been sent, editable by КО/admin
+  if(req.stage==='accepted'&&req.kpGenerated&&!((role==='commercial'||role==='admin'))){html+=kpVersionsHtml(req);}
   if(req.stage==='accepted'&&req.kpGenerated){
     const curStatus=req.customerStatus||'waiting';
     html+='<div class="divider"></div><h3>Ход переговоров с заказчиком</h3>';
-    html+='<span class="badge badge-cl-'+curStatus+'">'+CUSTOMER_STATUS_NAME[curStatus]+'</span>';
+    html+='<span class="badge badge-cl-'+curStatus+'">'+CUSTOMER_STATUS_NAME[curStatus]+'</span>'
+      +(curStatus==='declined'&&req.declineReason?' <span class="tag tag-danger">'+escape(req.declineReason)+'</span>':'')
+      +(negotiationOpen(req)&&req.nextContactDate?' '+'<span class="tag'+(contactLevel(req)?' tag-'+contactLevel(req):'')+'">📞 '+contactText(req)+'</span>':'');
     if(req.customerLog&&req.customerLog.length){
       html+='<div style="margin-top:10px">'+req.customerLog.slice().reverse().map(function(e){
-        return '<div class="history-item"><span class="h-time">'+fmtDate(e.at)+'</span><span>'+escape(e.by)+' — '+CUSTOMER_STATUS_NAME[e.status]
+        return '<div class="history-item"><span class="h-time">'+fmtDate(e.at)+'</span><span>'+escape(e.by)+' — '+CUSTOMER_STATUS_NAME[e.status]+(e.reason?' ('+escape(e.reason)+')':'')+(e.nextContact?' · следующий контакт '+fmtDay(e.nextContact):'')
           +(e.amountAfter?' (сумма '+fmtMoney(e.amountBefore)+' → '+fmtMoney(e.amountAfter)+')':'')
           +(e.note?': '+escape(e.note):'')+'</span></div>';
       }).join('')+'</div>';
     }
     if(role==='commercial'||role==='admin'){
       html+='<div class="form-grid" style="margin-top:12px">'
-        +'<div class="field"><label>Статус</label><select id="cl-status">'
+        +'<div class="field"><label>Статус</label><select id="cl-status" onchange="byId(\'cl-reason-wrap\').style.display=this.value===\'declined\'?\'\':\'none\';byId(\'cl-next-wrap\').style.display=[\'signed\',\'declined\'].includes(this.value)?\'none\':\'\';">'
           +Object.keys(CUSTOMER_STATUS_NAME).map(function(k){return '<option value="'+k+'"'+(k===curStatus?' selected':'')+'>'+CUSTOMER_STATUS_NAME[k]+'</option>';}).join('')
         +'</select></div>'
         +'<div class="field"><label>Новая сумма, ₽ (если изменилась)</label><input id="cl-amount" type="number" min="0" step="1" placeholder="'+escape(tonum(req.finalAmount)||'')+'"></div>'
+        +'<div class="field" id="cl-reason-wrap" style="display:'+(curStatus==='declined'?'':'none')+'"><label>Причина отказа заказчика</label><select id="cl-reason">'+reasonOptionsHtml('customer',req.declineReason||'')+'</select></div>'
+        +'<div class="field" id="cl-next-wrap" style="display:'+(['signed','declined'].includes(curStatus)?'none':'')+'"><label>Следующий контакт с заказчиком</label><input id="cl-next" type="date" value="'+escape(req.nextContactDate||'')+'"></div>'
         +'<div class="field span2"><label>Комментарий</label><textarea id="cl-note" placeholder="напр. заказчик просит скидку 10%, ждём решения"></textarea></div>'
       +'</div>';
       html+='<div class="form-actions" style="justify-content:flex-start;margin-top:10px">'
@@ -2457,7 +3113,9 @@ function openDetail(id){
         +inp('workType','Вид работ',req.workType)
         +'<div class="field"><label>Гос. заказ</label><select id="rs-govOrder"><option value="Нет"'+(req.govOrder!=='Да'?' selected':'')+'>Нет</option><option value="Да"'+(req.govOrder==='Да'?' selected':'')+'>Да</option></select></div>'
         +'<div class="field"><label>Валюта расчётов</label><select id="rs-currency"><option value="Рубль"'+(req.currency!=='Цифровой рубль'?' selected':'')+'>Рубль</option><option value="Цифровой рубль"'+(req.currency==='Цифровой рубль'?' selected':'')+'>Цифровой рубль</option></select></div>'
-        +inp('deadline','Срок исполнения',req.deadline)
+        +'<div class="field span2"><label>Категория</label><div class="cat-picker">'+categoryPickerHtml('rs',req.categories||[])+'</div></div>'
+        +inp('kpDueDate','КП нужно отправить до',req.kpDueDate,'type="date"')
+        +inp('deadline','Срок исполнения работ',req.deadline)
         +inp('advance','Размер аванса, %',String(req.advance==null?'':req.advance).replace(/%+\s*$/,''),'type="number" min="0" max="100" step="1"')
         +'<div class="field span2"><label>Файл ТЗ (ссылка или название)</label><input id="rs-tzLink" value="'+escape(req.tzLink||'')+'"></div>'
         +'<div class="field span2"><label>Комментарий</label><textarea id="rs-comment">'+escape(req.comment||'')+'</textarea></div>'
@@ -2517,7 +3175,8 @@ function openDetail(id){
       involvedForDecision.forEach(s=>{html+='<label style="display:inline-flex;align-items:center;gap:5px;margin:4px 10px 0 0;font-size:12.5px"><input type="checkbox" id="rw-'+s+'"> '+subLabel(s)+'</label>';});
       html+='</div>';
     }
-    html+='<div class="field"><label>Обоснование отказа (если отказ)</label><textarea id="dec-reject-reason" placeholder="Причина отказа для коммерческого отдела"></textarea></div>';
+    html+='<div class="form-grid" style="margin-bottom:6px"><div class="field"><label>Причина отказа (если отказ)</label><select id="dec-reject-code">'+reasonOptionsHtml('po','')+'</select></div></div>';
+    html+='<div class="field"><label>Пояснение для коммерческого отдела (обязательно, если причина «Другое»)</label><textarea id="dec-reject-reason" placeholder="Подробности отказа"></textarea></div>';
     html+='<div class="form-actions" style="justify-content:flex-start;margin-top:14px">'
       +'<button class="btn" onclick="actionDecision(\''+id+'\',\'rework\')">↩ На переработку</button>'
       +'<button class="btn btn-danger" onclick="actionDecision(\''+id+'\',\'rejected\')">Отказ</button>'
@@ -2597,7 +3256,12 @@ function openDetail(id){
       +'</div>';
     html+='<div id="sub-form-note-'+role+'" class="field" style="display:none"><label>Каких данных не хватает?</label><textarea id="sub-note-'+role+'"></textarea></div>';
     html+='<div id="sec-picker-wrap-'+role+'">'+buildSectionsPickerHtml(req,role,(req.region==='msk'?'msk':'ru'))+'</div>';
-    html+='<div class="form-actions"><button class="btn btn-primary" onclick="actionSubSubmit(\''+id+'\',\''+role+'\')">Отправить</button></div>';
+    // ПО — единственный исполнитель: можно сразу принять решение «берём в работу»
+    const onlyMe=role==='production'&&(req.involvedSubs&&req.involvedSubs.length?req.involvedSubs:Object.keys(req.subs||{})).every(s=>s==='production'||(req.subs[s]&&['done','not_involved','skipped'].includes(req.subs[s].status)));
+    html+='<div class="form-actions">'
+      +'<button class="btn" onclick="actionSubSubmit(\''+id+'\',\''+role+'\')"'+(onlyMe?' title="Заявка перейдёт на этап «Решение ПО»"':'')+'>'+(onlyMe?'Отправить на решение':'Отправить')+'</button>'
+      +(onlyMe?'<button class="btn btn-success" onclick="actionSubSubmit(\''+id+'\',\''+role+'\',true)">✓ Отправить расчёт и взять в работу</button>':'')
+      +'</div>';
   }
 
   html+='<!--TAB:history-->';
@@ -3001,6 +3665,121 @@ function renderUsers(){
   renderObjectTypes();
   renderUnits();
   renderLegalEntities();
+  renderCategories();
+  renderKpTexts();
+  renderReasons();
+}
+function renderReasons(){
+  ['po','customer'].forEach(k=>{const el=byId('rsn-'+k);if(el&&document.activeElement!==el)el.value=reasonList(k).join('\n');});
+}
+function saveReasons(){
+  const r={};
+  ['po','customer'].forEach(k=>{
+    const list=(byId('rsn-'+k).value||'').split('\n').map(x=>x.trim()).filter(Boolean);
+    if(!list.includes('Другое'))list.push('Другое');
+    r[k]=Array.from(new Set(list));
+  });
+  DB.reasons=r; pushReasons(); renderReasons();
+  alert('Причины отказов сохранены');
+}
+/* ---- Категории (настройки) ---- */
+function renderCategories(){
+  const list=activeCategories();
+  const all=allRequests();
+  byId('categories-table-body').innerHTML=list.length?list.map(c=>
+    '<tr><td>'+escape(c.name)+'</td><td>'+all.filter(r=>(r.categories||[]).includes(c.id)).length+'</td>'
+    +'<td><button class="btn btn-sm" onclick="renameCategory(\''+c.id+'\')">Переименовать</button> <button class="btn btn-sm btn-danger" onclick="deleteCategory(\''+c.id+'\')">Удалить</button></td></tr>'
+  ).join(''):'<tr><td colspan="3" style="color:var(--muted)">Список пуст</td></tr>';
+}
+function createCategory(){
+  const name=(byId('catf-name').value||'').trim();
+  if(!name){alert('Укажите название категории');return;}
+  DB.categories=DB.categories||[];
+  if(activeCategories().some(c=>c.name.toLowerCase()===name.toLowerCase())){alert('Такая категория уже есть');return;}
+  DB.categories.push({id:uid('cat'),name});
+  pushCategories();
+  byId('catf-name').value='';
+  renderCategories();
+}
+function renameCategory(id){
+  const c=(DB.categories||[]).find(x=>x.id===id); if(!c)return;
+  const name=(prompt('Новое название категории',c.name)||'').trim();
+  if(!name||name===c.name)return;
+  if(activeCategories().some(x=>x.id!==id&&x.name.toLowerCase()===name.toLowerCase())){alert('Такая категория уже есть');return;}
+  c.name=name; pushCategories(); renderCategories();
+}
+function deleteCategory(id){
+  const c=(DB.categories||[]).find(x=>x.id===id); if(!c)return;
+  const n=allRequests().filter(r=>(r.categories||[]).includes(id)).length;
+  if(!confirm('Удалить категорию «'+c.name+'»?'+(n?' Она останется в '+n+' уже размеченных заявках, но в новых её выбрать будет нельзя.':'')))return;
+  c._del=true; pushCategories(); renderCategories();
+}
+/* ---- Тексты КП (настройки) ---- */
+function renderKpTexts(){
+  const t=kpTexts();
+  ['intro','about','advantages','result','guarantees','closing'].forEach(k=>{const el=byId('kpt-'+k);if(el&&document.activeElement!==el)el.value=t[k]||'';});
+  const v=byId('kpt-validity'); if(v&&document.activeElement!==v)v.value=t.validityDays||'';
+}
+function saveKpTexts(){
+  const t={};
+  ['intro','about','advantages','result','guarantees','closing'].forEach(k=>{t[k]=(byId('kpt-'+k).value||'').trim();});
+  t.validityDays=Math.max(1,Math.round(tonum(byId('kpt-validity').value))||14);
+  DB.kpTexts=t; pushKpTexts();
+  alert('Тексты КП сохранены — они будут использоваться во всех новых КП');
+}
+function resetKpTexts(){
+  if(!confirm('Заменить тексты КП на варианты по умолчанию? Ваши правки будут потеряны.'))return;
+  DB.kpTexts=Object.assign({},DEFAULT_KP_TEXTS); pushKpTexts(); renderKpTexts();
+}
+
+/* ========================= ВЫГРУЗКА В EXCEL ========================= */
+let xlsxLoading=null;
+function loadXlsxLib(){
+  if(window.XLSX)return Promise.resolve(window.XLSX);
+  if(!xlsxLoading)xlsxLoading=new Promise(function(resolve,reject){
+    const sc=document.createElement('script');
+    sc.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    sc.onload=function(){resolve(window.XLSX);};
+    sc.onerror=function(){xlsxLoading=null;reject(new Error('xlsx'));};
+    document.head.appendChild(sc);
+  });
+  return xlsxLoading;
+}
+function exportRows(list){
+  const head=['№ заявки','Создана','Заказчик','Предмет договора','Адрес','Категория','Вид работ','Клиентский менеджер','Менеджер клиента','Этап','Дней на этапе','КП отправить до','Срок КП','Ориент. сумма, ₽','Сумма КП с НДС, ₽','№ КП','КП сформировано','Версий КП','Статус у заказчика','Следующий контакт','Причина отказа','Создал'];
+  const rows=list.map(r=>[
+    r.id, r.createdAt?new Date(r.createdAt):'', r.customer||'', r.subject||'', r.address||'',
+    reqCategories(r).map(categoryName).join(', '), r.workType||'', r.clientManager||'', r.manager||'',
+    STAGE_NAME[r.stage]||r.stage, stageClosed(r)?'':stageAgeDays(r),
+    r.kpDueDate?new Date(r.kpDueDate+'T00:00:00'):'', r.kpDueDate?dueText(r).replace(/^КП до [\d.]+ · /,''):'',
+    tonum(r.amount)||'', r.kpGenerated?tonum(r.finalAmount):'', r.kpGenerated?(r.kpOutNum||kpNumber(r)):'',
+    r.kpGenerated?new Date(r.kpGenerated.at):'', r.kpGenerated?kpVersionsList(r).length:'', r.kpGenerated?(CUSTOMER_STATUS_NAME[r.customerStatus||'waiting']||''):'',
+    negotiationOpen(r)&&r.nextContactDate?new Date(r.nextContactDate+'T00:00:00'):'',
+    r.stage==='rejected'?(r.rejectionCode||r.rejectionReason||''):(r.customerStatus==='declined'?(r.declineReason||''):''), r.createdBy||''
+  ]);
+  return [head].concat(rows);
+}
+async function exportRequestsXlsx(){
+  const list=filteredRequestList();
+  if(!list.length){alert('Нет заявок для выгрузки — измените фильтры');return;}
+  const data=exportRows(list);
+  const stamp=new Date().toISOString().slice(0,10);
+  try{
+    const X=await loadXlsxLib();
+    const ws=X.utils.aoa_to_sheet(data,{cellDates:true,dateNF:'dd/mm/yyyy'});
+    ws['!cols']=[14,11,28,40,32,20,18,20,18,16,8,11,22,14,14,18,11,8,22,12,28,18].map(w=>({wch:w}));
+    ws['!autofilter']={ref:X.utils.encode_range({s:{r:0,c:0},e:{r:data.length-1,c:data[0].length-1}})};
+    const wb=X.utils.book_new(); X.utils.book_append_sheet(wb,ws,'Заявки');
+    X.writeFile(wb,'Заявки на КП '+stamp+'.xlsx');
+  }catch(e){
+    // запасной вариант без библиотеки — CSV, который Excel открывает напрямую
+    const cell=v=>{if(v instanceof Date)v=v.toLocaleDateString('ru-RU');v=String(v==null?'':v);return /[";\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+    const csv='﻿'+data.map(row=>row.map(cell).join(';')).join('\r\n');
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+    a.download='Заявки на КП '+stamp+'.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+  }
 }
 function renderManagers(){
   const list=(DB.managers||[]).filter(m=>!m._del);
