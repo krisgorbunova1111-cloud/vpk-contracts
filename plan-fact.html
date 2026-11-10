@@ -210,6 +210,7 @@ tr:not(.trtot):not(.obj-hd):hover td{background:var(--surf2)}
   </div>
 </div>
 
+<script src="vpk-cloud.js"></script>
 <script>
 var SUPABASE_URL='https://urfnpjumxkewyizaxgns.supabase.co';
 var SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVyZm5wanVteGtld3lpemF4Z25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMzkyNDMsImV4cCI6MjA5MTgxNTI0M30.vDbdyE3Z4whApQo50Mfgor11SL-dT1PWDOygipxVKtE';
@@ -277,7 +278,7 @@ var TP=112347919,TF=46157143,TR=66190776;
 // Planning data from localStorage
 var planning={};
 try{planning=JSON.parse(localStorage.getItem('vpk_plan')||'{}');}catch(e){}
-function savePlan(){try{localStorage.setItem('vpk_plan',JSON.stringify(planning));}catch(e){}}
+function savePlan(){VPKCloud.save('vpk_plan');}
 
 // Auto-planning from contracts registry (Supabase vpk_contracts_v3)
 var autoPlanning={};
@@ -310,7 +311,7 @@ function planVal(objName,week){
 // Object priority — 'exp' | 'urg' | 'nor' (default)
 var objPriority={};
 try{objPriority=JSON.parse(localStorage.getItem('vpk_obj_priority')||'{}');}catch(e){}
-function savePriority(){try{localStorage.setItem('vpk_obj_priority',JSON.stringify(objPriority));}catch(e){}}
+function savePriority(){VPKCloud.save('vpk_obj_priority');}
 
 // Customer-contract driven priorities — set by customers.html when ГГЭ/EXON approved
 var custPriority={};
@@ -344,8 +345,7 @@ function setDistStep(s){
 }
 
 function renderPriorityStep(){
-  // Reload customer priorities each render (updated by customers.html)
-  try{custPriority=JSON.parse(localStorage.getItem('vpk_priority_from_customer')||'{}');}catch(e){}
+  // custPriority обновляется из облака (vpk-cloud.js), ставит его customers.html
 
   var objs=ctrMap
     ? Object.keys(ctrMap).map(function(n){
@@ -898,7 +898,7 @@ fetch(SUPABASE_URL+'/rest/v1/storage?select=key,value&key=eq.vpk_contracts_v3',{
     var contracts=JSON.parse(data[0].value);
     ctrMap=buildCtrMap(contracts);
     autoPlanning=buildAutoPlanning(contracts);
-    renderPlanFact(); // refresh matrix with auto-plan values
+    renderMatrix(); renderMonths(); // refresh matrix with auto-plan values
   }
   renderPriorityStep();
   if(distStep===2) renderDist();
@@ -1133,6 +1133,18 @@ if(window!==window.parent){
 }
 renderSummary();
 renderMatrix();
+
+/* Облако: план, приоритеты — общие для всех пользователей (см. vpk-cloud.js) */
+VPKCloud.register('vpk_plan',{kind:'map',get:function(){return planning;},set:function(v){planning=v||{};}});
+VPKCloud.register('vpk_obj_priority',{kind:'map',get:function(){return objPriority;},set:function(v){objPriority=v||{};}});
+VPKCloud.register('vpk_priority_from_customer',{kind:'map',readonly:true,get:function(){return custPriority;},set:function(v){custPriority=v||{};}});
+VPKCloud.onRemote(function(){
+  var a=document.activeElement;
+  if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;
+  renderMatrix();renderMonths();
+  if(distStep===1)renderPriorityStep();else renderDist();
+});
+VPKCloud.start();
 renderMonths();
 renderPriorityStep(); // initial render of step 1 from embedded data (Supabase overrides later)
 </script>

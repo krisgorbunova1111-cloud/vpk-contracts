@@ -223,6 +223,7 @@ html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--
 }
 .back-btn{display:none;align-items:center;gap:5px;padding:5px 10px;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;font-family:inherit;cursor:pointer}
 </style>
+<script src="vpk-cloud.js"></script>
 </head>
 <body>
 
@@ -395,12 +396,32 @@ try{customContracts=JSON.parse(localStorage.getItem(LS_CUSTOM)||'[]');}catch(e){
 try{edits=JSON.parse(localStorage.getItem(LS_EDITS)||'{}');}catch(e){}
 try{payments=JSON.parse(localStorage.getItem(LS_PAY)||'{}');}catch(e){}
 
-function saveSums(){try{localStorage.setItem(LS_SUMS,JSON.stringify(sums));}catch(e){}}
-function saveExtra(){try{localStorage.setItem(LS_EXTRA,JSON.stringify(extra));}catch(e){}}
-function saveDeleted(){try{localStorage.setItem(LS_DEL,JSON.stringify(Array.from(deleted)));}catch(e){}}
-function saveCustom(){try{localStorage.setItem(LS_CUSTOM,JSON.stringify(customContracts));}catch(e){}}
-function saveEdits(){try{localStorage.setItem(LS_EDITS,JSON.stringify(edits));}catch(e){}}
-function savePays(){try{localStorage.setItem(LS_PAY,JSON.stringify(payments));}catch(e){}}
+function saveSums(){VPKCloud.save(LS_SUMS);}
+function saveExtra(){VPKCloud.save(LS_EXTRA);}
+function saveDeleted(){VPKCloud.save(LS_DEL);}
+function saveCustom(){VPKCloud.save(LS_CUSTOM);}
+function saveEdits(){VPKCloud.save(LS_EDITS);}
+function savePays(){VPKCloud.save(LS_PAY);}
+var pfMap={};
+try{pfMap=JSON.parse(localStorage.getItem(LS_PF)||'{}');}catch(e){}
+
+/* Облако: все данные «Заказчиков» общие для всех пользователей (см. vpk-cloud.js) */
+VPKCloud.register(LS_SUMS,{kind:'map',get:function(){return sums;},set:function(v){sums=v||{};}});
+VPKCloud.register(LS_EXTRA,{kind:'map',get:function(){return extra;},set:function(v){extra=v||{};}});
+VPKCloud.register(LS_DEL,{kind:'set',get:function(){return Array.from(deleted);},set:function(v){deleted=new Set(v||[]);}});
+VPKCloud.register(LS_CUSTOM,{kind:'list',get:function(){return customContracts;},set:function(v){customContracts=v||[];}});
+VPKCloud.register(LS_EDITS,{kind:'map',get:function(){return edits;},set:function(v){edits=v||{};}});
+VPKCloud.register(LS_PAY,{kind:'map',get:function(){return payments;},set:function(v){payments=v||{};}});
+VPKCloud.register(LS_PF,{kind:'map',get:function(){return pfMap;},set:function(v){pfMap=v||{};}});
+VPKCloud.onRemote(function(){
+  syncPF();updateTiles();renderList();
+  var a=document.activeElement;
+  var typing=a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName);
+  if(selectedId&&!typing){
+    var d=allData().find(function(x){return x.id===selectedId;});
+    if(d)renderDetail(d);
+  }
+});
 function getEx(id){if(!extra[id])extra[id]={};return extra[id];}
 function getPays(id){return payments[id]||[];}
 
@@ -512,7 +533,7 @@ function syncPF(){
     var ex=extra[d.id]||{};
     if(ex.pfname&&(ex.gge_status==='пройдена'||ex.exon_status==='одобрен')){pf[ex.pfname]='exp';}
   });
-  try{localStorage.setItem(LS_PF,JSON.stringify(pf));}catch(e){}
+  if(JSON.stringify(pf)!==JSON.stringify(pfMap)){pfMap=pf;VPKCloud.save(LS_PF);}
   var names=Object.keys(pf);
   var bar=document.getElementById('pf-bar');
   if(bar){
@@ -948,6 +969,7 @@ syncPF();
 updateTiles();
 renderList();
 loadSubContracts();
+VPKCloud.start();
 </script>
 </body>
 </html>
